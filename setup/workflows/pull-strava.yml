@@ -1,0 +1,55 @@
+name: Pull Strava workouts
+
+# Workouts for athletes without Garmin: scripts/pull_strava.py reads recent Strava activities
+# into data/activities.csv. Needs the secrets STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET and
+# STRAVA_REFRESH_TOKEN (scripts/setup_strava.py); without them it does nothing.
+# The schedule is added by setup/personalize.py for athletes who use Strava; until then the
+# workflow runs only by hand or from the morning check-in's dispatch.
+on:
+  workflow_dispatch:
+    inputs:
+      extra_days_back:
+        description: "Look back this many days (blank = 2)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: garmin-pull   # one queue for every writer of data/
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install --quiet cryptography
+
+      - name: Pull recent workouts
+        env:
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+          EXTRA_DAYS_BACK: ${{ github.event.inputs.extra_days_back }}
+        run: python scripts/pull_strava.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "coach-data-bot"
+          git config user.email "coach-data-bot@users.noreply.github.com"
+          git add data state
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -q -m "Strava pull $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull -q --rebase && git push -q
+          fi

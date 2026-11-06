@@ -1,0 +1,741 @@
+/* Coach dashboard, phone first. Six pages a tab each: Today (decide and log), Week (plan vs done, load), Lifts (Long Life Lifts: log sets, progressive overload), Fitness (performance markers, volume, zones), Health (longevity markers, recovery, weight, feel), Season (blocks and races, race hub). */
+#dash-root { --dash-gutter: clamp(16px, 3vw, 32px); }
+.cx { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-md); max-width: 1100px; margin-inline: auto; }
+.cx p { margin: 0; }
+.cx [hidden] { display: none !important; }
+.cx a { color: var(--color-fg); text-underline-offset: 2px; }
+.cx h1, .cx h2, .cx h3 { margin: 0; text-wrap: balance; }
+.cx h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-heading); }
+.cx h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.cx h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); }
+.cx .muted { color: var(--color-fg-muted); }
+.cx .cap { font-size: var(--cds-font-size-caption); }
+.cx .page b { font-weight: var(--cds-font-weight-medium); }
+.cx-head { display: grid; gap: var(--cds-gap-sm); }
+.cx-titlerow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--cds-gap-sm); }
+.cx-tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: calc(var(--cds-radius) + 3px); }
+.cx-tabs button { font: inherit; font-size: var(--cds-font-size-body); min-height: 44px; padding: 0 2px; border: 0; border-radius: var(--cds-radius); background: transparent; color: var(--ck-fg-2); cursor: pointer; touch-action: manipulation; }
+/* The sticky bar (Phase 6, point 1): the tab strip sits outside the header, so it is pinned for the whole page while the
+   title scrolls away. It clears the phone notch (safe area), and its page-well background and hairline run the full width
+   (spread shadows, clipped above, so nothing adds to the page width). --cx-bar-h is its height (app.js measures it); the
+   range row on Fitness and Health docks under it. Everything a script or the keyboard scrolls to keeps clear of both. */
+.cx { --cx-bar-h: calc(60px + env(safe-area-inset-top, 0px)); --cx-dock-h: 66px; --cx-stick: var(--cx-bar-h); }
+.cx-bar { position: sticky; top: 0; z-index: calc(var(--ck-z-2) + 1); min-width: 0; padding: calc(var(--ck-s1) + env(safe-area-inset-top, 0px)) 0 var(--ck-s1); background: var(--ck-bg);
+  box-shadow: 0 0 0 100vmax var(--ck-bg), 0 1px 0 100vmax var(--ck-line); clip-path: inset(0 -100vmax -1px); }
+.cx .page:has(> .ft-span) { --cx-stick: calc(var(--cx-bar-h) + var(--cx-dock-h)); }
+.cx .page :is([id], [tabindex], a, button, input, select, textarea, summary) { scroll-margin-top: calc(var(--cx-stick) + var(--ck-s2)); }
+/* Header time on the Cockpit secondary ink (Phase 5): the host's muted grey is 3.4:1 on the live host, under 4.5. */
+.cx-head .muted { color: var(--ck-fg-2); }
+.cx-tabs button[aria-selected=true] { background: var(--color-bg); color: var(--color-fg); font-weight: var(--cds-font-weight-medium); box-shadow: 0 0 0 1px var(--color-border-line); }
+.cx .page { display: grid; gap: var(--cds-gap-md); align-content: start; }
+.cx .page[hidden] { display: none; }
+/* Page footer (versioning, Nov 5, 2026): the Coach version and build time on every tab, secondary ink at 13 px. */
+.cx-foot { padding: var(--ck-s2) 0 calc(var(--ck-s3) + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--ck-line); }
+.cx .cx-foot-t { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+
+
+/* Controls */
+.cx .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 3px; border-radius: calc(var(--cds-radius) + 2px); background: var(--color-bg); border: 1px solid var(--color-border-line); }
+.cx .seg.inline { display: inline-grid; }
+.cx .seg button { font: inherit; font-size: var(--cds-font-size-caption); min-height: 34px; padding: 0 .7em; border: 0; border-radius: var(--cds-radius); background: transparent; color: var(--color-fg-muted); cursor: pointer; touch-action: manipulation; white-space: nowrap; }
+.cx .seg button[aria-pressed=true] { background: var(--color-panel); color: var(--color-fg); font-weight: var(--cds-font-weight-medium); box-shadow: 0 0 0 1px var(--color-border-line); }
+
+
+
+/* Shared with Season (tile(), meters) and Fitness (status words): the Week tab moved to the Cockpit rules at the end of
+   this file in Phase 5; these stay for the tabs that still use them. */
+.cx .tile { display: grid; gap: 2px; align-content: start; padding: var(--cds-pad-sm) var(--cds-pad-md); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); min-width: 0; }
+.cx .tile .v { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; }
+.cx .tile .v small { font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-left: .25em; }
+.cx .tile .l { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cx .meter { height: 6px; border-radius: 3px; background: var(--color-bg); border: 1px solid var(--color-border-line); overflow: hidden; }
+.cx .meter > i { display: block; height: 100%; background: var(--color-fg); border-radius: 3px; }
+.cx .st { font-size: var(--cds-font-size-caption); padding: .1em .55em; border-radius: 999px; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); white-space: nowrap; margin-top: .15em; }
+.cx .pillars { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; counter-reset: p; }
+.cx .pillars li { display: grid; grid-template-columns: 1.4em 1fr; gap: 8px; font-size: var(--cds-font-size-caption); counter-increment: p; }
+.cx .pillars li::before { content: counter(p); font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-body); line-height: 1.2; }
+
+/* Charts */
+.cx .chart { position: relative; min-height: var(--h, 160px); }
+.cx .chart svg { display: block; overflow: visible; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
+.cx .chart text { fill: var(--color-fg-muted); font-size: 11px; font-family: var(--font-anthropic-sans); }
+.cx .chart text.end { fill: var(--color-fg); font-weight: 600; }
+.cx .tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 3; display: grid; gap: 1px; }
+.cx .tip .d { color: var(--cds-text-secondary); }
+.cx .tip .r { display: flex; align-items: center; gap: 6px; }
+.cx .tip .k { width: 12px; height: 2px; border-radius: 1px; display: inline-block; }
+.cx .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cx .legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cx .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.cx .legend i:not(.ln):not(.dash) { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-fg-muted) 45%, transparent); }
+.cx .legend i.ln { width: 14px; height: 2px; border-radius: 1px; }
+.cx .legend i.dash { width: 14px; height: 0; border-top: 2px dashed currentColor; border-radius: 0; background: none !important; }
+.cx .legend i.dot { width: 7px; height: 7px; border-radius: 50%; }
+.cx .legend i.box { background: transparent !important; border: 1px dashed var(--cds-chart-reference); }
+.cx .sm { display: grid; gap: var(--cds-gap-md); }
+.cx .sm h3 { font-size: var(--cds-font-size-caption); font-weight: var(--cds-font-weight-medium); color: var(--color-fg); }
+
+/* Goals */
+.cx .good { color: var(--color-ok); }
+.cx .bad { color: var(--color-warn); }
+
+.cx .up { color: var(--color-ok); }
+.cx .down { color: var(--color-warn); }
+.cx .tlist { display: grid; }
+.cx .trow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--color-border-line); padding: 10px 0; cursor: pointer; }
+.cx .trow:first-child { border-top: 0; padding-top: 2px; }
+.cx .trow .t1 { font-weight: var(--cds-font-weight-medium); }
+.cx .trow .t2 { grid-column: 1 / -1; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.cx .trow .d { font-size: var(--cds-font-size-caption); text-align: right; font-variant-numeric: tabular-nums; }
+.cx .trow .d.prop { color: var(--color-fg-muted); }
+.cx .trow .more { grid-column: 1 / -1; display: grid; gap: 4px; font-size: var(--cds-font-size-caption); padding-top: 4px; }
+
+
+/* States */
+.cx [data-dash-source-state=empty] { color: transparent; }
+.cx [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.cx .fail { display: flex; align-items: center; justify-content: center; gap: .5em; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+.cx .fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+@media (prefers-reduced-motion: no-preference) {
+  .cx .page:not([hidden]) { animation: cx-in var(--cds-dur-slow) var(--cds-ease-out); }
+  @keyframes cx-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+
+/* Tab strip width rules (kept from the Health block, Phase 5: they belong to the shared tab strip) */
+
+/* seven tabs (Check-ins added Nov 1, 2026) */
+.cx-tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cx-tabs button { white-space: nowrap; }
+
+/* ---------- Mobile pass (the athlete, Nov 1, 2026: "mostly mobile"). Phone rules first; desktop keeps the layout above. ---------- */
+/* Tabs: on a phone the seven tabs keep a readable 14px and scroll sideways instead of shrinking to 11px; the open tab is
+   scrolled into view (app.js show()) and a fade on the right edge says there is more. */
+@media (max-width: 640px) {
+  .cx-tabs { display: flex; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-padding-inline: 24px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); }
+  .cx-tabs.at-end { -webkit-mask-image: none; mask-image: none; }
+  .cx-tabs::-webkit-scrollbar { display: none; }
+  .cx-tabs button { flex: 0 0 auto; font-size: 14px; min-height: 44px; padding: 0 12px; }
+  .cx-tabs button:last-child { margin-right: 12px; }
+}
+/* Tap targets: 40 px or more for everything a thumb presses. */
+.cx .seg button { min-height: 40px; }
+/* Nothing on a phone below 11px. */
+.cx .chart text { font-size: 11.5px; }
+
+
+
+
+
+/* ---------- Today (Cockpit, Phase 5). The tab's parts come from cockpit.css (ck-deck, ck-call, ck-session, ck-race, ck-notice,
+   ck-stale, ck-state, ck-vtab, ck-zone); these are the Today-only rules. They replace the old Readiness, Last night,
+   streak, progress, kudos and Watch rules (and the 700 px night breakpoint). Breakpoints: base, 640, 900. ---------- */
+.ck .td-body, .ck .td-presc, .ck .td-planned { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .td-ready > [data-field] { display: inline-block; text-transform: lowercase; }
+.ck .td-ready > [data-field]::first-letter { text-transform: uppercase; }
+.ck .td-key { min-height: 0; margin-left: var(--ck-s1); padding: 0 6px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: 0; text-transform: none; color: var(--ck-fg); }
+.ck .td-done { display: grid; gap: 2px; }
+/* Coach's call on the plan tile (Phase 6 round 4 option C-A, app.js coachCall): a small label over the decision, a hairline
+   under it; before the check-in one muted line. In the Why panel the moved Call line drops to body size. */
+.ck .td-cc { display: grid; gap: 2px; padding-bottom: var(--ck-s2); border-bottom: 1px solid var(--ck-line); min-width: 0; }
+.ck .td-cc-k { font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; color: var(--ck-fg-2); }
+.ck .td-cc-w { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); color: var(--ck-accent); overflow-wrap: anywhere; }
+.ck .td-cc.is-pending { display: block; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-3); }
+.ck .td-cc.is-pending .td-cc-k { font-size: inherit; line-height: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
+.ck #t-why > .ck-action { font-size: var(--ck-t3); line-height: var(--ck-l3); }
+/* Doing the plan (Phase 6, the athlete picked S-A two lines): this week's keys, a strip of key-session fractions for the weeks since
+   the three-a-week rule (--n of them, at most 8, each one eighth of the row so a cell keeps its size), the 4-week sums */
+.ck .td-adh-body, .ck .td-adh-k { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .td-adh-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--ck-s2); margin: 0; }
+.ck .td-adh-k + .td-adh-k { padding-top: var(--ck-s2); border-top: 1px solid var(--ck-line); }
+.ck .td-adh-disc { border-top: 1px solid var(--ck-line); } .ck #t-adh-rule { margin: 0; }
+.ck .td-adh-sw { display: grid; gap: 2px; min-width: 0; }
+.ck .td-adh-strip, .ck .td-adh-ax { --n: 8; width: calc((100% + var(--ck-s1)) * var(--n) / 8 - var(--ck-s1)); }
+.ck .td-adh-strip { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--ck-s1); margin: 0; padding: 0; list-style: none; }
+.ck .td-adh-wk { display: grid; justify-items: center; gap: 2px; min-width: 0; }
+.ck .td-adh-cell { position: relative; display: block; width: 100%; max-width: 32px; height: 28px; border-radius: 3px; background: var(--ck-surface-2); box-shadow: inset 0 0 0 1px var(--ck-edge); overflow: hidden; }
+.ck .td-adh-cell > i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ck-good); }
+.ck .td-adh-wk.is-now .td-adh-cell { box-shadow: inset 0 0 0 1px var(--ck-edge), 0 0 0 2px var(--ck-fg); }
+.ck .td-adh-f { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .td-adh-wk.is-now .td-adh-f { color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .td-adh-ax { display: flex; justify-content: space-between; gap: var(--ck-s2); min-width: max-content; margin: 0; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); white-space: nowrap; }
+.ck .td-done .ck-notice-w { color: var(--ck-good); }
+.ck .td-rest { display: grid; gap: var(--ck-s3); align-items: start; min-width: 0; }
+/* Last night in the call tile (Phase 6 round 2, T-B as the athlete picked): the night date joins the head; the meter line is a
+   full-width 44 px disclosure (figure and word, then low, an 8 px -2 to +2 SD bar, high; the chevron spans both lines) that
+   opens #t-hn (stale line, gauge, the six vitals). On the bar: a mark at 0, 1 px dashed marks at -1 and +1 SD in the muted
+   token (the usual range), the fill from 0 to the value in the status colour, the dot at the value. */
+.ck .td-hn-meta { display: grid; justify-items: end; text-align: right; }
+.ck .td-hn, .ck .td-hn-body, .ck .td-nall { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .td-hn { border-top: 1px solid var(--ck-line); padding-top: var(--ck-s2); }
+.ck .td-hn-stale { display: flex; flex-wrap: wrap; gap: 0 var(--ck-s1); }
+.ck .td-hn-sw { display: inline-flex; align-items: center; gap: 4px; font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .ck-disc.td-nm { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "w c" "s c"; align-items: center; gap: 6px var(--ck-s2); min-height: var(--ck-tap); padding: var(--ck-s2) 0; color: var(--ck-fg); font-weight: var(--ck-w-reg); text-align: left; }
+.ck .td-nm > .ck-chev { grid-area: c; }
+.ck .td-nm-w { grid-area: w; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-width: 0; }
+.ck .td-nm-k { color: var(--ck-fg-2); font-weight: var(--ck-w-med); }
+.ck .td-nm-v { font-size: var(--ck-t3); line-height: var(--ck-l3); font-variant-numeric: var(--ck-num); }
+.ck .td-nm-u { color: var(--ck-fg-2); font-size: var(--ck-t1); }
+.ck .td-nm-dot { color: var(--ck-fg-3); }
+.ck .td-nm-scale { grid-area: s; display: flex; align-items: center; gap: var(--ck-s2); min-width: 0; padding: 4px 0; }
+.ck .td-nm-end { flex: none; font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-med); color: var(--ck-fg-2); }
+.ck .td-nm-bar { position: relative; flex: 1 1 auto; min-width: 160px; height: 8px; border-radius: 4px; background: var(--ck-surface-2); box-shadow: inset 0 0 0 1px var(--ck-edge); }
+.ck .td-nm-bar > i { position: absolute; top: 0; height: 100%; }
+.ck .td-nm-fill { border-radius: 4px; background: var(--st, var(--ck-fg-3)); }
+.ck .td-nm-bar[data-s=good] { --st: var(--ck-good); } .ck .td-nm-bar[data-s=watch] { --st: var(--ck-watch); }
+.ck .td-nm-bar > .td-nm-mid { width: 2px; margin-left: -1px; top: -5px; height: 18px; background: var(--ck-fg-2); border-radius: 1px; }
+.ck .td-nm-bar > .td-nm-sd { width: 1px; top: -5px; height: 18px; background: repeating-linear-gradient(to bottom, var(--ck-fg-3) 0 3px, transparent 3px 5px); }
+.ck .td-nm-bar > .td-nm-pt { width: 16px; height: 16px; top: -4px; margin-left: -8px; border-radius: 50%; background: var(--ck-fg); box-shadow: 0 0 0 2px var(--ck-surface); }
+.ck .td-recharge { display: block; font-weight: var(--ck-w-reg); letter-spacing: 0; }
+.ck .td-list { display: grid; gap: 2px; margin: 0; padding-left: 18px; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .td-prog { display: grid; gap: var(--ck-s3); }
+.ck .td-pi { display: grid; gap: 4px; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .td-pi b { font-size: var(--ck-t3); font-weight: var(--ck-w-med); }
+.ck .td-pbar { display: block; }
+.ck .td-ptick { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: var(--ck-fg); text-decoration: none; }
+.ck .td-up { color: var(--ck-good); font-weight: var(--ck-w-bold); }
+.ck .td-down { color: var(--ck-watch); font-weight: var(--ck-w-bold); }
+.ck .td-watch-t { margin: 0; }
+.ck .td-cap { text-transform: capitalize; }
+.ck .td-watchslot { display: grid; gap: var(--ck-s2); min-width: 0; }
+/* check-ins due (Phase 6): one unread-style line, the whole line one 44 px button: a dot, the count, Open */
+.ck .td-ci { display: flex; align-items: center; gap: var(--ck-s3); box-sizing: border-box; width: 100%; min-height: var(--ck-tap); padding: 0 var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); color: var(--ck-fg); font: inherit; font-size: var(--ck-t3); line-height: var(--ck-l3); text-align: left; cursor: pointer; touch-action: manipulation; }
+.ck .td-ci:hover { border-color: var(--ck-edge); }
+.ck .td-ci-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ck-accent); }
+.ck .td-ci-w { flex: 1 1 auto; min-width: 0; font-weight: var(--ck-w-med); }
+.ck .td-ci-go { display: inline-flex; align-items: center; gap: 4px; color: var(--ck-accent); font-weight: var(--ck-w-bold); }
+/* Help me pick (Phase 6): the disclosure under the size control, between hairlines like the call tile's Why */
+.ck .ck-disc.td-pick { border-top: 1px solid var(--ck-line); border-bottom: 1px solid var(--ck-line); }
+.ck .ck-disc.td-pick[aria-expanded=true] { border-bottom-color: transparent; }
+.ck .td-pick-panel { border-bottom: 1px solid var(--ck-line); }
+/* Last night gauge (Phase 6, option A; inside the call tile since round 2): the arc drawn at 1 unit = 1 px, the figure in the arc's bowl, then the word and its
+   sentence; colours are tokens (status fill, page ink), never typed in the script */
+.ck .td-gauge { display: grid; justify-items: center; gap: var(--ck-s2); text-align: center; }
+.ck .td-g-dial { display: grid; justify-items: center; max-width: 100%; }
+.ck .td-g-dial > * { grid-area: 1 / 1; }
+.ck .td-g-svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.ck .td-g-edge { fill: none; stroke: var(--ck-edge); stroke-width: 20; stroke-linecap: round; }
+.ck .td-g-track { fill: none; stroke: var(--ck-surface-2); stroke-width: 17; stroke-linecap: round; }
+.ck .td-g-fill { fill: none; stroke: var(--st, var(--ck-fg-3)); stroke-width: 17; stroke-linecap: round; }
+.ck .td-g-fill[data-s=good] { --st: var(--ck-good); } .ck .td-g-fill[data-s=watch] { --st: var(--ck-watch); }
+.ck .td-g-mid { stroke: var(--ck-fg-2); stroke-width: 2; stroke-linecap: round; }
+.ck .td-g-sd { stroke: var(--ck-fg-3); stroke-width: 1; stroke-dasharray: 3 2; }
+.ck .td-g-dot { fill: var(--ck-fg); stroke: var(--ck-surface); stroke-width: 3; }
+.ck .td-g-w { fill: var(--ck-fg-3); font-size: 11px; font-weight: var(--ck-w-med); text-anchor: middle; }
+.ck .td-g-fig { align-self: end; margin: 0 0 30px; font-size: var(--ck-t5); line-height: var(--ck-l5); font-weight: var(--ck-w-bold); font-variant-numeric: tabular-nums lining-nums; }
+.ck .td-g-fig .ck-unit { margin-left: 4px; }
+.ck .td-g-line { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--ck-s1) var(--ck-s2); margin: 0; }
+.ck .td-g-sent { color: var(--ck-fg-2); font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .td-gauge .ck-note { max-width: 36rem; }
+.ck .td-gauge .ck-state { justify-self: stretch; text-align: left; }
+@media (prefers-reduced-motion: no-preference) {
+  .ck .ck-first-draw .td-g-fill { stroke-dasharray: 1 1; animation: td-g-in var(--ck-dur-2) var(--ck-ease) both; }
+  @keyframes td-g-in { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+}
+/* a stale call dims, as before Phase 5: the readiness word, glyph and call fall back to the secondary text colour (still 4.5:1)
+   and the tile loses its tint and accent edge, so only the banner above it carries emphasis */
+.ck #t-hero.is-stale { background: var(--ck-surface); border-top-color: var(--ck-line); }
+.ck #t-hero.is-stale .td-ready, .ck #t-hero.is-stale .ck-call-glyph, .ck #t-hero.is-stale .ck-action, .ck #t-hero.is-stale .ck-action-w, .ck #t-hero.is-stale .td-nm-v { color: var(--ck-fg-2); }
+@media (min-width: 640px) {
+  .ck .ck-deck > .td-ci { grid-area: ci; }
+  .ck .ck-deck > .td-watchslot { grid-area: notice; align-self: start; }
+  .ck .ck-deck > .ck-session { align-self: start; } /* keeps its height when the Watch slot beside it is tall */
+  /* the vitals table fits its frame from 640: narrower name and bar columns until 900 */
+  .ck #n-table .ck-c-name { min-width: 7em; }
+  .ck #n-table .ck-c-bar { min-width: 6rem; }
+}
+@media (min-width: 900px) {
+  .ck .td-rest { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ck #n-table .ck-c-name { min-width: 8.5em; }
+  .ck #n-table .ck-c-bar { min-width: 9rem; }
+  .ck .ck-deck > .ck-session { align-self: stretch; }
+}
+
+/* ---------- Week (Cockpit, Phase 5). The tab's parts come from cockpit.css (ck-btn, ck-sect, ck-tile, ck-badge, ck-list and
+   ck-row, ck-disc, ck-seg, ck-stale, ck-state, ck-grid, ck-zone); these are the Week-only rules. They replace the old weeknav,
+   tiles (and their 700 px breakpoint), keys, keyslot, day, item, sico, detail, pk and race-week rules. style.css loads before
+   cockpit.css, so a rule that changes a Cockpit part names the part too. Breakpoints: base, 640, 900. ---------- */
+.ck .wk-nav { display: grid; grid-template-columns: var(--ck-tap) minmax(0, 1fr) var(--ck-tap); align-items: center; gap: var(--ck-s2); }
+.ck .wk-title { margin: 0; min-width: 0; text-align: center; text-wrap: balance; overflow-wrap: anywhere; font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .wk-range { white-space: nowrap; font-size: var(--ck-t2); font-weight: var(--ck-w-med); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .wk-body, .ck .wk-col { display: grid; gap: var(--ck-s2); align-content: start; min-width: 0; }
+.ck .wk-split { display: grid; gap: var(--ck-s3); align-items: start; min-width: 0; }
+.ck .wk-col { gap: var(--ck-s3); }
+.ck .wk-card { gap: var(--ck-s2); }
+.ck .ck-sect-head .ck-h2 .ck-i { vertical-align: -2px; }
+/* key sessions (Phase 6): one small card, one ck-row per session (status glyph, name, day); a row with a session opens its day */
+.ck .wk-slots { display: grid; min-width: 0; padding: 0 var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); box-shadow: var(--ck-shadow-1); }
+.ck .wk-slots > .wk-krow:first-child { border-top: 0; }
+.ck .ck-row.wk-krow { align-items: center; }
+.ck .wk-kg { align-self: start; padding-top: 3px; }
+.ck .wk-kn { font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); white-space: nowrap; }
+.ck .wk-kday { justify-self: end; white-space: nowrap; color: var(--ck-fg-2); }
+.ck .wk-sg { color: var(--sp, var(--ck-fg-2)); }
+/* the race-week card: a Cockpit tile whose fold line is a disclosure; the hub inside keeps its Season styles */
+.ck .ck-disc.wk-rwhead { min-height: var(--ck-tap); padding: 0; color: var(--ck-fg); font-weight: var(--ck-w-reg); }
+.ck .wk-rwt { display: grid; gap: 2px; min-width: 0; }
+.ck .wk-rwname { display: block; font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); }
+.ck .wk-rwname .ricon { vertical-align: -4px; margin-right: 6px; }
+.ck .wk-rwline { color: var(--ck-fg-2); }
+/* the race-week banner (Phase 6 round 2, the athlete's pick; season.js renderRaceWeek): under the week navigation, the race's sport colour
+   (--sp) as a 4 px stripe and a 9% tint */
+.ck .ck-tile.race-wk { padding: 2px var(--ck-s3); border-left: 4px solid var(--sp, var(--ck-accent)); background: color-mix(in srgb, var(--sp, var(--ck-accent)) 9%, var(--ck-surface)); }
+/* the day list: a folded past day is one line (day, date, sport glyphs, status words); an open day lists ck-row sessions */
+.ck .wk-days { display: grid; min-width: 0; }
+.ck .wk-day { display: grid; min-width: 0; border-top: 1px solid var(--ck-line); padding: 2px 0; }
+.ck .wk-day:first-child { border-top: 0; }
+.ck .wk-dayh { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px var(--ck-s2); box-sizing: border-box; width: 100%; min-height: var(--ck-tap); margin: 0; padding: 0 2px; background: none; border: 0; color: var(--ck-fg-2); font: inherit; font-size: var(--ck-t2); line-height: var(--ck-l2); text-align: left; }
+.ck button.wk-dayh { cursor: pointer; touch-action: manipulation; }
+.ck button.wk-dayh:hover .wk-dayn { text-decoration: underline; text-underline-offset: 3px; } /* keeps the surface, as ck-row: a surface-2 hover put the Good chip at 4.58:1 */
+.ck .wk-dayn b { color: var(--ck-fg); font-size: var(--ck-t3); font-weight: var(--ck-w-bold); }
+.ck .wk-dayn { flex: none; }
+.ck .wk-daysum { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--ck-s3); min-width: 0; }
+.ck .wk-dchip { display: inline-flex; align-items: center; gap: 4px; }
+.ck .wk-chev { margin-left: auto; }
+.ck .wk-none { margin: 0; padding: 0 2px var(--ck-s2); }
+.ck .ck-chip.wk-key { min-height: 0; padding: 0 6px; font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); border-color: var(--ck-fg); vertical-align: 2px; }
+.ck .wk-flag { display: flex; align-items: flex-start; gap: 4px; }
+.ck .wk-fg { width: var(--ck-i-sm); height: var(--ck-i-sm); margin-top: 2px; color: var(--ck-watch); }
+/* week totals: Cockpit tiles, 2 across, 4 across from 640, 2 across again in the half column from 900 */
+.ck .wk-tile .ck-big { display: block; }
+.ck .wk-meter { display: block; margin: 2px 0; }
+.ck .ck-seg.wk-mode { max-width: 22rem; }
+@media (min-width: 640px) {
+  .ck .ck-grid.wk-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 900px) {
+  .ck .wk-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ck .ck-grid.wk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.ck .wk-card > .ck-tile-head { flex-wrap: wrap; justify-content: flex-start; align-items: baseline; gap: 2px var(--ck-s2); }
+
+/* ---------- Fitness (Cockpit, Phase 5). The tab's parts come from cockpit.css (ck-seg, ck-stale, ck-sect, ck-tile, ck-badge,
+   ck-state, ck-disc, ck-grid, ck-zone, ck-stat, ck-chip); these are the Fitness-only rules (ft-*) and the block card (bk-*, also
+   drawn in Season's Current block panel). They replace the old Trends rules (seg.sports, vstats, zhead, zbars, zrow), the marker
+   tile rules (button.sc, sc[aria-pressed], sc .st, lvbadge, tbar, score .expand, fkey, rk, #f-tiles), the detail rules (hdet,
+   btag, newtag, seg.zoom) and the old bk rules with their 420 px breakpoint. Colour on a tile means its sport only: the stripe,
+   the key swatch and the meters read the sport tokens through data-sport. style.css loads before cockpit.css, so a rule that
+   changes a Cockpit part names the part too. Breakpoints: base, 480, 900. ---------- */
+.ck [data-sport=fg-3], .ck [data-sport=surface], .ck [data-sport=hike] { --sp: var(--ck-fg-3); }
+/* the range row (Fitness and Health) docks under the sticky tab bar (Phase 6): one line, the same page-well background and a
+   full-width hairline below; its caption is the fieldset's legend for screen readers and shows beside it from 640 */
+.ck .ft-span { position: sticky; top: var(--cx-bar-h); z-index: var(--ck-z-2); display: flex; align-items: center; gap: var(--ck-s3); box-sizing: border-box; min-height: var(--cx-dock-h); padding: var(--ck-s1) 0; background: var(--ck-bg);
+  box-shadow: 0 0 0 100vmax var(--ck-bg), 0 1px 0 100vmax var(--ck-line); clip-path: inset(0 -100vmax -1px); }
+.ck .ft-span > .ck-sub { display: none; }
+.ck .ck-seg.ft-spanseg { flex: 1 1 14rem; max-width: 20rem; }
+@media (min-width: 640px) { .ck .ft-span > .ck-sub { display: inline; white-space: nowrap; } }
+/* tiles: 2 across, an odd last tile in a group spans the row; groups and the key span the grid */
+.ck .ft-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
+.ck .ft-tiles > .ft-key, .ck .ft-tiles > .ft-grp, .ck .ft-tiles > .ft-expand, .ck .ft-tiles > .ft-tile[data-w2="2"] { grid-column: 1 / -1; }
+.ck .ft-key { display: flex; flex-wrap: wrap; gap: 2px var(--ck-s3); margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ft-keyi { display: inline-flex; align-items: center; gap: 6px; }
+.ck .ft-sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: var(--sp, var(--ck-fg-3)); }
+.ck .ft-grp { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--ck-s2); margin: var(--ck-s2) 0 0; padding: 0 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); }
+.ck .ft-grp-race { font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-med); color: var(--ck-fg-2); }
+/* the sport stripe is a 3 px top band painted as a background layer, so it holds in dark where --ck-shadow-1 is none */
+.ck .ck-tile.ft-tile { gap: 6px; padding-top: calc(var(--ck-s3) + 2px); background-image: linear-gradient(var(--sp, var(--ck-line)), var(--sp, var(--ck-line))); background-size: 100% 3px; background-repeat: no-repeat; background-position: top; }
+.ck .ck-tile.ft-tile[aria-expanded=true] { border-color: var(--ck-fg); box-shadow: 0 0 0 2px var(--ck-fg); }
+.ck .ft-tile .ck-tile-head { align-items: flex-start; } .ck .ft-tile[aria-expanded=true] .ft-chev { transform: rotate(180deg); } .ck .ft-chev { color: var(--ck-fg-2); }
+.ck .ft-rk { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-right: 6px; padding: 0 3px; box-sizing: border-box; border: 1px solid var(--ck-edge); border-radius: var(--ck-rp); font-size: var(--ck-t1); line-height: 1; font-weight: var(--ck-w-bold); color: var(--ck-fg); vertical-align: 1px; font-variant-numeric: var(--ck-num); }
+.ck .ft-fig { display: block; overflow-wrap: anywhere; } .ck .ft-badge { justify-self: start; }
+.ck .ft-chip { justify-self: start; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; max-width: 100%; box-sizing: border-box; padding: 1px var(--ck-s2); border: 1px solid var(--ck-edge); border-radius: var(--ck-r1); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); }
+.ck .ft-chip--goal { border-color: var(--ck-fg); }
+.ck .ft-chip-k { font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); }
+.ck .ck-zone-track.ft-meter { display: block; } .ck .ft-meter .ck-zone-fill { background: var(--sp, var(--ck-zone-fill)); }
+.ck .ft-meter--race .ck-zone-fill { background: var(--ck-series-2); } .ck .ft-subl { display: block; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .ft-subl b { color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+/* the open tile's chart and detail, under the tile's row */
+.ck .ft-expand { display: grid; gap: var(--ck-s2); min-width: 0; padding: var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-edge); border-radius: var(--ck-r2); box-shadow: var(--ck-shadow-1); }
+.ck .ft-expand[hidden] { display: none; } .ck .ck-seg.ft-zoom { margin-top: var(--ck-s2); } .ck .ft-det { display: grid; gap: var(--ck-s2); }
+.ck .ft-sect { border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); }
+.ck .ft-sect > summary.ft-sum, .ck .bk-full > summary.bk-sum { list-style: none; padding: 0 var(--ck-s3); color: var(--ck-fg); }
+.ck .ft-sect > summary::before, .ck .bk-full > summary::before { content: none; display: none; } .ck .bk-full > summary.bk-sum { padding: 0 2px; }
+.ck details[open] > summary > .ck-chev { transform: rotate(180deg); } .ck .ft-sum-t { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.ck .ft-sbody { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s3) var(--ck-s3); border-top: 1px solid var(--ck-line); }
+.ck .ft-dl { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); } .ck .ft-prog { display: grid; gap: 4px; }
+.ck .ft-btag { display: inline-block; padding: 0 6px; border: 1px solid currentColor; border-radius: var(--ck-rp); font-size: var(--ck-t1); line-height: 16px; font-weight: var(--ck-w-med); white-space: nowrap; vertical-align: 1px; }
+.ck .ft-tiers { display: grid; gap: 4px; margin: 0; padding-left: 18px; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ft-tiers .is-here { color: var(--ck-fg); } .ck .ft-subs { display: block; font-size: var(--ck-t1); line-height: var(--ck-l1); font-variant-numeric: var(--ck-num); }
+.ck .ck-chip.ft-new { min-height: 0; padding: 0 6px; font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); border-color: var(--ck-fg); }
+/* Volume and Heart rate zones */
+.ck .ft-split { display: grid; gap: var(--ck-s3); align-items: start; min-width: 0; } .ck .ft-card { gap: var(--ck-s2); }
+.ck .ft-card > .ck-tile-head { flex-wrap: wrap; justify-content: flex-start; align-items: baseline; gap: 2px var(--ck-s2); } .ck .ft-body { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .ft-sports .ck-seg-opt { padding: 4px 1px; overflow-wrap: anywhere; } .ck .ft-sg { color: var(--sp, currentColor); } .ck .ck-seg-opt:has(input:checked) .ft-sg { color: inherit; }
+.ck .ck-grid.ft-vstats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ck .ck-tile.ft-stat { padding: var(--ck-s2); background: var(--ck-surface-2); box-shadow: none; }
+.ck .ft-stat .ck-big { font-size: var(--ck-t4); line-height: var(--ck-l4); overflow-wrap: anywhere; }
+.ck .ft-zhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--ck-s3); } .ck .ft-zin { font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .ft-zbars { display: grid; gap: var(--ck-s3); min-width: 0; } .ck .ck-zone.ft-zone, .ck .ck-zone-axis.ft-zaxis { grid-template-columns: 5.6em minmax(0, 1fr) 5.4em; }
+.ck .ft-zn .ck-sub, .ck .ft-zv .ck-sub { display: block; white-space: nowrap; } .ck .ft-zone.is-top .ft-zn b { font-weight: var(--ck-w-bold); }
+.ck .ft-ztop { margin-left: 4px; font-size: var(--ck-t1); } .ck .ft-zv { display: grid; justify-items: end; }
+/* the block card (Fitness #b-card; Season #r-block draws the same parts) */
+.ck .ck-tile.bk { gap: var(--ck-s2); } .ck .bk-body { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .bk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--ck-s2); } .ck .bk-title { display: grid; gap: 2px; min-width: 0; }
+.ck .ck-chip.bk-status { flex: none; min-height: 0; padding: 0 var(--ck-s2); font-size: var(--ck-t1); line-height: var(--ck-l2); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .bk-dates, .ck .bk-lead { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); } .ck .bk-kpis { display: grid; gap: var(--ck-s3); margin: 0; padding: 0; list-style: none; }
+.ck .bk-kpi { display: grid; gap: 4px; min-width: 0; } .ck .bk-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px var(--ck-s2); }
+.ck .bk-row > :last-child { margin-left: auto; text-align: right; } .ck .bk-kpi-t { min-width: 0; font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .bk-row > span { font-variant-numeric: var(--ck-num); } .ck .ck-zone-track.bk-bar { display: block; } .ck .bk-bar .ck-zone-fill { background: var(--sp, var(--ck-zone-fill)); }
+.ck .bk-exp { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ck-fg); }
+.ck .ck-sub.bk-goal { font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .bk-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4px; margin: 4px 0 0; padding: 0; list-style: none; }
+.ck .bk-steps li { display: grid; gap: 1px; align-content: start; padding-top: 5px; border-top: 3px solid var(--ck-line); font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); text-align: center; font-variant-numeric: var(--ck-num); }
+.ck .bk-steps li.is-done { border-color: var(--ck-fg-3); } .ck .bk-steps li.is-now { border-color: var(--ck-fg); color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .bk-full { display: grid; gap: var(--ck-s2); } .ck .bk-why { margin: 0; font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .bk-sec { display: grid; gap: 6px; padding-left: var(--ck-s3); box-shadow: inset 3px 0 0 var(--sp, var(--ck-line)); }
+.ck .bk-sec dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .bk-sec dt { padding-top: 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); }
+.ck .bk-sec dd { margin: 0 0 6px; min-width: 0; }
+/* Phase 6 round 5: This block / Next selector and the decision on a proposed brief (block.js) */
+.ck .ck-seg.bk-seg { grid-auto-columns: minmax(0, 1fr); }
+.ck .bk-seg .ck-seg-opt { gap: 2px; } .ck .bk-seg .ck-seg-opt > span:first-of-type { white-space: nowrap; }
+.ck .bk-seg-chip { padding: 0 4px; border: 1px solid currentColor; border-radius: var(--ck-r1); font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); }
+.ck .bk-pane { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .ck-note.bk-none { margin: 0; }
+.ck .bk-decide { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) 0 var(--ck-s3); border-block: 1px solid var(--ck-line); }
+.ck .bk-decide-by { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .bk-choose { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); }
+.ck .bk-choose .ck-btn { padding: 4px var(--ck-s2); white-space: normal; text-align: center; }
+.ck .bk-ask[hidden] { display: none; } .ck .bk-ask-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ck-s2); }
+.ck .bk-choice, .ck .bk-msg { margin: 0; } .ck .bk-msg:empty { display: none; } .ck .ck-note.bk-choice { color: var(--ck-fg); }
+@media (min-width: 480px) {
+  .ck .bk-sec dl { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 4px var(--ck-s3); }
+  .ck .bk-sec dd { margin: 0; }
+}
+@media (min-width: 900px) {
+  .ck .ft-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ck .ft-tiles > .ft-tile[data-w2="2"] { grid-column: auto; }
+  .ck .ft-tiles > .ft-tile[data-w4="2"] { grid-column: span 2; }
+  .ck .ft-tiles > .ft-tile[data-w4="4"] { grid-column: 1 / -1; }
+  .ck .ft-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ck .bk-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- Health (Cockpit, Phase 5; page id goals, pillars.js). The tab's parts come from cockpit.css (ck-seg, ck-stale,
+   ck-tile, ck-badge, ck-list, ck-row, ck-disc, ck-state, ck-chips, ck-badges, ck-btn); these are the Health-only
+   rules (hp-*). One column at every width (the map is an icon ring, Phase 6, the athlete's pick P2; from 900 rows and text are capped at a readable measure). They replace the old Health Pillars rules (hp, hp-pill, hp-dot, hp-segs, hp-seg, hp-tile, hp-ico, hp-seglab,
+   hp-p, hp-phead, hp-pname, hp-lead, hp-state, hp-lname, hp-chev, hp-up, hp-mrow, hp-mv, hp-detail, hp-ev, hp-more and the
+   rest), the span bar (spanbar, seg.span) and the tagk chip, with their 640 px max-width lines. Status is only ever a badge:
+   the rows carry no status stripe. The range reuses the Fitness ft-span rules. Breakpoints: base, 480 and 900. ---------- */
+.ck .hp { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .ck-tile.hp-sum, .ck .ck-tile.hp-pillars { gap: var(--ck-s3); }
+.ck .hp-sbody { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .hp-map, .ck .hp-focus { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .hp-maphead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px var(--ck-s2); }
+/* the icon ring (Phase 6): a square up to 330 px, a faint track at 30.6% radius, the count in the centre, seven 44 px buttons placed by
+   pillars.js with the icon centre on the track (disc and name on the tile surface); the open pillar's icon is larger. Replaces ck-meters and hp-tally. */
+.ck .hp-ring { position: relative; width: min(100%, 330px); aspect-ratio: 1; margin: 0 auto; }
+.ck .hp-rtrack { position: absolute; inset: 19.4%; border: 2px solid var(--ck-line); border-radius: 50%; }
+.ck .hp-rc { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; justify-items: center; text-align: center; }
+.ck .hp-rc1 { font-size: var(--ck-t5); line-height: var(--ck-l5); font-weight: var(--ck-w-bold); color: var(--ck-fg); font-variant-numeric: var(--ck-num); }
+.ck .hp-rof { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-med); color: var(--ck-fg-3); }
+.ck .hp-rc2 { font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-med); color: var(--ck-fg-2); white-space: nowrap; }
+.ck .hp-rbtns { margin: 0; padding: 0; list-style: none; } .ck .hp-rpos { position: absolute; transform: translate(-50%, -26px); }
+.ck .hp-rbtn { display: grid; justify-items: center; min-width: var(--ck-tap); min-height: var(--ck-tap); margin: 0; padding: 0 2px 2px; background: none; border: 0; border-radius: var(--ck-r2); color: var(--ck-fg); font: inherit; cursor: pointer; touch-action: manipulation; }
+.ck .hp-rdisc { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--ck-surface); }
+.ck .hp-ri { width: 38px; height: 38px; color: var(--st); }
+.ck .hp-rn { margin-top: -6px; padding: 0 3px; border-radius: var(--ck-r1); background: var(--ck-surface); font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); color: var(--ck-fg); white-space: nowrap; }
+.ck .hp-rbtn:hover .hp-rn { text-decoration: underline; text-underline-offset: 2px; }
+.ck .hp-rbtn[aria-expanded=true] .hp-ri { width: 46px; height: 46px; } .ck .hp-rbtn[aria-expanded=true] .hp-rn { color: var(--st); }
+.ck .hp-earned { display: inline-flex; align-items: center; gap: 4px; color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .hp-focus { padding: var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); } /* on the surface, not surface-2: the Act badge in dark needs it for 4.5:1 */
+.ck .hp-flist { display: grid; gap: var(--ck-s2); margin: 0; padding: 0; list-style: none; }
+.ck .hp-flist li { display: grid; grid-template-columns: 5.6em minmax(0, 1fr); gap: 2px var(--ck-s2); align-items: baseline; font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .hp-fgo { grid-column: 2; justify-self: start; }
+.ck .ck-disc.hp-wins { border-top: 1px solid var(--ck-line); color: var(--ck-fg); }
+.ck .hp-wins-t, .ck .hp-wn { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px var(--ck-s3); }
+.ck .hp-wn { gap: 4px; }
+.ck .hp-winl { display: grid; gap: var(--ck-s2); margin: 0; padding: 0; list-style: none; }
+.ck .hp-winl li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--ck-s2); align-items: start; }
+.ck .hp-winl .ck-i { margin-top: 1px; }
+.ck .hp-trend { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+/* pillar rows (ck-row with a disclosure) and the open body */
+.ck .ck-row.hp-row { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+.ck .hp-l1, .ck .hp-l2 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ck-s2); min-width: 0; } .ck .hp-l2 { align-items: center; }
+.ck .hp-l1 > .ck-row-t, .ck .hp-l2 > .ck-row-s { flex: 1 1 auto; min-width: 0; }
+.ck .hp-l2 > .ck-row-s { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } /* every pillar row two lines: a long lead metric name ends in an ellipsis beside the Improving pill */
+.ck .ck-row > .hp-pi:first-child { width: var(--ck-i-lg); height: var(--ck-i-lg); margin-top: 0; color: var(--ck-fg-2); }
+.ck .hp-lead { flex: none; font-size: var(--ck-t4); line-height: var(--ck-l4); font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); white-space: nowrap; }
+.ck .hp-bl { display: inline-flex; flex: none; align-items: center; gap: 2px; }
+.ck .hp-tpill { gap: 2px; margin-right: 4px; padding: 0 6px 0 4px; border: 1px solid var(--ck-line); border-radius: var(--ck-rp); background: var(--ck-surface-2); font-size: var(--ck-t1); line-height: var(--ck-l1); white-space: nowrap; } .ck .hp-tpill .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .hp-bl .ck-chev, .ck .hp-mend .ck-chev { color: var(--ck-fg-2); }
+.ck .hp-pbody { display: grid; gap: var(--ck-s2); min-width: 0; padding: 0 2px var(--ck-s3); }
+.ck .hp-spark { min-width: 0; }
+.ck .ck-list.hp-members { padding: 0 var(--ck-s2); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); }
+.ck .ck-row.hp-mrow { grid-template-columns: minmax(0, 1fr) auto; align-items: center; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .hp-mend { display: inline-flex; align-items: center; gap: 2px; padding-top: 0; }
+.ck .hp-detail { display: grid; gap: var(--ck-s2); min-width: 0; padding: 0 0 var(--ck-s3); }
+.ck .hp-dl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .hp-dl dt { padding-top: 4px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); }
+.ck .hp-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.ck .hp-muted { color: var(--ck-fg-2); }
+.ck .hp-prog { display: grid; gap: 4px; min-width: 0; }
+.ck .hp-hist { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: var(--ck-t2); line-height: var(--ck-l2); font-variant-numeric: var(--ck-num); }
+.ck .hp-sect { border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); }
+.ck .hp-sect > summary.hp-sum { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: var(--ck-s2); min-height: var(--ck-tap); padding: 0 var(--ck-s3); color: var(--ck-fg); font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-bold); cursor: pointer; }
+.ck .hp-sect > summary::before { content: none; display: none; }
+.ck .hp-sum-t { min-width: 0; }
+.ck .hp-sbody2 { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s3) var(--ck-s3); border-top: 1px solid var(--ck-line); }
+.ck .hp-studies { display: grid; gap: var(--ck-s2); margin: 0; padding-left: 18px; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .hp-studies a { display: inline-flex; align-items: center; min-height: var(--ck-tap); color: var(--ck-fg); font-weight: var(--ck-w-med); text-underline-offset: 2px; }
+.ck .hp-vfy { color: var(--ck-fg-2); }
+.ck .hp-wnow { color: var(--ck-fg); }
+/* from 900: rows and text keep a readable measure (about 70 characters); charts and the map keep the full width */
+@media (min-width: 900px) {
+  .ck .ck-row.hp-row, .ck .ck-row.hp-mrow, .ck .ck-disc.hp-wins { max-width: 48rem; }
+  .ck .hp-what, .ck .hp-dl, .ck .hp-sect, .ck .hp-hist, .ck .hp-flist, .ck .hp-winl, .ck .hp-pbody > .ck-note, .ck .hp-detail .ck-note, .ck .hp-wins-p > .ck-note, .ck .hp-foot { max-width: 70ch; }
+}
+@media (min-width: 480px) {
+  .ck .hp-pbody { padding-left: calc(var(--ck-i-lg) + var(--ck-s2) + 2px); }
+  .ck .hp-dl { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 2px var(--ck-s3); }
+  .ck .hp-dl dt { padding-top: 3px; }
+}
+
+/* ---------- Season (Cockpit, Phase 5; page id races). The tab's parts come from cockpit.css (ck-race, ck-seg, ck-tile, ck-stale,
+   ck-state, ck-list and ck-row, ck-disc, ck-btn, ck-chip, ck-zone, ck-badge); these are the Season-only rules (sn-*). They
+   replace the old Races, Season tabs, race details, completed bucket, roadmap, score and sc tile, fgrp and sport-group, tl and
+   ystrip rules (with their 760 px and 520 px breakpoints and the 40 px a.cap rule). The block card inside Current block uses the
+   Fitness bk-* rules. The hub is also drawn inside the Week race card (.race-wk). Breakpoints: base, 480, 640, 900. ---------- */
+.ck .sn-body, .ck .sn-pbody, .ck .sn-tlbody, .ck .sn-sbody { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .sn-head { flex-wrap: wrap; justify-content: flex-start; align-items: baseline; gap: 2px var(--ck-s2); }
+.ck .sn-head .ck-i { vertical-align: -2px; }
+.ck .sn-race .ck-tile-head { flex-wrap: wrap; align-items: baseline; }
+/* status panels: the segmented control, then the open panel under it */
+.ck .ck-tile.sn-status { gap: 0; padding: var(--ck-s1); }
+.ck .ck-tile.sn-status.is-open { gap: var(--ck-s3); padding-bottom: var(--ck-s3); }
+.ck .ck-seg.sn-seg { border-color: transparent; }
+.ck .sn-panel { display: grid; gap: var(--ck-s2); min-width: 0; padding: 0 var(--ck-s2); }
+.ck .sn-panel[hidden], .ck .sn-hub[hidden] { display: none; }
+.ck .sn-bk { display: grid; gap: var(--ck-s2); min-width: 0; }
+/* Season so far and Hall of fame tiles: 2 across, an odd last tile spans the row; the sport band is the Fitness tile band */
+.ck .sn-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
+.ck .sn-grp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: var(--ck-s2) 0 0; padding: 0 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .sn-grp .ck-sub { text-transform: none; letter-spacing: 0; font-weight: var(--ck-w-reg); }
+.ck .ck-tile.sn-tile { gap: 2px; padding-top: calc(var(--ck-s3) + 2px); background-image: linear-gradient(var(--sp, var(--ck-line)), var(--sp, var(--ck-line))); background-size: 100% 3px; background-repeat: no-repeat; background-position: top; }
+.ck .sn-tile.sn-wide { grid-column: 1 / -1; }
+.ck .sn-fig { display: block; overflow-wrap: anywhere; }
+.ck .sn-tsub { display: block; }
+.ck .ck-sub.sn-tsub { font-size: var(--ck-t2); line-height: var(--ck-l2); }
+/* the timeline and its list */
+.ck .sn-chart { min-width: 0; }
+.ck .ck-disc.sn-tlmore { border-top: 1px solid var(--ck-line); color: var(--ck-fg); }
+.ck .ck-list.sn-tlist { padding: 0 var(--ck-s2); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); }
+.ck .ck-row.sn-tlrow { align-items: center; }
+.ck .ck-row > .ricon:first-child { margin: 0; }
+.ck .ricon { width: var(--ck-i-md); height: var(--ck-i-md); flex: none; vertical-align: -3px; margin-right: 6px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* race status chip: the word is the meaning; fill or edge style follows the athlete's colours, every pair 4.5:1 in both modes */
+.ck .sn-rst { display: inline-flex; align-items: center; min-height: 20px; padding: 0 var(--ck-s2); border: 1.5px solid var(--ck-edge); border-radius: var(--ck-rp); font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg); white-space: nowrap; }
+.ck .sn-rst[data-r=registered] { background: var(--ck-accent); border-color: var(--ck-accent); color: var(--ck-on-accent); }
+.ck .sn-rst[data-r=done] { background: var(--ck-good); border-color: var(--ck-good); color: var(--ck-surface); }
+.ck .sn-rst[data-r=planned] { background: var(--ck-fg); border-color: var(--ck-fg); color: var(--ck-surface); }
+.ck .sn-rst[data-r=considering] { border-style: dashed; }
+.ck .sn-rst[data-r=exploring] { border-style: dotted; color: var(--ck-fg-2); }
+/* the race hub: opened under its race row (or inside the Week race card); its cards sit on the page well, edged on the left */
+.ck .sn-hub { display: grid; gap: var(--ck-s2); min-width: 0; padding-left: var(--ck-s3); border-left: 2px solid var(--ck-fg); }
+.ck .sn-hub > .ck-tile { box-shadow: none; }
+.ck .ck-tile.sn-hero { gap: var(--ck-s2); }
+.ck .sn-hhead { flex-wrap: wrap; align-items: center; }
+.ck .sn-heb { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px var(--ck-s2); }
+.ck .sn-hname { display: flex; align-items: flex-start; gap: 2px; overflow-wrap: anywhere; }
+.ck .sn-hname .ricon { margin-top: 3px; }
+.ck .sn-count { display: flex; align-items: baseline; gap: 6px; }
+.ck .sn-facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .sn-facts dt { padding-top: 4px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); }
+.ck .sn-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.ck .sn-stats { display: flex; flex-wrap: wrap; gap: 2px var(--ck-s3); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .sn-stats b { margin-right: 3px; font-size: var(--ck-t3); color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .sn-wx { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px var(--ck-s3); align-items: center; padding: var(--ck-s2) var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .sn-temps { font-size: var(--ck-t5); line-height: var(--ck-l5); font-weight: var(--ck-w-bold); white-space: nowrap; font-variant-numeric: var(--ck-num); }
+.ck .sn-temps small { margin-left: 2px; font-size: var(--ck-t2); font-weight: var(--ck-w-med); color: var(--ck-fg-2); }
+.ck .sn-wxside { display: grid; gap: 2px; min-width: 0; }
+.ck .sn-wxl { grid-column: 1 / -1; }
+.ck .sn-wxsrc { color: var(--ck-fg-2); }
+.ck .ck-btn.sn-rlink { justify-self: start; }
+.ck .ck-btn.sn-rlink, .ck .ck-btn.sn-doc { text-decoration: none; }
+.ck .ck-row.sn-r2 { grid-template-columns: minmax(0, 1fr) auto; }
+.ck .ck-row.sn-r1 { grid-template-columns: minmax(0, 1fr); }
+.ck .sn-plan .ck-row-t { font-size: var(--ck-t2); line-height: var(--ck-l2); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .ck-row.sn-plrow { align-items: center; }
+.ck .sn-plan > li:first-child > .ck-row { border-top: 0; }
+.ck .sn-pltext { margin: 0; padding: 0 2px var(--ck-s3); font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .sn-pltext[hidden] { display: none; }
+.ck .ck-zone-track.sn-kitbar, .ck .ck-zone-track.sn-bmeter { display: block; }
+.ck .sn-kit { display: grid; min-width: 0; }
+.ck .sn-kitb { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--ck-s3); align-items: center; min-height: var(--ck-tap); padding: var(--ck-s1) 2px; border: 0; border-top: 1px solid var(--ck-line); background: none; color: var(--ck-fg); font: inherit; font-size: var(--ck-t3); line-height: var(--ck-l3); text-align: left; cursor: pointer; touch-action: manipulation; }
+.ck .sn-kitb:first-child { border-top: 0; }
+.ck .sn-kitb:hover { background: var(--ck-surface-2); }
+.ck .sn-kbox { display: inline-grid; place-items: center; width: 22px; height: 22px; box-sizing: border-box; border: 2px solid var(--ck-fg-2); border-radius: var(--ck-r1); }
+.ck .sn-kbox .ck-i { width: 14px; height: 14px; visibility: hidden; }
+.ck .sn-kitb[aria-pressed=true] .sn-kbox { background: var(--ck-fg); border-color: var(--ck-fg); color: var(--ck-surface); }
+.ck .sn-kitb[aria-pressed=true] .sn-kbox .ck-i { visibility: visible; }
+.ck .sn-kitb[aria-pressed=true] .lbl { color: var(--ck-fg-2); text-decoration: line-through; }
+.ck #r-kit .status { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck #r-kit .status.err { color: var(--ck-act); font-weight: var(--ck-w-bold); }
+/* the Week race card shows the hub without the parts its own fold line and the week plan already say */
+.ck .race-wk .sn-hub { padding-left: 0; border-left: 0; }
+.ck .race-wk #r-week, .ck .race-wk #r-notes li[data-section="Lead-in"], .ck .race-wk .sn-hname, .ck .race-wk .sn-count { display: none; }
+/* the season list: key, years with their strip, the completed bucket, race rows */
+.ck .sn-key { display: grid; gap: var(--ck-s2); padding: var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); }
+.ck .sn-kg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--ck-s3); font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .sn-kg > .ck-eyebrow { min-width: 4.5em; }
+.ck .sn-kt { display: inline-flex; align-items: center; }
+.ck .sn-years, .ck .sn-year { display: grid; gap: var(--ck-s2); min-width: 0; }
+.ck .sn-years { gap: var(--ck-s4); }
+.ck .sn-yh { display: flex; align-items: baseline; gap: var(--ck-s2); }
+.ck .sn-yh .ck-h3 { font-size: var(--ck-t4); line-height: var(--ck-l4); font-variant-numeric: var(--ck-num); }
+.ck .sn-strip { min-width: 0; }
+.ck .sn-done { border: 1px solid var(--ck-line); border-radius: var(--ck-r2); }
+.ck .sn-done.is-open { border-color: var(--ck-good); box-shadow: inset 3px 0 0 var(--ck-good); }
+.ck .ck-disc.sn-doneh { min-height: 52px; padding: var(--ck-s2) var(--ck-s3); color: var(--ck-fg); text-align: left; }
+.ck .sn-donet { display: grid; gap: 2px; min-width: 0; }
+.ck .sn-donet > b { font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .sn-donec { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 2px var(--ck-s1) 2px var(--ck-s3); border: 1px solid var(--ck-edge); border-radius: var(--ck-rp); font-weight: var(--ck-w-bold); }
+.ck .sn-donebox { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s2) var(--ck-s3) var(--ck-s3); border-top: 1px solid var(--ck-line); }
+.ck .sn-donebox[hidden] { display: none; }
+.ck .sn-rc { display: grid; grid-template-columns: 3.25rem minmax(0, 1fr); gap: 2px var(--ck-s3); width: 100%; min-height: var(--ck-tap); padding: var(--ck-s2) var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); color: var(--ck-fg); font: inherit; font-size: var(--ck-t3); line-height: var(--ck-l3); text-align: left; cursor: pointer; touch-action: manipulation; }
+.ck .sn-rc:hover { border-color: var(--ck-edge); }
+.ck .sn-rc[data-r=registered] { box-shadow: inset 3px 0 0 var(--ck-accent); }
+.ck .sn-rc[data-r=done] { box-shadow: inset 3px 0 0 var(--ck-good); }
+.ck .sn-rc[aria-expanded=true] { border-color: var(--ck-fg); box-shadow: 0 0 0 1px var(--ck-fg); }
+.ck .sn-rdt { display: grid; justify-items: center; align-content: start; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .sn-rdt b { font-size: var(--ck-t5); line-height: var(--ck-l5); letter-spacing: 0; color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .sn-rbd { display: grid; gap: 4px; min-width: 0; }
+.ck .sn-rt { display: flex; align-items: flex-start; font-weight: var(--ck-w-bold); overflow-wrap: anywhere; }
+.ck .sn-rt .ricon { margin-top: 3px; }
+.ck .sn-rrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--ck-s2); }
+.ck .sn-who { padding: 0 var(--ck-s2); border-radius: var(--ck-rp); background: var(--ck-good-tint); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); }
+.ck .sn-rt2, .ck .sn-rwx { display: block; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .sn-rt3 { font-size: var(--ck-t2); line-height: var(--ck-l2); }
+/* roadmap rows */
+.ck .sn-rm { display: grid; gap: var(--ck-s1); min-width: 0; }
+.ck .sn-roadl > .sn-rm:first-child > .ck-row { border-top: 0; }
+.ck .ck-row.sn-blk, .ck .ck-row.sn-ms { align-items: center; }
+.ck .sn-blkend { display: inline-flex; align-items: center; gap: 2px; padding-top: 0; }
+.ck .sn-blkend .ck-chev { color: var(--ck-fg-2); }
+.ck .sn-rm.is-past .ck-row-t { color: var(--ck-fg-2); font-weight: var(--ck-w-reg); }
+.ck .sn-rm > .sn-bmeter { margin: 0 2px var(--ck-s2) calc(var(--ck-i-md) + var(--ck-s2) + 2px); }
+.ck .sn-blkmore { display: grid; gap: 6px; padding: 0 2px var(--ck-s3) calc(var(--ck-i-md) + var(--ck-s2) + 2px); font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .sn-pillars { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+.ck .sn-doc .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .sn-split { display: grid; gap: var(--ck-s3); align-items: start; min-width: 0; }
+@media (min-width: 480px) {
+  .ck .sn-facts { grid-template-columns: 6.5rem minmax(0, 1fr); gap: 2px var(--ck-s3); }
+  .ck .sn-facts dt { padding-top: 3px; }
+}
+@media (min-width: 640px) {
+  .ck .sn-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ck .sn-tile.sn-wide { grid-column: auto; }
+}
+@media (min-width: 900px) {
+  .ck .sn-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- Check-in (Cockpit, Phase 5; page id checkins: forms.js builds the two forms, checkins.js the due list and the
+   surveys). Parts from cockpit.css (ck-tile, ck-list, ck-badge, ck-choices, ck-field, ck-btn, ck-notice, ck-state, ck-stale).
+   Order at every width: stale banner, Due today, morning check-in, Rate a session, surveys; from 900 px the surveys sit right. */
+.ck .ci-cols, .ck .ci-col, .ck .ci-surveys, .ck .ci-duebody, .ck .ci-fbody, .ck .ci-fields, .ck .ci-body, .ck .ci-q, .ck .ci-grid { display: grid; gap: var(--ck-s3); align-content: start; min-width: 0; }
+.ck .ci-svh { padding: var(--ck-s2) 2px 0; }
+.ck .ci-drow { align-items: center; } .ck .ci-drow > .ck-i:first-child { align-self: start; margin-top: 2px; } .ck .ci-drow > .ck-row-end { display: inline-flex; align-items: center; gap: var(--ck-s1); padding-top: 0; } .ck .ci-drow .ck-chev { color: var(--ck-fg-2); transform: rotate(-90deg); } /* points at the form it opens, open or not (each row goes to its card; aria-expanded says whether its questions show) */
+.ck .ci-form .ck-tile-head, .ck .ci-card .ck-tile-head { flex-wrap: wrap; align-items: baseline; }
+/* status lines (polite live regions): Saved with the check glyph, errors with the Act glyph and the Act ink */
+.ck .ci-st { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .ci-st[data-s=ok] { color: var(--ck-good); font-weight: var(--ck-w-bold); } .ck .ci-st[data-s=err] { color: var(--ck-act); font-weight: var(--ck-w-bold); }
+.ck .ci-st .ck-i { flex: none; width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .ci-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ck-s2) var(--ck-s3); }
+.ck .ci-sumtext { font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .ci-same, .ck .ci-done, .ck .ci-open { justify-self: start; }
+/* answer groups: short scales in one row (the system's filled chip), longer lists wrap; every option 44 px */
+.ck .ck-choices--row .ck-choice { font-size: var(--ck-t2); line-height: var(--ck-l2); text-align: center; }
+.ck .ci-wrap { display: flex; flex-wrap: wrap; gap: var(--ck-s1); } .ck .ci-wrap > legend { float: left; width: 100%; } .ck .ci-wrap .ck-choice { padding: 0 var(--ck-s3); }
+.ck .ci-note > .ci-sum { display: flex; align-items: center; gap: 6px; min-height: var(--ck-tap); padding: 0 2px; font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); cursor: pointer; list-style: none; }
+.ck .ci-note > .ci-sum::before { content: none; } .ck .ci-note > .ci-sum::-webkit-details-marker { display: none; }
+.ck .ci-note[open] > .ci-sum { margin-bottom: var(--ck-s1); } .ck .ci-note[open] > .ci-sum .ck-chev { transform: rotate(180deg); }
+/* survey cards: badge, recorded box, number fields, grid rows, Back and Next */
+.ck .ci-badge { display: flex; flex-wrap: wrap; gap: var(--ck-s1) var(--ck-s2); } .ck .ci-qh:focus { outline: none; }
+.ck .ci-rec { display: grid; gap: 4px; padding: var(--ck-s2) var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r1); font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .ci-rec-h { font-weight: var(--ck-w-bold); } .ck .ci-rec-l { display: grid; gap: 2px; margin: 0; padding-left: 1.1em; font-variant-numeric: var(--ck-num); }
+.ck .ci-nums { display: grid; gap: var(--ck-s3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.ck .ci-inp { display: flex; align-items: center; gap: var(--ck-s2); } .ck .ci-inp .ck-input { max-width: 9rem; } .ck .ci-inp .ck-unit { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ci-gridrow > legend { font-weight: var(--ck-w-med); } .ck .ci-nav { justify-content: space-between; }
+@media (min-width: 900px) { .ck .ci-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+
+/* ---------- Disclosures (shared, Phase 5 Lifts pass): the old .cx details rules (Lifts was their last own user) are gone;
+   these are the parts the Fitness, Season and Health folds still took from them: no browser marker (Safari draws it even
+   with list-style none), a pointer, and the open gap under the summary. ---------- */
+.ck details > summary { cursor: pointer; } .ck details > summary::-webkit-details-marker { display: none; }
+.ck .ft-sect[open] > summary, .ck .bk-full[open] > summary, .ck .hp-sect[open] > summary { margin-bottom: 6px; }
+
+/* ---------- Lifts (Cockpit, Phase 5; page id lifts, lifts.js). Parts from cockpit.css (ck-tile, ck-list and ck-row,
+   ck-btn, ck-input, ck-field, ck-chip, ck-notice, ck-state, ck-finish, ck-badge). Order at every width: the rotation card
+   when a block starts, the log card, Progress, Rules; from 900 px Progress and Rules sit right. The block edge is the
+   strength sport colour. They replace the old lx-* rules, .opts, .formrow, .linkbtn, .status, the .cx input, select,
+   date and details rules, .card, .stack, .split, .note and the max-width 640 input rule. Breakpoints: base, 480, 900. ---------- */
+.ck .lx-cols, .ck .lx-col, .ck .lx-body, .ck .lx-rulesbody { display: grid; gap: var(--ck-s3); align-content: start; min-width: 0; }
+.ck .lx-log .ck-tile-head, .ck .lx-progc .ck-tile-head { flex-wrap: wrap; align-items: baseline; }
+.ck .ck-tile.lx-rot { border-left: 4px solid var(--ck-strength); }
+/* status lines: the old words; ok = check glyph + Good ink, err = Act glyph + ink, kept (restored from this phone) = stale glyph + Watch ink */
+.ck .lx-st, .ck .lx-barst { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .lx-st .ck-i, .ck .lx-barst .ck-i { flex: none; width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .lx-st[data-s=ok], .ck .lx-barst[data-s=ok] { color: var(--ck-good); font-weight: var(--ck-w-bold); } .ck .lx-st[data-s=err], .ck .lx-barst[data-s=err] { color: var(--ck-act); font-weight: var(--ck-w-bold); } .ck .lx-barst[data-s=retry] { color: var(--ck-watch); font-weight: var(--ck-w-bold); } .ck .lx-barst[data-s=kept] { color: var(--ck-watch); font-weight: var(--ck-w-bold); }
+/* a two-option or five-option choice of toggle buttons (aria-pressed): chosen = filled, check glyph, bold word */
+.ck .lx-choose { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); }
+.ck .lx-opts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--ck-s1); }
+.ck .lx-opt { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: var(--ck-tap); padding: 0 4px; border: 1.5px solid var(--ck-edge); border-radius: var(--ck-r1); background: var(--ck-surface); color: var(--ck-fg); font: inherit; font-size: var(--ck-t2); line-height: var(--ck-l2); text-align: center; cursor: pointer; touch-action: manipulation; }
+.ck .lx-choose .lx-opt { font-size: var(--ck-t3); line-height: var(--ck-l3); padding: 0 var(--ck-s2); }
+.ck .lx-opt .ck-i { display: none; width: 16px; height: 16px; } .ck .lx-opt:hover { border-color: var(--ck-fg-2); } .ck .lx-opt[aria-pressed=true] { background: var(--ck-fg); border-color: var(--ck-fg); color: var(--ck-surface); font-weight: var(--ck-w-bold); } .ck .lx-opt[aria-pressed=true] .ck-i { display: inline-block; }
+.ck .lx-rpe { display: grid; gap: var(--ck-s1); }
+/* the date and Copy last session */
+.ck .lx-date { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--ck-s2) var(--ck-s3); } .ck .lx-date .ck-field { flex: 0 1 12rem; } .ck .lx-phase .ck-notice-t { flex-basis: 100%; }
+/* blocks and exercise rows (ck-list rows): id, name and dose, the saved tick; then the gate, last time, sets, actions */
+.ck .lx-ex { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .lx-block { display: grid; gap: 2px; padding-left: var(--ck-s3); border-left: 3px solid var(--ck-strength); min-width: 0; }
+.ck .lx-bh { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--ck-s2); margin: 0; }
+.ck .lx-bh .ck-eyebrow { margin: 0; color: var(--ck-fg-2); }
+.ck .lx-bnote { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
+.ck .ck-row.lx-row { grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: 4px var(--ck-s2); padding: var(--ck-s2) 0; }
+.ck .lx-id { font-weight: var(--ck-w-bold); color: var(--ck-fg); font-variant-numeric: var(--ck-num); }
+.ck .lx-row > .lx-gate, .ck .lx-row > .lx-last, .ck .lx-row > .lx-next, .ck .lx-row > .lx-sets, .ck .lx-row > .lx-acts { grid-column: 2 / -1; }
+.ck .lx-row.off .lx-id, .ck .lx-row.off .ck-row-t, .ck .lx-row.off .lx-last, .ck .lx-row.off .lx-last b, .ck .lx-row.off .lx-setn { color: var(--ck-fg-2); font-weight: var(--ck-w-med); } .ck .lx-offchip { justify-self: start; min-height: 0; padding: 0 var(--ck-s2); font-size: var(--ck-t1); line-height: var(--ck-l2); color: var(--ck-fg-2); } /* leg lifts in an upper-only phase stay dimmed, as on d38cf04, in the secondary ink (4.5:1 or more) with the word, never opacity; fields and buttons keep their 3:1 edges */
+.ck .lx-gate { justify-self: start; padding: 2px var(--ck-s2); border: 1px dashed var(--ck-edge); border-radius: var(--ck-rp); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); } .ck .lx-gate.ok { border-style: solid; border-color: var(--ck-fg-2); color: var(--ck-fg); }
+.ck .lx-last b { color: var(--ck-fg); font-weight: var(--ck-w-med); }
+.ck .lx-next { justify-self: start; min-height: 0; padding: 2px var(--ck-s2); } .ck .lx-next.up { font-weight: var(--ck-w-bold); } .ck .lx-next .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); flex: none; } /* the next step as a chip under the Last line (point 4); a static chip, not a control */
+.ck .lx-ok { display: inline-flex; align-items: center; gap: 3px; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); white-space: nowrap; } .ck .lx-ok.ok { color: var(--ck-good); font-weight: var(--ck-w-bold); } .ck .lx-ok .ck-i { width: 13px; height: 13px; }
+/* sets: 16 px numeric inputs, 44 px tall, two sets a line on a phone; the set number beside them */
+.ck .lx-sets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); }
+.ck .lx-set { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center; min-width: 0; } .ck .lx-set.one { grid-template-columns: auto minmax(0, 1fr); }
+.ck .lx-setn { min-width: 1.4rem; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .lx-ex .lx-in { min-width: 0; padding: 0 2px; text-align: center; font-size: var(--ck-t-input); scroll-margin-bottom: 104px; } /* a focused set field scrolls clear of the pinned bar (90 px tall in the retry state) */
+.ck .lx-ex .lx-in::placeholder { font-size: var(--ck-t2); } .ck .lx-ex .lx-in::-webkit-inner-spin-button, .ck .lx-ex .lx-in::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } .ck .lx-ex .lx-in { -moz-appearance: textfield; appearance: textfield; } /* no spinner arrows: the narrow field keeps its figure; arrow keys still step */
+.ck .lx-acts { display: flex; flex-wrap: wrap; gap: var(--ck-s2); } .ck .lx-acts .ck-btn { padding: 0 var(--ck-s3); } .ck .lx-acts .ck-btn .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+/* Done folds a row to one line (tap it to edit); a block with every row done rolls up to one line (tap to peek) */
+.ck .lx-sum, .ck .lx-bsum { display: none; align-items: center; gap: var(--ck-s2); width: 100%; min-height: var(--ck-tap); padding: 0 2px; border: 0; background: none; color: var(--ck-fg-2); font: inherit; font-size: var(--ck-t2); line-height: var(--ck-l2); font-variant-numeric: var(--ck-num); text-align: left; cursor: pointer; touch-action: manipulation; }
+.ck .lx-sum { grid-column: 1 / -1; grid-template-columns: 1.75rem auto minmax(0, 1fr) auto; }
+.ck .lx-bsum { grid-template-columns: auto minmax(0, 1fr) auto; }
+.ck .lx-sum > .ck-i, .ck .lx-bsum > .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .lx-sum:hover .lx-sl, .ck .lx-bsum:hover .lx-sl { text-decoration: underline; text-underline-offset: 3px; }
+.ck .lx-sl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck .lx-sum b, .ck .lx-bsum b { color: var(--ck-fg); font-weight: var(--ck-w-med); }
+.ck .lx-bsum[aria-expanded=true] .ck-chev { transform: rotate(180deg); }
+.ck .lx-row.done { padding: 0; } .ck .lx-row.done > :not(.lx-sum) { display: none; } .ck .lx-row.done > .lx-sum { display: grid; }
+.ck .lx-block.alldone > .lx-bsum { display: grid; } .ck .lx-block.alldone:not(.peek) > :not(.lx-bsum) { display: none; } .ck .lx-block.alldone.peek > .lx-bh { display: none; } .ck .lx-skip[hidden] { display: none; }
+/* the note */
+.ck .lx-note > .lx-notesum { display: flex; align-items: center; gap: 6px; min-height: var(--ck-tap); padding: 0 2px; font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); list-style: none; }
+.ck .lx-note[open] > .lx-notesum { margin-bottom: var(--ck-s1); } .ck .lx-note[open] > .lx-notesum .ck-chev { transform: rotate(180deg); }
+/* the save bar: the Cockpit raised bar (ck-finish: surface-3, edge, shadow-2 in light, layer 10), pinned to the bottom of
+   the screen while the log card is in view. It keeps clear of the home indicator (safe-area inset) and, where the browser
+   reports it, of the on-screen keyboard (keyboard-inset-height, 0 elsewhere); the larger of the two, since the keyboard
+   covers the indicator. */
+.ck .ck-finish.lx-bar { bottom: calc(var(--ck-s2) + max(env(safe-area-inset-bottom, 0px), env(keyboard-inset-height, 0px))); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ck-s3); padding: var(--ck-s2) var(--ck-s2) var(--ck-s2) var(--ck-s3); }
+.ck .ck-btn.lx-save.done { background: var(--ck-good); border-color: var(--ck-good); color: var(--ck-surface); } .ck .lx-save .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+/* Progress: one tile per exercise (latest top set, the comparison with the earlier best, the last four, the next step) */
+.ck .lx-prog { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap: var(--ck-s2); margin: 0; padding: 0; list-style: none; }
+.ck .ck-tile.lx-ptile { gap: 4px; } .ck .lx-ptile .ck-tile-label { display: block; } .ck .lx-pfig { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--ck-s1); margin: 0; } .ck .lx-pvs { margin: 0; }
+.ck .lx-phist { display: flex; flex-wrap: wrap; gap: 0 4px; margin: 0; padding: 0; list-style: none; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); } .ck .lx-phist > li { white-space: nowrap; } .ck .lx-phist > li + li::before { content: "\2192\00a0"; content: "\2192\00a0" / ""; } .ck .lx-phist b { color: var(--ck-fg); font-weight: var(--ck-w-med); } /* one session per step: the chain wraps between sessions, never inside one (point 4) */
+.ck .lx-cmp { display: inline-flex; align-items: center; gap: 3px; font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .lx-cmp .ck-i, .ck .lx-nx .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .lx-nx { display: flex; align-items: flex-start; gap: 4px; margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); } .ck .lx-nx.up { font-weight: var(--ck-w-bold); } .ck .lx-nx .ck-i { margin-top: 1px; }
+/* Rules: phases and rules as list rows; the phase in effect today has the emphasis edge and a Now chip */
+.ck .ck-row.lx-rule { grid-template-columns: minmax(0, 1fr); } .ck .ck-row.lx-swap { grid-template-columns: 1.75rem minmax(0, 1fr); }
+.ck .lx-rule.warn .ck-row-t .ck-badge { --st: var(--ck-watch); font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .lx-rulesbody > .ck-list + .ck-list { border-top: 1px solid var(--ck-line); }
+@media (min-width: 480px) { .ck .lx-opts { gap: var(--ck-s2); } }
+@media (min-width: 900px) { .ck .lx-cols { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }

@@ -1,0 +1,4 @@
+{
+ "about": "Plan-adherence streak (coach/engine/LEVELS.md; the athlete, Oct 23, 2026). A day counts when the plan was followed: rest, fallback, nominal or upper in coach/outcomes.csv (a fallback and a rest day are full credit). A day is frozen, not broken, when the coach records a freeze here (replanned to rest, travel, illness, race recovery) or readiness was RED in coach/predictions.csv. A missed planned session breaks the streak. Freezes are added by the coach with the reason the same day they happen, never afterwards to hide a miss.",
+ "freezes": []
+}

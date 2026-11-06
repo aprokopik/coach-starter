@@ -1,0 +1,58 @@
+/* Cockpit design system: motion (Phase 3, Nov 4, 2026).
+   Short, snappy, and only where it tells you something changed. Two durations, one easing.
+   Rule: every animation and transition sits inside prefers-reduced-motion: no-preference. With Reduce Motion on,
+   nothing moves and every element renders in its final state (no rule outside this file animates anything).
+
+   What moves, and why
+   | What                         | How                         | Time  | Why                                                       |
+   | Tab content appears          | fade in, no slide           | 200ms | confirms the tab changed; a slide would shift tiles under the thumb |
+   | Range bar, call bar, zone bar| fill once (.ck-first-draw)  | 200ms | leads the eye from the band to where today sits; never on refresh  |
+   | Range-bar dot                | fade and settle             | 200ms, 60ms late | arrives after its band, so the order reads band then dot |
+   | Tiles and buttons pressed    | scale to .985               | 160ms | a thumb on glass gets no click; this is the click         |
+   | Disclosure chevron           | turns 180 degrees           | 160ms | shows the section opened in place                          |
+   | Segmented control, tab, chip | background and colour       | 160ms | shows which option took                                    |
+   | Notices (Watch, Act, stale)  | fade in                     | 160ms | draws the eye once without blinking                        |
+   | Loading skeleton             | slow shimmer                | 1.2 s loop | says "still working"; static grey under reduced motion |
+   | Host refreshing state        | opacity fade                | 200ms | Phase 0 item 17: the host fade honours the setting        |
+   Nothing else moves: no parallax, no counters that tick up, no bouncing, no auto-scrolling carousels.
+
+   .ck-first-draw convention (one-time fills)
+   JS adds .ck-first-draw to a bar's root the first time that bar (by a stable key, e.g. "rb-sleep_h") is drawn in a
+   page session, and removes it 450 ms later. Redraws (data refresh, resize, theme change) never add it again, so a fill
+   never replays. Reference: CK.firstDraw(el, key) in components.js.
+
+   Scroll behaviour (JS helper note)
+   Every scripted scroll (tab strip keeps the selected tab in view, open a race, jump to the session tile, Pain trend)
+   calls el.scrollIntoView({ behavior: CK.scrollBehavior(), block: 'nearest', inline: 'nearest' }) or
+   scroller.scrollTo({ left, behavior: CK.scrollBehavior() }). CK.scrollBehavior() returns 'auto' when
+   matchMedia('(prefers-reduced-motion: reduce)') matches (or matchMedia throws) and 'smooth' otherwise.
+   Never set scroll-behavior: smooth in CSS outside the query below. */
+.ck {
+  --ck-dur-1: 160ms;                          /* state changes: press, chevron, segment, notice */
+  --ck-dur-2: 200ms;                          /* things that draw: fills, tab content */
+  --ck-dur-loop: 1200ms;                      /* skeleton shimmer only */
+  --ck-ease: cubic-bezier(.2, .8, .2, 1);     /* fast out, settles early: feels instant, never floaty */
+  --ck-ease-linear: linear;                   /* shimmer only */
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ck .ck-tabpanel:not([hidden]) { animation: ck-fade var(--ck-dur-2) var(--ck-ease); }
+  .ck .ck-first-draw .ck-rb-band,
+  .ck .ck-first-draw .ck-rb-target { animation: ck-grow var(--ck-dur-2) var(--ck-ease) both; transform-origin: center; }
+  .ck .ck-first-draw .ck-rb-dot { animation: ck-dot var(--ck-dur-2) var(--ck-ease) 60ms both; }
+  .ck .ck-first-draw.ck-cells > i,
+  .ck .ck-first-draw .ck-zone-fill { animation: ck-grow var(--ck-dur-2) var(--ck-ease) both; transform-origin: left center; }
+  .ck .ck-btn, .ck .ck-tab, .ck .ck-seg-opt, .ck .ck-chip, .ck .ck-tile-btn, .ck .ck-disc, .ck .ck-tick {
+    transition: background-color var(--ck-dur-1) var(--ck-ease), color var(--ck-dur-1) var(--ck-ease),
+                border-color var(--ck-dur-1) var(--ck-ease), transform var(--ck-dur-1) var(--ck-ease);
+  }
+  .ck .ck-btn:active, .ck .ck-tile-btn:active, .ck .ck-tick:active { transform: scale(.985); }
+  .ck .ck-chev { transition: transform var(--ck-dur-1) var(--ck-ease); }
+  .ck .ck-notice:not([hidden]), .ck .ck-stale:not([hidden]) { animation: ck-fade var(--ck-dur-1) var(--ck-ease); }
+  .ck .ck-skel { background-size: 200% 100%; animation: ck-shimmer var(--ck-dur-loop) var(--ck-ease-linear) infinite; }
+  .ck [data-dash-source-state=refreshing] { transition: opacity var(--ck-dur-2) var(--ck-ease); }
+  .ck .ck-tabs { scroll-behavior: smooth; }
+  @keyframes ck-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ck-grow { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes ck-dot { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+  @keyframes ck-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+}

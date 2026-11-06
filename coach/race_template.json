@@ -1,0 +1,25 @@
+{
+ "about": "The one structure every race in coach/races.json fills (the athlete, Nov 2, 2026: every race gets the same race info, weather, prep, key lead-in sessions and kit, so none is missing data the others have). Stages say what must be present by when; coach/tools/race_check.py lists what is missing per race and the morning facts carry it as races.upcoming[].missing, so the coach fills gaps in the same run. A field value of 'none' counts as filled (e.g. a race with no cutoffs). Plan sections are race_note rows (section = one of plan_sections, in that order); kit is race_kit rows, started from kit_templates for the race's sport and tailored to the course, distance and forecast. Key lead-in sessions themselves live in the week plan (coach/week.json) and show on the Season race card as Until race day; the Lead-in note says which of them matter and why.",
+ "stages": [
+  {"key": "any", "when": "every race that is not done, from the day it is added", "fields": ["name", "date", "location", "sport", "distance", "status", "priority", "goal", "wx_kind", "wx_hi", "wx_lo", "wx_text", "wx_plan", "wx_src"], "note": "Weather starts as typical for the date (wx_kind typical, Estimated)."},
+  {"key": "committed", "when": "status registered or planned", "fields": ["url", "limit", "cutoffs", "lat", "lon"], "note": "lat and lon are the start area, for the NWS race-week forecast. limit and cutoffs may be 'none'."},
+  {"key": "watch", "when": "status planned, considering or exploring (any race not yet registered or done)", "fields": ["reg_dates", "reg_checked"], "note": "Registration watch (Nov 5, 2026). reg_dates = 'YYYY-MM-DD|what|basis;...': every dated registration event (openings including priority windows, closings, price steps, lotteries, deferral deadlines); basis posted (the organizer shows it) or expected (from the previous edition's pattern, with the evidence in registration). An exploring row lists its candidate events' dates. 'none' only for a placeholder with no event named yet. Name openings with 'opens' and closings with 'closes': race_check reads them to tell whether registration is open now. A registered race may keep its deadlines (deferral, transfer). reg_checked = the date the official pages were last checked. Filled by the weekly race watch; race_check.registration_due and says_today turn it into the check-in's registration lines (RUNBOOK Data step 8)."},
+  {"key": "prep", "when": "registered and 21 days or fewer to go", "fields": ["forecast"], "notes": ["Lead-in", "Pacing", "Fueling", "Stop rule", "After"], "kit_min": 5, "note": "forecast is the finish-time estimate (Estimated). Decision point is optional, for races with a turnaround, loop or distance choice."},
+  {"key": "race_week", "when": "7 days or fewer to go", "fields": ["wx_at", "wx_days"], "wx_kind": "forecast", "wx_max_age_days": 1, "note": "The morning run refreshes the NWS point forecast for lat/lon every day (RUNBOOK step 6) and adjusts wx_plan when kit or pacing changes."},
+  {"key": "done", "when": "status done", "fields": ["result", "stats"]}
+ ],
+ "plan_sections": [
+  {"section": "Lead-in", "what": "The key sessions and rest leading to the race and why each matters; taper; what to eat and do the day before; any go/no-go test."},
+  {"section": "Pacing", "what": "Effort plan by segment: RPE, HR guardrail, where to hike or hold back."},
+  {"section": "Fueling", "what": "Carbs per hour, fluids and electrolytes, practiced products only, aid stations."},
+  {"section": "Decision point", "what": "Optional: where to choose (turnaround, loop, shorter distance) and the rule for choosing.", "optional": true},
+  {"section": "Stop rule", "what": "What ends the day: pain that changes the stride, red-flag symptoms."},
+  {"section": "After", "what": "Recovery days, the exit check, what the scale and HR will do."}
+ ],
+ "kit_templates": {
+  "Trail run": ["Trail shoes you have trained in", "Vest or handheld with bottles or soft flasks", "Fuel for the expected time plus one hour, practiced products only", "Electrolytes, as practiced", "Anti-chafe", "Watch charged, course loaded", "Layers for the morning forecast", "Bib, ID, phone", "Dry clothes and recovery food for after"],
+  "Run": ["Race shoes you have trained in", "Fuel and fluids if over 75 min", "Layers for the start, a throwaway top if cold", "Watch charged", "Bib, pins, ID, phone", "Dry clothes for after"],
+  "Triathlon": ["Wetsuit (if legal) and goggles, plus a spare pair", "Bike checked, tyres pumped, bottles", "Helmet, bike shoes, sunglasses", "Run shoes with elastic laces, race belt with bib", "Fuel and electrolytes for the bike and run, practiced products only", "Anti-chafe and sunscreen", "Watch charged, multisport mode set", "ID, USAT card, phone", "Dry clothes and recovery food for after"],
+  "Ride": ["Bike checked, tyres pumped, spare tube, CO2 or pump, tools", "Helmet, shoes, gloves, sunglasses", "Bottles and fuel for the expected time, practiced products only", "Layers for the morning forecast", "Head unit charged, route loaded, lights if dim", "ID, phone, cash or card", "Dry clothes and recovery food for after"]
+ }
+}

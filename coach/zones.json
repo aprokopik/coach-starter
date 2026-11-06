@@ -1,0 +1,4 @@
+{
+ "about": "Heart rate zones the dashboard uses for time-in-zone. Provisional, Estimated, low confidence, wrist HR (CURRENT-STATE, Oct 12, 2026): run LTHR ~175, bike LTHR ~168; walk, hike, swim and other sessions use Garmin's default zones (max 194). Recalculate after the November tests and update these rows. lo is inclusive; zone 1 also takes everything below it.",
+ "rows": []
+}

@@ -1,0 +1,27 @@
+{
+ "about": "Filled by Claude during onboarding (ONBOARDING-PROMPT.md), one answer at a time, then read by setup/personalize.py. This example is a made-up athlete.",
+ "athlete": {"name": "Sam", "pronouns": "they/them", "timezone": "America/Chicago", "units": "imperial", "birth_year": 1988, "sex": "female"},
+ "github": {"owner": "sam-example", "repo": "my-coach"},
+ "goals": {
+  "why": "Stay healthy and strong for decades; races are milestones, not the point.",
+  "priority_order": "health and safety first, enjoyment second, getting faster third",
+  "long_term": "A first marathon in 2028.",
+  "style": "Encouraging, direct, tell me when to back off.",
+  "weight": {"unit": "lb", "target_lo": null, "target_hi": null, "target_by": null}
+ },
+ "data_source": "garmin",
+ "strava": false,
+ "focus": ["run"],
+ "races": [
+  {"name": "City Half Marathon", "date": "2027-04-18", "sport": "Run", "distance": "13.1 mi", "location": "Chicago, IL", "status": "planned", "priority": "A", "goal": "Finish strong and healthy", "url": "", "limit": ""}
+ ],
+ "schedule": {"hours_per_week": [4, 6], "strength_per_week": 2, "swims_per_month": 0, "blocked_days": "Tuesdays", "checkin_time": "7:00 AM", "sleep_hours": [7, 8]},
+ "physiology": {"hr_max": null, "easy_hr_run": null, "easy_hr_bike": null},
+ "equipment": ["Garmin Forerunner 265", "home dumbbells"],
+ "not_measured": ["SpO2", "blood pressure", "body fat", "power"],
+ "health": {"injury_notes": "", "conditions": ""},
+ "screen": {"answers": ["no", "no", "no", "no", "no", "no", "no", "no", "no", "no", "yes", "no"], "notes": {}},
+ "season_start": null,
+ "options": {"scale": false, "home_bp": false, "race_watch": true, "research_scan": true},
+ "links": {"dashboard_url": "", "season_url": ""}
+}

@@ -1,0 +1,35 @@
+{
+ "about": "Health and longevity inputs that the watch cannot measure, for the dashboard's Health and longevity card. Coach-maintained from what the athlete reports (Reported) or tests they logs. kind selftest_def: a quarterly self-test (key, order, name, unit, better, protocol, why). kind selftest: one result {key, date, value (number), text, note, source}. kind lab: one reported value {key: bp_sys, bp_dia (home BP: one pair per reading, optional time HH:MM local and part morning/evening; settled readings only, failed or unsettled ones are dropped), ldl, non_hdl, hdl, a1c, glucose, lpa, date, value, unit, note, source: Reported}. kind habit: {key: nicotine or diet, date, value, text, source: Reported}; nicotine value: never, former, current; diet: the athlete's own 0-100 rating against a Mediterranean-style pattern, or blank. kind visit: {date, item, text, source}. A missing value is unknown, never assumed. kind physical_status: {date, value: within12, 1to2, over2, over3 or never, text, source}: the last physical when no visit date is known.",
+ "rows": [
+  {
+   "kind": "selftest_def",
+   "key": "sitrise",
+   "order": 1,
+   "name": "Sit-to-rise",
+   "unit": "points",
+   "better": 1,
+   "protocol": "Barefoot, from standing sit down to the floor cross-legged and stand back up without hands if you can. Start at 10; take off 1 point for each hand, knee, forearm or side-of-leg support, and 0.5 for a visible wobble. Best of two tries.",
+   "why": "Scores under 8 in middle age were linked to higher mortality in a Brazilian cohort (Araujo 2012, 2022); it captures leg strength, mobility and balance together."
+  },
+  {
+   "kind": "selftest_def",
+   "key": "balance",
+   "order": 2,
+   "name": "One-leg stand",
+   "unit": "s",
+   "better": 1,
+   "protocol": "Barefoot, hands on hips, other foot resting behind the standing calf, eyes open. Time up to 30 s on each leg; record the weaker side. Pass mark in the study: 10 s.",
+   "why": "Not holding 10 s was linked to higher mortality in adults 51 to 75 (Araujo 2022). At 35 it is a baseline to keep, and a check on ankle stability after injuries."
+  },
+  {
+   "kind": "selftest_def",
+   "key": "grip",
+   "order": 3,
+   "name": "Grip strength",
+   "unit": "kg",
+   "better": 1,
+   "protocol": "Only with a hand dynamometer: standing, arm at the side, elbow straight; best of three squeezes per hand, record the stronger hand.",
+   "why": "Lower grip strength predicted mortality and heart disease across 17 countries (PURE, Leong 2015). Optional: needs a gauge."
+  }
+ ]
+}

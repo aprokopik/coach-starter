@@ -1,0 +1,100 @@
+{
+ "about": "The one place scales, thresholds and record schemas are defined. engine/RULES.md, the tools and the dashboard build read these; nothing else restates a number. Generic: nothing here is specific to one athlete (athlete parameters live in coach/athlete/profile.json).",
+ "version": "1.0 (2026-10-19)",
+ "feel": {
+  "scale": 5,
+  "morning": {
+   "sleep_q": {"1": "awful", "2": "poor", "3": "OK", "4": "good", "5": "great"},
+   "energy": {"1": "drained", "2": "low", "3": "OK", "4": "good", "5": "great"},
+   "legs": {"1": "trashed", "2": "heavy", "3": "OK", "4": "good", "5": "fresh"},
+   "stress": {"1": "calm", "2": "low", "3": "some", "4": "high", "5": "maxed"}
+  },
+  "pain": {"none": 0, "niggle": 1, "hurts": 3, "stop": 6},
+  "pain_scale_note": "Stored on a 0 to 10 scale so older numeric answers stay comparable; only the four words are asked.",
+  "effort_cr10": {"very easy": 2, "easy": 3, "steady": 4, "hard": 6, "very hard": 8},
+  "vs_plan": ["-", "=", "+"],
+  "legacy_scale": 10,
+  "legacy_rescale": "1 + (v - 1) * 4 / 9",
+  "legacy_cutover": "2026-10-18"
+ },
+ "rpe_anchors": {"0": "rest", "1": "very easy", "2": "easy", "3": "comfortable, full sentences", "4": "steady, shorter sentences", "5": "moderate-hard, phrases", "6": "hard", "7": "very hard, a few words", "8-9": "near max", "10": "max"},
+ "rpe_targets": {"easy": [2, 3], "steady": [4, 5], "threshold": [6, 7], "intervals": [8, 9]},
+ "thresholds": {
+  "bands_min_nights": 14,
+  "bands_preferred_nights": 21,
+  "bands_window_days": 28,
+  "feel_reference_days": 14,
+  "feel_departure_points": 1.0,
+  "feel_departure_mornings": 2,
+  "feel_fallback_at_or_below": 2,
+  "feel_strong_day_at_or_above": 4,
+  "stress_trim_at_or_above": 4,
+  "pain_persistent_mornings_flag": 3,
+  "pain_persistent_mornings_physio": 5,
+  "pain_key_session_window_days": 3,
+  "single_run_spike_pct": 10,
+  "single_run_lookback_days": 30,
+  "strong_day_extra_pct": [10, 25],
+  "fallback_less_pct": [20, 40],
+  "easy_session_hard_rpe": 5,
+  "long_session_fuel_ask_min": 90,
+  "unanswered_question_weeks_before_change": 2,
+  "profile_fact_min_observations": 6,
+  "composite_score_min_components": 6
+ },
+ "readiness": ["GREEN", "YELLOW", "RED"],
+ "confidence": ["high", "moderate", "low"],
+ "labels": ["Measured", "Reported", "Calculated", "Estimated", "Inferred", "Unknown"],
+ "completion_classes": {
+  "rest": "no session on a planned rest day, or rest taken as the fallback",
+  "fallback": "the fallback was done (its discipline or minutes)",
+  "nominal": "within the nominal to upper range, or the nominal when no upper was given",
+  "upper": "within about 10% of the strong-day bound",
+  "over": "beyond the strong-day bound by more than 10% in minutes or clearly harder than the prescribed effort",
+  "none": "nothing recorded on a day with a planned session",
+  "unknown": "cannot be classified (no plan row, or data missing)"
+ },
+ "today_json": {
+  "rows[0]": {
+   "date": "YYYY-MM-DD",
+   "generated_at_utc": "YYYY-MM-DDTHH:MM:SSZ",
+   "readiness": "GREEN | YELLOW | RED",
+   "confidence": "high | moderate | low",
+   "reason": "one sentence",
+   "data_quality": "one sentence: complete, partial or stale, missing",
+   "call": "push | hold | restrain (which call this is, per RULES 13)",
+   "workout_title": "short name",
+   "purpose": "one sentence",
+   "nominal": "minutes, structure, RPE",
+   "upper": "precise optional upper bound, or empty",
+   "fallback": "precise fallback",
+   "choice_rule": "one sentence",
+   "phase": "block label from plan.json",
+   "week_adaptation": "the week's single primary adaptation",
+   "question": "one question, or empty string",
+   "expected": {
+    "discipline": "run | bike | swim | strength | walk | rest | test | race",
+    "completion": "rest | fallback | nominal | upper",
+    "minutes": "number: the nominal minutes",
+    "upper_minutes": "number or null",
+    "fallback_minutes": "number or null",
+    "rpe": "expected whole-session CR-10 value, e.g. 3",
+    "next_morning_legs_min": "the lowest legs score (1 to 5) that would count as absorbed, e.g. 3",
+    "note": "optional: the main uncertainty"
+   }
+  }
+ },
+ "predictions_csv": ["date", "discipline", "completion", "minutes", "upper_minutes", "fallback_minutes", "rpe", "next_morning_legs_min", "readiness", "confidence", "call", "logged_at_utc"],
+ "outcomes_csv": ["date", "discipline", "predicted_completion", "actual_completion", "actual_minutes", "predicted_rpe", "actual_rpe", "rpe_delta", "next_morning_legs", "legs_ok", "match", "note", "scored_at_utc"],
+ "week_json_day": {
+  "kind": "day", "date": "YYYY-MM-DD", "order": 1, "type": "run | bike | swim | strength | walk | race | test | rest",
+  "title": "", "minutes": 0, "upper_minutes": null, "fallback_minutes": null, "alt_type": "fallback discipline when different",
+  "intensity": "rest | easy | steady | quality | long | race | test", "key": false, "pillar": "1 | 2 | 3 | absent", "detail": ""
+ },
+ "races_json_cutoffs": {
+  "limit": "overall time limit as text, with its source",
+  "cutoffs": "segment|H:MM;segment|H:MM, cumulative from the athlete's start (or the last wave, say which), e.g. swim|1:10;bike|5:30;run|8:30",
+  "cutoffs_src": "where the cutoffs come from and their label (Measured from the athlete guide, or Estimated from the series standard)"
+ },
+ "facts_json": "Written by coach/tools/morning_facts.py; its sections are documented at the top of that file."
+}

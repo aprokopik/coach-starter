@@ -1,0 +1,680 @@
+<!-- Coach dashboard page: markup only. Styles in style.css, cockpit.css (the Cockpit design system) and charts.css. Scripts, in load order: calc.js (window.CX helpers and the dash.calc definitions),
+     cockpit.js (window.CK), charts.js (window.CKC), app.js (tabs, drawing helpers, Today, Week, Fitness and Health; shares its helpers as window.CX.app), season.js (Season tab and the Week race-week card),
+     forms.js, lifts.js, records.js, body.js, pillars.js (Health tab), checkins.js (Check-in tab), block.js. Each is a files/<name> document of the dashboard store (each capped at 256 KB).
+     A new feature goes in its own file, loaded after app.js. Files and publishing: coach/dashboard/MAINTAIN.md. -->
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="cockpit.css">
+<link rel="stylesheet" href="charts.css">
+<!-- Cockpit icon sprite (54 glyphs: the 46 from Phase 3 icons.svg plus cx-trail, added in Phase 5 for the Week hike glyph and redrawn after the Season review as two peaks over a switchback path and cx-habits and cx-mind for the Health pillars; all drawn to the Phase 3 icon rules: 2 px solid strokes, round ends, inside 2 to 22; and the five race-type glyphs cx-race-bike, -run, -trail, -tri and -adventure, the single source for season.js raceIcon and the Season charts, which carry no stroke or fill of their own so each use sets them: .ricon in style.css, 1.9 and 1.8 px in the charts), hidden at zero size. Use: <svg class="ck-i" aria-hidden="true"><use href="#cx-..."/></svg>
+     with the word beside it; an icon never carries meaning alone. -->
+<svg class="ck-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+<symbol id="cx-good" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.2 12.4l3.2 3.2 6.4-6.8" fill="none" stroke="var(--ck-knock, #fff)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-watch" viewBox="0 0 24 24"><path d="M12 2.6L22.4 20.6H1.6Z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 9v5.2" stroke="var(--ck-knock, #fff)" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.4" fill="var(--ck-knock, #fff)"/></symbol>
+<symbol id="cx-act" viewBox="0 0 24 24"><path d="M8.1 2h7.8L22 8.1v7.8L15.9 22H8.1L2 15.9V8.1Z" fill="currentColor"/><path d="M12 6.8v6.4" stroke="var(--ck-knock, #fff)" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="17" r="1.5" fill="var(--ck-knock, #fff)"/></symbol>
+<symbol id="cx-unknown" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M9.3 9.4a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2.9-1.2 1.8v.5" fill="none" stroke="var(--ck-knock, #fff)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="17.4" r="1.3" fill="var(--ck-knock, #fff)"/></symbol>
+<symbol id="cx-chevron" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-go" viewBox="0 0 24 24"><path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-back" viewBox="0 0 24 24"><path d="M19 12H6M11 6.5L5.5 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/></g><circle cx="12" cy="7.4" r="1.3" fill="currentColor"/></symbol>
+<symbol id="cx-external" viewBox="0 0 24 24"><path d="M10 4.5H5.5a1.5 1.5 0 0 0-1.5 1.5v12.5A1.5 1.5 0 0 0 5.5 20H18a1.5 1.5 0 0 0 1.5-1.5V14M14 3h7v7M21 3l-9 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cx-today" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17a9 9 0 0 1 18 0"/><path d="M12 17l4.5-6"/><path d="M3 20h18"/></g><circle cx="12" cy="17" r="1.6" fill="currentColor"/></symbol>
+<symbol id="cx-checkin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 13.5l2.5 2.5 4.5-5"/></g></symbol>
+<symbol id="cx-week" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><circle cx="7" cy="13.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.3" cy="13.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="13.7" cy="13.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="17" cy="13.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="7" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.3" cy="17.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="13.7" cy="17.5" r="1.1" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="cx-fitness" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M8 16l3.5-4 3 3L18 8"/></g></symbol>
+<symbol id="cx-health" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5C5 15.5 3 12.5 3 9a4.7 4.7 0 0 1 9-2 4.7 4.7 0 0 1 9 2c0 3.5-2 6.5-9 11.5z"/></g></symbol>
+<symbol id="cx-season" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4"/><path d="M10 18v-8l6 2.5-6 2.5"/></g></symbol>
+<symbol id="cx-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></g></symbol>
+<symbol id="cx-skip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17C4 7 18 6 20 17"/><path d="M16 14.5l4 2.5 .8-4.5"/><path d="M12 15v6"/></g></symbol>
+<symbol id="cx-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19z"/><path d="M14.5 6.5l3 3"/></g></symbol>
+<symbol id="cx-sleep" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></g></symbol>
+<symbol id="cx-hr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S3 15.3 3 8.8A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 9 2.2c0 6.5-9 11.7-9 11.7z"/><path d="M6.5 12.5h3l1.5-3 2 5 1.5-2h2"/></g></symbol>
+<symbol id="cx-hrv" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12h2.5l2-7 3 14 2.5-10 2 6 1.5-3h5"/></g></symbol>
+<symbol id="cx-breath" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5q2.250-3.5 4.5 0t4.5 0 4.5 0 4.5 0"/><path d="M3 15.5q2.250-3.5 4.5 0t4.5 0 4.5 0 4.5 0"/></g></symbol>
+<symbol id="cx-temp" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4.5 4.5 0 1 1-4 0z"/></g><circle cx="12" cy="17.5" r="1.8" fill="currentColor"/></symbol>
+<symbol id="cx-spo2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5S5.5 9.5 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 9.5 12 2.5 12 2.5z"/><circle cx="12" cy="14.5" r="2"/></g></symbol>
+<symbol id="cx-steps" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3" width="5" height="7" rx="2.5"/><circle cx="8" cy="14.8" r="1.5"/><rect x="13.5" y="8.5" width="5" height="7" rx="2.5"/><circle cx="16" cy="20.3" r="1.5"/></g></symbol>
+<symbol id="cx-weight" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4.5"/><path d="M7.5 10.5a6.5 6.5 0 0 1 9 0"/><path d="M12 14l1.8-3.5"/></g></symbol>
+<symbol id="cx-bp" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="12" width="14" height="8" rx="3"/><path d="M16.5 16H19V9"/><circle cx="19" cy="7" r="2"/></g></symbol>
+<symbol id="cx-pain" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l3.8 6.8M10 14.3L7 21"/><circle cx="11" cy="12" r="2.5"/><path d="M16.5 12h3M15.2 8.5l2.3-2M15.2 15.5l2.3 2"/></g></symbol>
+<symbol id="cx-rest" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v16M3 16h18M21 20v-6a3 3 0 0 0-3-3h-7.5v5"/><circle cx="7" cy="12" r="1.4"/></g></symbol>
+<symbol id="cx-bike" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="4"/><circle cx="18" cy="16" r="4"/><path d="M6 16l4-7h4l4 7"/><path d="M10 9l2.5 7"/><path d="M14 9l-1-3h3"/></g></symbol>
+<symbol id="cx-run" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="5" r="2"/><path d="M13.5 8.5L11 13l4 2.5-1 5.5"/><path d="M11 13l-3.5 1"/><path d="M13.5 8.5l4 2.5"/></g></symbol>
+<symbol id="cx-swim" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6" r="2"/><path d="M5 12l5-3 4 2"/><path d="M2.5 16c2.2-2 4.3-2 6.5 0s4.3 2 6.5 0 4.3-2 6.5 0"/><path d="M2.5 21c2.2-2 4.3-2 6.5 0s4.3 2 6.5 0 4.3-2 6.5 0"/></g></symbol>
+<symbol id="cx-strength" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6v12M4 8.5v7M17 6v12M20 8.5v7M7 12h10"/></g></symbol>
+<symbol id="cx-sauna" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c-1.5 2 1.5 3 0 5M12 3c-1.5 2 1.5 3 0 5M17 3c-1.5 2 1.5 3 0 5"/><path d="M3 14h18"/><path d="M6 14v6M18 14v6"/></g></symbol>
+<symbol id="cx-session" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/><path d="M12 2.5V6"/><path d="M18.5 6.5l1.5-1.5"/></g></symbol>
+<symbol id="cx-stale" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 8.5A8.5 8.5 0 1 1 3.5 12"/><path d="M3.5 4.5v4h4"/><path d="M12 7.5V12l3 2"/></g></symbol>
+<symbol id="cx-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21.5V3"/><path d="M5 4h12.5l-2.8 4.3 2.8 4.2H5"/></g><path d="M5 4h6v4.25H5zM11 8.25h4.7l-1 1.85 1.8 2.4H11z" fill="currentColor"/></symbol>
+<symbol id="cx-streak" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c1 3.5 6 5.5 6 11a6 6 0 0 1-12 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.3 2 2.5-.5-3 .5-6 1.5-8.5z"/></g></symbol>
+<symbol id="cx-badge" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="15" r="5.5"/><path d="M7 2.5l3 5.5M17 2.5l-3 5.5"/></g></symbol>
+<symbol id="cx-trend-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></g></symbol>
+<symbol id="cx-trend-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/></g></symbol>
+<symbol id="cx-trend-flat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h13"/><circle cx="19" cy="12" r="2.5"/></g></symbol>
+<symbol id="cx-fuel" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5v5a2.5 2.5 0 0 0 5 0v-5M7.5 10v11.5"/><path d="M17 21.5V2.5c-2.5 1.5-3.5 4.5-3.5 8H17"/></g></symbol>
+<symbol id="cx-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 11A7.5 7.5 0 0 0 6 7"/><path d="M5.5 3v4.5H10"/><path d="M4.5 13A7.5 7.5 0 0 0 18 17"/><path d="M18.5 21v-4.5H14"/></g></symbol>
+<symbol id="cx-trail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13l6.5-9 4 5.5 2.5-3L22 13"/><path d="M5 21h5a2.5 2.5 0 0 0 0-5H9a2.5 2.5 0 0 1 0-5h1"/></g></symbol><symbol id="cx-habits" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5C4.5 10.5 10 4.5 20 3.5c-.5 10-6.5 15.5-15.5 16z"/><path d="M4.5 19.5l8-8"/></g></symbol><symbol id="cx-mind" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/></g><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/></symbol>
+<symbol id="cx-race-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16 9.5 9H15l3.5 7M9.5 9 12 16l3-7M8 6.5h3M15 9l1-3h2"/></symbol><symbol id="cx-race-run" viewBox="0 0 24 24"><circle cx="15.5" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><path d="M14.5 8 11 13.5"/><path d="M11 13.5l3.5 3-1.5 5"/><path d="M11 13.5 7.5 16H4"/><path d="M14 9l3 2.5 3-1"/><path d="M14 9l-4-1-2.5 2.5"/></symbol><symbol id="cx-race-trail" viewBox="0 0 24 24"><path d="M2 19 9 7l4 6.5 2.5-3.5L22 19z"/><path d="M8 19c1.6-1.6 3.5-2.2 5-2.8 1.4-.6 2.2-1.5 2.5-3" stroke-dasharray="1.2 2.2"/></symbol><symbol id="cx-race-tri" viewBox="0 0 24 24"><circle cx="5" cy="6.5" r="3.5"/><circle cx="5" cy="6.5" r=".9" fill="currentColor" stroke="none"/><path d="M2 20.5c1.7-1.2 3.3-1.2 5 0s3.3 1.2 5 0"/><circle cx="18.5" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><path d="M17.5 8 14 13.5"/><path d="M14 13.5l3.5 3-1.5 5"/><path d="M14 13.5 10.5 16H7"/><path d="M17 9l3 2.5 2.5-1"/><path d="M17 9l-4-1-2.5 2.5"/></symbol><symbol id="cx-race-adventure" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></symbol>
+<symbol id="cx-goal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></g><circle cx="12" cy="12" r="1.2" fill="currentColor"/></symbol>
+</svg>
+<div class="cx ck" id="cx">
+  <header class="cx-head" id="cx-top">
+    <div class="cx-titlerow">
+      <h1 id="cx-title">Coach dashboard</h1>
+      <span class="cap muted" id="cx-asof" data-source="coach"></span>
+    </div>
+  </header>
+  <!-- The tab strip is the page's sticky bar (Phase 6, point 1): outside the header, so it stays pinned for the whole page
+       while the title above scrolls away. On Fitness and Health the range control docks under it as a second sticky row. -->
+  <div class="cx-bar" id="cx-bar">
+    <nav class="cx-tabs" role="tablist" aria-label="Dashboard pages">
+      <button type="button" role="tab" id="tab-today" aria-controls="today" aria-selected="true">Today</button>
+      <button type="button" role="tab" id="tab-checkins" aria-controls="checkins" aria-selected="false" tabindex="-1">Check-in</button>
+      <button type="button" role="tab" id="tab-week" aria-controls="week" aria-selected="false" tabindex="-1">Week</button>
+      <button type="button" role="tab" id="tab-lifts" aria-controls="lifts" aria-selected="false" tabindex="-1">Lifts</button>
+      <button type="button" role="tab" id="tab-trends" aria-controls="trends" aria-selected="false" tabindex="-1">Fitness</button>
+      <button type="button" role="tab" id="tab-goals" aria-controls="goals" aria-selected="false" tabindex="-1">Health</button>
+      <button type="button" role="tab" id="tab-races" aria-controls="races" aria-selected="false" tabindex="-1">Season</button>
+    </nav>
+  </div>
+
+  <!-- TODAY (Cockpit, Phase 5; Phase 6 usability pass): the deck first (the stale banner, the check-ins due line, the call,
+       the session with its size control and Help me pick, the Watch notice when the live 1.5 SD rule flags a vital, the next
+       race), in that order in the page and on screen at every width; then last night (the gauge, with every vital behind All N
+       vitals), kudos, Doing the plan, progress and the pain watch. Every card has the shared states from cockpit.css: a ck-state slot
+       (loading, empty, error) beside its body, and the ck-stale banner. -->
+  <section class="page ck ck-page" id="today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="ck-deck" id="t-deck">
+      <div class="ck-stale" id="t-stale" role="status" hidden>
+        <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+        <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="t-stale-t"></span> <span id="t-stale-age" data-source="coach" data-where="kind=today" data-derived="age"></span></p>
+      </div>
+
+      <!-- Check-ins due (Phase 6, point 12): one unread-style line, the whole line one button to the Check-in tab. checkins.js
+           (renderStrip) shows or hides #t-ci, writes the due count into its data-n and the names into #t-ci-text; app.js
+           shows data-n in #t-ci-n. -->
+      <button type="button" class="td-ci" id="t-ci" hidden>
+        <span class="td-ci-dot" aria-hidden="true"></span>
+        <span class="td-ci-w"><span id="t-ci-n" data-source="coach" data-where="kind=ci_survey" data-derived="store:checkin due count"></span> <span id="t-ci-u">check-ins</span> due</span>
+        <span class="ck-vh" id="t-ci-text"></span>
+        <span class="td-ci-go">Open<svg class="ck-i" aria-hidden="true"><use href="#cx-go"/></svg></span>
+      </button>
+
+      <article class="ck-tile ck-call" id="t-hero" aria-labelledby="t-call-h">
+        <div class="ck-tile-head">
+          <h2 class="ck-eyebrow" id="t-call-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-today"/></svg>Today's call</h2>
+          <div class="td-hn-meta">
+            <span class="ck-sub" id="t-conf-w" hidden>Confidence <span id="t-conf" data-source="coach" data-field="confidence" data-where="kind=today">—</span></span>
+            <span class="ck-sub td-hn-asof"><span id="n-date" data-source="night" data-where="metric=sleep_h" data-derived="formatted"></span></span>
+          </div>
+        </div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="td-body" data-body hidden>
+          <div class="ck-call-main">
+            <span class="ck-call-glyph" id="t-ready-g" data-s="unknown"><svg class="ck-g" aria-hidden="true"><use href="#cx-unknown"/></svg></span>
+            <span class="ck-ready td-ready"><span class="ck-sr" id="t-ready-sr"></span><span id="t-ready" data-source="coach" data-field="readiness" data-where="kind=today">—</span></span>
+          </div>
+          <!-- Last night in one line (Phase 6 round 2, T-B as the athlete picked, with the bigger meter he asked for): the gauge's
+               figure and word, then a full-width -2 to +2 SD bar with dashed marks at -1 and +1 (the usual range) and a mark at
+               0; the whole row is the disclosure for the gauge and every vital (#t-hn). app.js renderGauge fills it. -->
+          <button class="ck-disc td-nm" type="button" id="t-nm-btn" aria-expanded="false" aria-controls="t-hn" data-ck="disc" hidden>
+            <span class="td-nm-w"><span class="td-nm-k">Last night</span> <b class="td-nm-v" id="t-nm-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, sleep_score, hrv_overnight_ms and resting_hr (sign flipped)"></b> <span class="td-nm-u">SD</span><span class="td-nm-dot" aria-hidden="true"> · </span><span class="td-nm-word" id="t-nm-word" data-source="night_gauge" data-where="key=last_night" data-derived="gauge-word"></span></span>
+            <span class="td-nm-scale" aria-hidden="true"><span class="td-nm-end">low</span><span class="td-nm-bar" id="t-nm-bar"></span><span class="td-nm-end">high</span></span>
+            <svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>
+          </button>
+          <!-- Last night vs your normal (was its own section below the deck): the night's state slot, stale line, gauge and the
+               six vitals, opened from the meter line and directly under it. Shown open without the meter when the night has no gauge figure. -->
+          <div class="ck-disc-panel td-hn" id="t-hn" hidden>
+            <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+            <div class="td-hn-body" data-body hidden>
+              <h3 class="ck-vh" id="t-hn-h">Last night vs your normal</h3>
+              <div class="ck-note td-hn-stale" id="n-stale" role="status" hidden><span class="td-hn-sw"><svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>Out of date</span><span id="n-stale-t" data-source="night" data-where="metric=sleep_h" data-derived="age"></span></div>
+              <article class="td-gauge" id="n-gauge" aria-labelledby="t-hn-h">
+                <div class="td-g-dial" id="n-g-dial">
+                  <div class="td-g-draw" id="n-g-draw"></div>
+                  <p class="td-g-fig"><span id="n-g-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, sleep_score, hrv_overnight_ms and resting_hr (sign flipped)"></span><span class="ck-unit">SD</span></p>
+                </div>
+                <p class="td-g-line"><span id="n-g-b" data-source="night_gauge" data-where="key=last_night" data-derived="gauge-word"></span> <span class="td-g-sent" id="n-g-s" data-source="night_gauge" data-where="key=last_night" data-derived="sentence"></span></p>
+                <p class="ck-note" id="n-g-n">Average of last night's distances from your <span data-rule="calc.js night: 28-day window">28-day</span> normal for sleep, sleep score, HRV and resting HR (flipped, so higher is better for all four): <span data-source="night_gauge" data-field="used" data-where="key=last_night" id="n-g-used"></span> of <span data-source="night_gauge" data-field="of" data-where="key=last_night" id="n-g-of"></span> metrics.</p>
+                <div class="ck-state" data-state="empty" id="n-g-empty" role="status" hidden><span class="ck-state-w"><svg class="ck-i" aria-hidden="true"><use href="#cx-unknown"/></svg>Nothing yet</span><span>No usual range yet for sleep, sleep score, HRV or resting HR: each needs <span data-rule="calc.js night: a band needs 14 nights (min n)">14</span> nights.</span></div>
+              </article>
+              <div class="td-nall" id="n-all">
+                <div class="ck-tscroll" tabindex="0" role="region" aria-labelledby="t-hn-h" id="n-scroll">
+                  <table class="ck-table ck-vtab" id="n-table" aria-labelledby="t-hn-h" data-source="night" data-row-key="metric">
+                    <thead><tr><th scope="col" data-field="label">Vital</th><th scope="col" data-field="value">Last night</th><th scope="col">Usual range</th><th scope="col">Status</th><th scope="col">Where it sits</th></tr></thead>
+                    <tbody id="n-grid"></tbody>
+                  </table>
+                </div>
+                <p class="ck-note" id="n-foot" data-source="night" data-where="metric=sleep_h" data-derived="sentence"></p>
+              </div>
+            </div>
+          </div>
+          <!-- The call sits with its Why (Phase 6 round 3, the athlete: the call with the why, not with last night) -->
+          <button class="ck-disc" type="button" id="t-why-btn" aria-expanded="false" aria-controls="t-why" data-ck="disc">Why: call, reason, block, race, fuel<svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg></button>
+          <div class="ck-disc-panel" id="t-why" hidden>
+            <p class="ck-action"><span class="ck-action-k">Call</span> <span class="ck-action-w" id="t-call" data-source="coach" data-field="call" data-where="kind=today">—</span>: <span class="ck-action-t" id="t-call-t" data-source="coach" data-field="workout_title" data-where="kind=today">—</span></p>
+            <p id="t-reason" data-source="coach" data-field="reason" data-where="kind=today">—</p>
+            <div class="ck-chips" id="t-chips" data-source="coach"></div>
+            <p class="ck-note">Data: <span id="t-dq" data-source="coach" data-field="data_quality" data-where="kind=today">—</span></p>
+          </div>
+        </div>
+      </article>
+
+      <article class="ck-tile ck-session" id="t-workout" aria-labelledby="t-wk-eyebrow">
+        <div class="ck-tile-head">
+          <h2 class="ck-eyebrow" id="t-wk-eyebrow-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-session"/></svg><span id="t-wk-eyebrow">Today's session</span></h2>
+          <span class="ck-sport" id="t-sport" hidden></span>
+        </div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="td-body" data-body hidden>
+          <!-- Coach's call: the decision in words at the top of the plan tile (app.js coachCall fills it; hidden with no call) -->
+          <div class="td-cc" id="t-cc" hidden></div>
+          <div class="td-planned" id="t-planned" hidden data-source="coach"></div>
+          <div class="ck-session-main" id="t-presc-a">
+            <span class="ck-big" id="t-sess-min" hidden></span>
+            <h3 class="ck-session-title" id="t-title" data-source="coach" data-field="workout_title" data-where="kind=today">—</h3>
+          </div>
+          <div class="ck-notice td-done" data-s="good" id="t-done" hidden data-source="week_view"></div>
+          <div class="td-presc" id="t-presc-b">
+            <fieldset class="ck-seg" id="t-bounds">
+              <legend class="ck-vh">Choose the session's size</legend>
+              <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="t-bound" value="fallback" aria-controls="t-b-fallback">Fallback<span class="ck-sub" id="t-bm-fallback"></span></label>
+              <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="t-bound" value="nominal" aria-controls="t-b-nominal" checked>Plan<span class="ck-sub" id="t-bm-nominal"></span></label>
+              <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="t-bound" value="upper" aria-controls="t-b-upper">Strong day<span class="ck-sub" id="t-bm-upper"></span></label>
+            </fieldset>
+          </div>
+          <!-- Help me pick (Phase 6, point 2; was the How to choose card): closed by default, every day. With today's check-in it
+               holds the purpose, choice rule, Coach asks and fuel; before it, the week plan's details and fuel (app.js renderToday). -->
+          <button class="ck-disc td-pick" type="button" id="t-pick-btn" aria-expanded="false" aria-controls="t-pick" data-ck="disc"><span>Help me pick</span><svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg></button>
+          <div class="ck-disc-panel td-pick-panel" id="t-pick" hidden>
+            <div class="td-presc" id="t-presc-c">
+              <div class="td-presc" id="t-pdet" hidden data-source="coach"></div>
+              <p class="ck-note" id="t-purpose" data-source="coach" data-field="purpose" data-where="kind=today">—</p>
+              <p class="ck-session-text" id="t-rule" data-source="coach" data-field="choice_rule" data-where="kind=today">—</p>
+            </div>
+            <div class="ck-notice" data-s="info" id="t-ask" hidden><span class="ck-notice-w"><svg class="ck-i" aria-hidden="true"><use href="#cx-info"/></svg>Coach asks</span><p class="ck-notice-t"><span id="t-q" data-source="coach" data-field="question" data-where="kind=today">—</span> Answer in your coach chat.</p></div>
+            <p class="ck-note" id="t-fuel" data-source="coach" data-derived="fuel"></p>
+          </div>
+          <div class="td-presc" id="t-presc-s">
+            <p class="ck-session-note" id="t-b-note" aria-live="polite" data-rule="app.js renderBound: size note"></p>
+            <p class="ck-session-text" id="t-b-nominal" data-source="coach" data-field="nominal" data-where="kind=today">—</p>
+            <p class="ck-session-text" id="t-b-upper" data-source="coach" data-field="upper" data-where="kind=today" hidden>—</p>
+            <p class="ck-session-text" id="t-b-fallback" data-source="coach" data-field="fallback" data-where="kind=today" hidden>—</p>
+          </div>
+        </div>
+      </article>
+
+      <div class="td-watchslot" id="t-watchslot" hidden>
+        <div class="ck-notice" data-s="watch" id="t-watchnote" role="status" data-source="night" data-derived="watch-notice" hidden>
+          <span class="ck-notice-w"><svg class="ck-g" aria-hidden="true"><use href="#cx-watch"/></svg>Watch</span>
+          <p class="ck-notice-t" id="t-watchnote-t"></p>
+        </div>
+      </div>
+
+      <article class="ck-tile ck-race" id="t-race" aria-labelledby="t-race-h">
+        <div class="ck-tile-head">
+          <h2 class="ck-eyebrow" id="t-race-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-flag"/></svg>Next race</h2>
+        </div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="td-body" data-body hidden>
+          <div class="ck-race-main">
+            <span class="ck-big"><span id="t-race-n" data-source="coach" data-where="" data-derived="days-until"></span><span class="ck-unit" id="t-race-u">days</span></span>
+            <span class="ck-race-name" id="t-race-name" data-source="coach" data-field="name" data-where="">—</span>
+          </div>
+          <p class="ck-race-line" id="t-race-a" hidden></p>
+          <p class="ck-race-line" id="t-race-key" hidden></p>
+        </div>
+      </article>
+    </div>
+
+    <div class="td-rest">
+      <article class="ck-tile" id="t-kudos" hidden aria-labelledby="t-kudos-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="t-kudos-h">Kudos</h2><span class="ck-sub">Levels crossed in the last <span data-rule="app.js renderKudos 7-day window">7</span> days</span></div>
+        <ul class="td-list" id="t-kudos-list" data-source="coach"></ul>
+        <p class="ck-note">A first crossing that still holds today. The bands behind each level are on the Fitness and Health tabs.</p>
+      </article>
+
+      <!-- Doing the plan (Phase 6, the athlete picked S-A two lines; app.js renderAdh): key sessions, then every scheduled session -->
+      <article class="ck-tile td-adh" id="t-adh" hidden aria-labelledby="t-adh-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="t-adh-h">Doing the plan</h2></div>
+        <div class="td-adh-body" id="t-adh-body" data-source="week_view"></div>
+        <!-- What counts (Phase 6 round 5): the rule sits behind a closed disclosure at the bottom of the card -->
+        <button class="ck-disc td-adh-disc" type="button" id="t-adh-rule-btn" aria-expanded="false" aria-controls="t-adh-rule-p" data-ck="disc"><span>What counts</span><svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg></button>
+        <div class="ck-disc-panel" id="t-adh-rule-p" hidden><p class="ck-note" id="t-adh-rule"></p></div>
+      </article>
+
+      <article class="ck-tile" id="t-progress" hidden aria-labelledby="t-progress-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="t-progress-h">Progress</h2><span class="ck-sub">Points toward your next level, since the last reading</span></div>
+        <div id="t-progress-list" class="td-prog" data-source="coach"></div>
+        <p class="ck-note">Each line is a marker that moved in the last <span data-rule="app.js renderProgress 7-day window">7</span> days: the value before and after, and how far through its current band it stands (bands on the Fitness and Health tabs). A new band is a level up.</p>
+      </article>
+
+      <article class="ck-tile" id="t-watch" hidden aria-labelledby="t-watch-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="t-watch-h">Watch</h2><span class="ck-badge" id="t-watch-b" data-s="watch" data-derived="pain-flag"><svg class="ck-g" aria-hidden="true"><use href="#cx-watch"/></svg><span id="t-watch-bw">Watch</span></span></div>
+        <div class="ck-state" data-state="empty" data-slot hidden></div>
+        <div class="td-body" data-body>
+          <span class="ck-sub">Morning pain, last <span data-rule="app.js renderWatch 14-day window">14</span> days</span>
+          <p class="td-watch-t" id="w-watch-text" data-source="feel_series" data-derived="sentence"></p>
+          <div class="chart" id="c-pain" style="--h:56px" data-source="feel_series"></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- CHECK-IN (Cockpit, Phase 5; page id checkins): in the page and on screen, what is due today (ck-list rows, each with a
+       status badge: Done is Good, Due and part answered are Unknown, Overdue is Watch, a survey not open yet is a plain chip),
+       then the morning check-in, Rate a session, then the surveys. forms.js builds the two forms' answer groups from the
+       data-key fieldsets below (radio groups; the pain sites are checkboxes) and saves to the store; checkins.js fills the due
+       list and the survey cards (weekly to yearly) and saves those. From 900 px the due list and the forms sit left and the
+       surveys right. Every card has the shared states (ck-state, the ck-stale banner); status lines are polite live regions. -->
+  <section class="page ck ck-page" id="checkins" role="tabpanel" aria-labelledby="tab-checkins" hidden>
+    <div class="ck-stale" id="ci-stale" role="status" hidden>
+      <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+      <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="ci-stale-t" data-source="coach" data-where="kind=build" data-derived="age"></span></p>
+    </div>
+    <div class="ci-cols">
+      <div class="ci-col">
+        <article class="ck-tile ci-due" id="ci-due" aria-labelledby="ci-due-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="ci-due-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-checkin"/></svg> Due today</h2></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="ci-duebody" data-body hidden>
+            <ul class="ck-list" id="ci-duelist"></ul>
+            <p class="ck-note" id="ci-lead"></p>
+          </div>
+        </article>
+
+        <article class="ck-tile ci-form" id="t-feel" aria-labelledby="t-feel-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="t-feel-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-sleep"/></svg> Morning check-in</h2><span class="ci-st" id="fm-status" role="status"></span></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="ci-fbody" data-body hidden>
+            <div class="ci-summary" id="fm-summary" hidden><p class="ci-sumtext" id="fm-sumtext"></p><button type="button" class="ck-btn ck-btn--secondary ck-btn--sm" id="fm-edit">Edit</button></div>
+            <div class="ci-fields" id="fm-form">
+              <button type="button" class="ck-btn ck-btn--secondary ck-btn--sm ci-same" id="fm-same" hidden>Same as yesterday</button>
+              <fieldset class="ck-choices ck-choices--row" data-key="sleep_q" data-opts="1|2|3|4|5" data-labels="Awful|Poor|OK|Good|Great" data-label="Sleep" data-hint="how rested"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="energy" data-opts="1|2|3|4|5" data-labels="Drained|Low|OK|Good|Great" data-label="Energy"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="legs" data-opts="1|2|3|4|5" data-labels="Trashed|Heavy|OK|Good|Fresh" data-label="Legs"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="stress" data-opts="1|2|3|4|5" data-labels="Calm|Low|Some|High|Maxed" data-label="Stress" data-hint="work, study, life"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="0|1|3|6" data-labels="None|Niggle|Hurts|Stop" data-label="Pain" data-hint="Niggle: noticed, changes nothing · Hurts: affects training · Stop: changes how you move"></fieldset>
+              <fieldset class="ck-choices ci-wrap" data-sites="pain_site" data-key="pain_site" data-multi="1" data-label="Where" data-opts="inside ankle|behind knee|calf|hamstring|knee|hip|back|shoulder|other" hidden></fieldset>
+              <details class="ci-note"><summary class="ci-sum"><svg class="ck-i ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>Add a note</summary><input class="ck-input" type="text" id="fm-note" maxlength="300" placeholder="Anything the coach should know" aria-label="Morning note"></details>
+              <button type="button" class="ck-btn ck-btn--primary ci-done" id="fm-done" hidden>Done</button>
+            </div>
+            <p class="ck-note">Saves as you tap. The <span data-rule="coach/ops/data_paths.json morning_checkin: 7:45 AM ET">7:45</span> check-in reads it; blank means unknown.</p>
+          </div>
+        </article>
+
+        <article class="ck-tile ci-form" id="t-session" aria-labelledby="t-session-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="t-session-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-session"/></svg> Rate a session</h2><span class="ci-st" id="fs-status" role="status"></span></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="ci-fbody" data-body hidden>
+            <div class="ck-field"><label class="ck-label" for="fs-act">Session</label><select class="ck-input" id="fs-act" aria-label="Session" data-source="activities"><option value="">Loading sessions…</option></select></div>
+            <div class="ci-fields" id="fs-manual" hidden>
+              <p class="ck-note">Not synced yet? Log it here.</p>
+              <fieldset class="ck-choices ck-choices--row" data-key="m_type" data-opts="run|bike|swim|strength|other" data-labels="Run|Bike|Swim|Strength|Other" data-label="Sport"></fieldset>
+              <fieldset class="ck-choices ci-wrap" data-key="m_min" data-opts="15|20|30|45|60|90|120" data-labels="15 min|20|30|45|60|90|120" data-label="Minutes" data-rule="index.html fs-manual: the minute choices 15 to 120"></fieldset>
+            </div>
+            <div class="ci-summary" id="fs-summary" hidden><p class="ci-sumtext" id="fs-sumtext"></p><button type="button" class="ck-btn ck-btn--secondary ck-btn--sm" id="fs-edit">Edit</button></div>
+            <div class="ci-fields" id="fs-form">
+              <fieldset class="ck-choices ck-choices--row" data-key="rpe" data-opts="2|3|4|6|8" data-labels="Very easy|Easy|Steady|Hard|Very hard" data-label="How hard was it?" data-hint="whole session, about 30 min after" data-rule="index.html fs-form: the RPE hint, about 30 min after"></fieldset>
+              <p class="ck-note" id="fs-anchor">Easy: full sentences · Steady: short sentences · Hard: a few words</p>
+              <fieldset class="ck-choices ck-choices--row" data-key="vs_plan" data-opts="-|=|+" data-labels="Easier|As planned|Harder" data-label="Versus the plan"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="0|1|3|6" data-labels="None|Niggle|Hurts|Stop" data-label="Pain during or after"></fieldset>
+              <fieldset class="ck-choices ci-wrap" data-sites="pain_site" data-key="pain_site" data-multi="1" data-label="Where" data-opts="inside ankle|behind knee|calf|hamstring|knee|hip|back|shoulder|other" hidden></fieldset>
+              <fieldset class="ck-choices ci-wrap" id="fs-fuelq" data-key="fuel" data-opts="nothing|water only|under 30 g carb/h|30 to 60 g/h|over 60 g/h" data-label="Fuel (90 min or longer)" data-rule="forms.js fuelVis: the fuel question shows from 90 min; index.html: the carb bands 30 and 60 g/h" hidden></fieldset>
+              <details class="ci-note"><summary class="ci-sum"><svg class="ck-i ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>Add a note</summary><input class="ck-input" type="text" id="fs-note" maxlength="300" placeholder="Products, GI, how it felt" aria-label="Session note"></details>
+              <button type="button" class="ck-btn ck-btn--primary ci-done" id="fs-done" hidden>Done</button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <section class="ci-col ci-sv" id="ci-sv" aria-labelledby="ci-sv-h">
+        <h2 class="ck-eyebrow ci-svh" id="ci-sv-h">Surveys</h2>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="ci-surveys" id="ci-surveys" data-body hidden></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- WEEK (Cockpit, Phase 5): in the page and on screen, the week title and range with its arrows, then the key sessions
+       (the three slots), the race-this-week card when it shows, the day list (Plan vs done), the week totals and the load
+       chart. From 900 px the day list sits left and the totals and load chart right. Every card has the shared states from
+       cockpit.css: a ck-state slot (loading, empty, error) beside its body, and the ck-stale banner for the whole tab. -->
+  <section class="page ck ck-page" id="week" role="tabpanel" aria-labelledby="tab-week" hidden>
+    <nav class="wk-nav" id="w-nav" aria-label="Choose the week">
+      <button type="button" class="ck-btn ck-btn--icon" id="w-prev"><svg class="ck-i" aria-hidden="true"><use href="#cx-back"/></svg><span class="ck-vh">Previous week</span></button>
+      <h2 class="wk-title" aria-live="polite"><span id="w-title" data-derived="week-title">This week</span><span class="wk-range"> <span class="ck-vh">, </span><span id="w-range" data-derived="week-range"></span></span></h2>
+      <button type="button" class="ck-btn ck-btn--icon" id="w-next"><svg class="ck-i" aria-hidden="true"><use href="#cx-go"/></svg><span class="ck-vh">Next week</span></button>
+    </nav>
+    <div class="ck-stale" id="w-stale" role="status" hidden>
+      <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+      <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="w-stale-t" data-source="coach" data-where="kind=build" data-derived="age"></span></p>
+    </div>
+    <!-- Race week banner (Phase 6 round 2, the athlete's pick): under the week navigation, the race's sport colour as a stripe and
+         tint (season.js renderRaceWeek sets --sp), closed by default; it opens the race hub -->
+    <section class="ck-tile race-wk" id="w-race" hidden aria-label="Race this week"></section>
+
+    <section class="ck-sect wk-keys" id="w-keys" aria-labelledby="w-keys-h">
+      <div class="ck-sect-head"><h2 class="ck-h2" id="w-keys-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-goal"/></svg> Key sessions</h2><span class="ck-asof" id="w-keys-n"></span></div>
+      <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+      <div class="wk-body" data-body hidden>
+        <p class="ck-note" id="w-keys-blk" data-source="coach" hidden></p>
+        <div class="wk-slots" id="w-slots" data-source="week_view coach"></div>
+        <div id="w-keys-more"></div>
+      </div>
+    </section>
+
+    <div class="wk-split">
+      <div class="wk-col">
+        <article class="ck-tile wk-card" id="w-list" aria-labelledby="w-list-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="w-list-h">Plan vs done</h2><span class="ck-sub">Past days fold; tap a day or session to open</span></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="wk-body" data-body hidden>
+            <p class="ck-note" id="w-focus" data-source="coach" hidden></p>
+            <div class="wk-days" id="w-days" data-source="week_view"></div>
+          </div>
+        </article>
+      </div>
+      <div class="wk-col">
+        <section class="ck-sect wk-totals" id="w-totals" aria-labelledby="w-totals-h">
+          <div class="ck-sect-head"><h2 class="ck-h3" id="w-totals-h">Week totals</h2></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="ck-grid wk-tiles" id="w-tiles" data-body hidden data-source="week_view weekly"></div>
+        </section>
+        <article class="ck-tile wk-card" id="w-load" aria-labelledby="w-load-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="w-load-h">Load by week</h2></div>
+          <fieldset class="ck-seg wk-mode" id="w-mode">
+            <legend class="ck-vh">Measure</legend>
+            <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="w-mode" value="hours" checked>Hours</label>
+            <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="w-mode" value="load">Effort load</label>
+          </fieldset>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+          <div class="wk-body" data-body hidden>
+            <div class="chart" id="c-load" style="--h:190px" data-source="weekly week_view"></div>
+            <div class="legend" id="c-load-legend" data-source="weekly" hidden></div>
+            <p class="ck-note" id="c-load-note">Mon–Sun weeks; walks and sauna not counted. Tap a week to open it.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIFTS (Cockpit, Phase 5): Long Life Lifts, log sets and track progressive overload. In the page and on screen: the
+       rotation card when a block starts (Use new exercises / Keep current as a two-option choice), then the log card with
+       today's exercises as ck-list rows (sets, + set, Skip and Done per exercise; Done folds a row, a fully done block rolls
+       up to one line), the effort choice, the note and the raised save bar pinned to the bottom of the screen (layer 10,
+       clear of the home indicator); then Progress (one tile per exercise) and Rules. From 900 px Progress and Rules sit
+       right. Every card has the shared states (a ck-state slot beside its body; on the log card it sits inside the exercise list, so the fields, the bar and Finish never hide). -->
+  <section class="page ck ck-page" id="lifts" role="tabpanel" aria-labelledby="tab-lifts" hidden>
+    <div class="lx-cols">
+      <div class="lx-col">
+        <article class="ck-tile lx-rot" id="l-rot" aria-labelledby="l-rothead" hidden>
+          <div class="ck-tile-head"><h2 class="ck-h3" id="l-rothead">New block</h2></div>
+          <p class="ck-note" id="l-rotsub"></p>
+          <ul class="ck-list" id="l-rotlist"></ul>
+          <div class="lx-choose" role="group" aria-labelledby="l-rothead"><button type="button" class="lx-opt" id="l-rotyes" aria-pressed="false"><svg class="ck-i" aria-hidden="true"><use href="#cx-check"/></svg>Use new exercises</button><button type="button" class="lx-opt" id="l-rotkeep" aria-pressed="false"><svg class="ck-i" aria-hidden="true"><use href="#cx-check"/></svg>Keep current</button></div>
+          <p class="ck-note" id="l-rotstatus" role="status"></p>
+        </article>
+        <article class="ck-tile lx-log" id="l-log" aria-labelledby="l-name-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="l-name-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-strength"/></svg> <span id="l-name">Strength</span></h2><span class="lx-st" id="l-status" data-derived="store:lift_log saved_at"></span></div>
+          <div class="lx-body">
+            <p class="ck-note" id="l-sub"></p>
+            <div class="ck-chips" id="l-chips" data-source="coach"></div>
+            <div class="ck-notice lx-phase" data-s="info" id="l-phasenow" hidden></div>
+            <div class="lx-date"><div class="ck-field"><label class="ck-label" for="l-date">Session date</label><input class="ck-input" type="date" id="l-date" aria-label="Session date"></div><button type="button" class="ck-btn ck-btn--secondary ck-btn--sm" id="l-copy"><svg class="ck-i" aria-hidden="true"><use href="#cx-refresh"/></svg>Copy last session</button></div>
+            <div class="lx-ex" id="l-ex" data-source="coach"><div class="ck-state" data-state="loading" role="status" aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div></div>
+            <div class="lx-rpe" role="group" aria-labelledby="l-rpe-l"><span class="ck-label" id="l-rpe-l">How hard was it overall?</span><div class="lx-opts" id="l-rpe" data-opts="2|3|4|6|8" data-labels="Very easy|Easy|Steady|Hard|Very hard"></div></div>
+            <details class="lx-note"><summary class="lx-notesum"><svg class="ck-i ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>Add a note</summary><input class="ck-input" type="text" id="l-note" maxlength="300" placeholder="Back, elbow, ankle, anything" aria-label="Lift note"></details>
+            <!-- Autosave (the athlete, Nov 2, 2026): every set saves as it is typed; this bar stays pinned to the bottom of the screen with the save state, and Finish saves effort and note -->
+            <div class="ck-finish lx-bar" id="l-bar"><span class="lx-barst" id="l-barst" role="status" aria-live="polite" data-derived="store:lift_log saved_at"></span><button type="button" class="ck-btn ck-btn--primary lx-save" id="l-save">Finish session</button></div>
+            <p class="ck-note">Each set saves as you type, so you can leave and come back. Time comes from your Garmin strength activity; Finish rates the session. Blank sets are left out.</p>
+          </div>
+        </article>
+      </div>
+      <div class="lx-col">
+        <article class="ck-tile lx-progc" id="l-prog" aria-labelledby="l-prog-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="l-prog-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-trend-up"/></svg> Progress</h2><span class="ck-sub" id="l-progn" data-derived="store:lift_log session count"></span></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="lx-progbody" id="l-progbody" data-body hidden></div>
+        </article>
+        <article class="ck-tile" id="l-rules" aria-labelledby="l-rules-h">
+          <div class="ck-tile-head"><h2 class="ck-h3" id="l-rules-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-info"/></svg> Rules</h2></div>
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+          <div class="lx-rulesbody" data-body hidden>
+            <ul class="ck-list" id="l-phases" data-source="coach"></ul>
+            <ul class="ck-list" id="l-rulelist" data-source="coach"></ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- FITNESS: the range for every chart, the block, performance markers, volume, heart rate zones (Cockpit, Phase 5) -->
+  <section class="page ck ck-page" id="trends" role="tabpanel" aria-labelledby="tab-trends" hidden>
+    <div class="ft-span">
+      <fieldset class="ck-seg ft-spanseg" id="f-span">
+        <legend class="ck-vh">Time range for every chart on this page and on Health</legend>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="f-span" value="1m"><span data-rule="app.js SPANS: 1M is the last 30 days">1M</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="f-span" value="3m" checked><span data-rule="app.js SPANS: 3M is the last 91 days">3M</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="f-span" value="1y"><span data-rule="app.js SPANS: 1Y is the last 365 days">1Y</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="f-span" value="all">All</label>
+      </fieldset>
+      <span class="ck-sub">Range for every chart here and on Health</span>
+    </div>
+    <div class="ck-stale" id="f-stale" role="status" hidden>
+      <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+      <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="f-stale-t" data-source="coach" data-where="kind=build" data-derived="age"></span></p>
+    </div>
+
+    <article class="ck-tile bk" id="b-card" aria-label="Training block" hidden>
+      <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+      <div class="bk-body" data-body data-source="coach" hidden></div>
+    </article>
+
+    <section class="ck-sect ft-perf" id="f-card" aria-labelledby="f-card-h">
+      <div class="ck-sect-head"><h2 class="ck-h2" id="f-card-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-fitness"/></svg> Fitness performance</h2><span class="ck-sub">All KPIs by race type, most important first. Tap a tile for its chart.</span></div>
+      <p class="ck-note ft-lead" id="f-lead" data-source="coach" hidden></p>
+      <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+      <div class="ft-tiles" id="f-tiles" data-body hidden data-source="fitness coach recovery_roll"></div>
+      <div class="ft-expand" id="f-expand" role="region" aria-label="Chart for the open tile" hidden>
+        <div class="chart" id="c-fit" style="--h:190px" data-source="fitness"></div>
+        <div class="legend" id="c-fit-legend" hidden></div>
+        <p class="ck-note" id="f-note"></p>
+        <div id="f-detail"></div>
+      </div>
+    </section>
+
+    <div class="ft-split">
+      <article class="ck-tile ft-card" id="v-card" aria-labelledby="v-card-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="v-card-h">Volume</h2><span class="ck-sub">By week</span></div>
+        <fieldset class="ck-seg ft-seg" id="v-measure">
+          <legend class="ck-vh">Measure</legend>
+          <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="v-measure" value="time" checked>Time</label>
+          <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="v-measure" value="dist">Distance</label>
+          <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="v-measure" value="climb">Climb</label>
+        </fieldset>
+        <fieldset class="ck-seg ft-seg ft-sports" id="v-sport">
+          <legend class="ck-vh">Sport</legend>
+          <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="v-sport" value="all" checked>All</label>
+          <label class="ck-seg-opt" data-sport="run"><input class="ck-vh-input" type="radio" name="v-sport" value="run"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-run"/></svg>Run</label>
+          <label class="ck-seg-opt" data-sport="bike"><input class="ck-vh-input" type="radio" name="v-sport" value="bike"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-bike"/></svg>Bike</label>
+          <label class="ck-seg-opt" data-sport="swim"><input class="ck-vh-input" type="radio" name="v-sport" value="swim"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-swim"/></svg>Swim</label>
+          <label class="ck-seg-opt" data-sport="hike"><input class="ck-vh-input" type="radio" name="v-sport" value="hike"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-steps"/></svg>Hike/<wbr>walk</label>
+        </fieldset>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+        <div class="ft-body" data-body hidden>
+          <div class="ck-grid ft-vstats" id="v-stats" data-source="volume"></div>
+          <div class="chart" id="c-vol" style="--h:200px" data-source="volume"></div>
+          <div class="legend" id="c-vol-legend" hidden></div>
+          <p class="ck-note" id="c-vol-note"></p>
+        </div>
+      </article>
+      <article class="ck-tile ft-card" id="z-card" aria-labelledby="z-card-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="z-card-h">Heart rate zones</h2></div>
+        <fieldset class="ck-seg ft-seg ft-zseg" id="z-sport">
+          <legend class="ck-vh">Sport</legend>
+          <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="z-sport" value="all" checked>All</label>
+          <label class="ck-seg-opt" data-sport="run"><input class="ck-vh-input" type="radio" name="z-sport" value="run"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-run"/></svg>Run</label>
+          <label class="ck-seg-opt" data-sport="bike"><input class="ck-vh-input" type="radio" name="z-sport" value="bike"><svg class="ck-i ft-sg" aria-hidden="true"><use href="#cx-bike"/></svg>Bike</label>
+        </fieldset>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+        <div class="ft-body" data-body hidden>
+          <div class="ft-zhead"><span class="ck-stat-v" id="z-big" data-source="coach" data-where="kind=hrz" data-derived="zone-share"></span><span class="ft-zin" id="z-in"></span></div>
+          <p class="ck-note" id="z-delta"></p>
+          <p class="ck-sub" id="z-range" data-source="coach" data-where="kind=hrz" data-derived="window"></p>
+          <div class="ft-zbars" id="z-bars" data-source="coach"></div>
+          <p class="ck-note" id="z-sum" data-source="coach" data-where="kind=hrz" data-derived="zone-share"></p>
+          <p class="ck-note" id="z-note" data-rule="app.js renderZones: zone note copy; the guardrail figures come from the zone rows"></p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- HEALTH: longevity markers, recovery, weight, feel -->
+  <!-- HEALTH (page id goals): the range for every chart, the summary card (tally, health map, focus, wins and streaks), the
+       seven pillar rows. pillars.js draws inside #hp-sum and #hp-list (Cockpit, Phase 5). -->
+  <section class="page ck ck-page" id="goals" role="tabpanel" aria-labelledby="tab-goals" hidden>
+    <div class="ft-span">
+      <fieldset class="ck-seg ft-spanseg" id="g-span">
+        <legend class="ck-vh">Time range for every chart on this page and on Fitness</legend>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="g-span" value="1m"><span data-rule="app.js SPANS: 1M is the last 30 days">1M</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="g-span" value="3m" checked><span data-rule="app.js SPANS: 3M is the last 91 days">3M</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="g-span" value="1y"><span data-rule="app.js SPANS: 1Y is the last 365 days">1Y</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="g-span" value="all">All</label>
+      </fieldset>
+      <span class="ck-sub">Range for every chart here and on Fitness</span>
+    </div>
+    <div class="ck-stale" id="g-stale" role="status" hidden>
+      <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+      <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="g-stale-t" data-source="coach" data-where="kind=build" data-derived="age"></span></p>
+    </div>
+    <div class="hp" id="hp" data-source="coach">
+      <article class="ck-tile hp-sum" id="hp-sum" aria-labelledby="hp-sum-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="hp-sum-h">How you're doing</h2><span class="ck-sub" id="hp-sum-n"></span></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="hp-sbody" data-body hidden></div>
+      </article>
+      <section class="ck-tile hp-pillars" id="hp-pl" aria-labelledby="hp-pl-h">
+        <div class="ck-tile-head"><h2 class="ck-h3" id="hp-pl-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-health"/></svg> Pillars</h2></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <ul class="ck-list hp-list" id="hp-list" data-body hidden></ul>
+      </section>
+      <p class="ck-note hp-foot" id="hp-foot" hidden>Status colours come from research targets, not from how you compare with others. Population studies, not personal guarantees; trends matter more than any one value. &#9671; = to be checked into the coach research library.</p>
+    </div>
+  </section>
+
+  <!-- SEASON (page id races, Cockpit, Phase 5): the next race tile, the status panels (Current block, Season so far, Hall of
+       fame) as a segmented control, the season timeline with its keyboard list, the race hub (opened under a race), the
+       season list by year and the roadmap. app.js draws it (renderRaces); block.js the panels, records.js Hall of fame. -->
+  <section class="page ck ck-page" id="races" role="tabpanel" aria-labelledby="tab-races" hidden>
+    <div class="ck-stale" id="r-stale" role="status" hidden>
+      <svg class="ck-i" aria-hidden="true"><use href="#cx-stale"/></svg>
+      <p class="ck-stale-t"><span class="ck-stale-w">Out of date</span><span id="r-stale-t" data-source="coach" data-where="kind=build" data-derived="age"></span></p>
+    </div>
+    <article class="ck-tile ck-race sn-race" id="r-race" aria-labelledby="r-race-h">
+      <div class="ck-tile-head">
+        <h2 class="ck-eyebrow" id="r-race-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-flag"/></svg>Next race</h2>
+        <span class="ck-sub" id="r-race-d" data-source="coach" data-where="" data-derived="formatted"></span>
+      </div>
+      <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+      <div class="sn-body" data-body hidden>
+        <div class="ck-race-main">
+          <span class="ck-big"><span id="r-race-n" data-source="coach" data-where="" data-derived="days-until"></span><span class="ck-unit" id="r-race-u">days</span></span>
+          <span class="ck-race-name" id="r-race-name" data-source="coach" data-field="name" data-where="">—</span>
+        </div>
+        <p class="ck-race-line" id="r-race-a" hidden></p>
+        <p class="ck-race-line" id="r-race-key" hidden></p>
+      </div>
+    </article>
+    <!-- Status panels (the athlete, Nov 2, 2026): Current block, Season so far and Hall of fame, all folded by default; choosing one opens
+         it, choosing the open one again folds it away (open panel kept per viewer in localStorage cx-season-tab) -->
+    <article class="ck-tile sn-status" id="r-st" aria-label="Season summary">
+      <fieldset class="ck-seg sn-seg" id="r-st-tabs">
+        <legend class="ck-vh">Show a summary; choose the open one again to fold it away</legend>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="block" aria-controls="r-p-block"><span>Current block</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="sofar" aria-controls="r-p-sofar"><span>Season so far</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="records" aria-controls="r-p-records"><span>Hall of fame</span></label>
+      </fieldset>
+      <div class="sn-panel" id="r-p-block" role="region" aria-label="Current block" hidden>
+        <div class="bk sn-bk" id="r-block" data-source="coach">
+          <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+          <div class="bk-body" data-body hidden></div>
+        </div>
+      </div>
+      <div class="sn-panel" id="r-p-sofar" role="region" aria-labelledby="r-sofar-h" hidden>
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-sofar-h">Season so far</h2><span class="ck-sub" id="r-sofar-cap"></span></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+        <div class="sn-pbody" data-body hidden>
+          <div class="sn-tiles" id="r-sofar-tiles" data-source="coach activities"></div>
+          <p class="ck-note" id="r-sofar-note"></p>
+        </div>
+      </div>
+      <div class="sn-panel" id="r-p-records" role="region" aria-labelledby="r-rec-h" hidden>
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-rec-h">Hall of fame</h2><span class="ck-sub" id="r-rec-cap"></span></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+        <div class="sn-pbody" data-body hidden>
+          <div class="sn-tiles" id="r-rec-tiles" data-source="coach activities"></div>
+          <p class="ck-note" id="r-rec-note"></p>
+        </div>
+      </div>
+    </article>
+    <article class="ck-tile sn-tl" id="r-tl" aria-labelledby="r-tl-h">
+      <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-tl-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-season"/></svg> The season ahead</h2><span class="ck-sub" id="r-tl-cap" data-source="coach" data-where="kind=block" data-derived="formatted"></span></div>
+      <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
+      <div class="sn-tlbody" data-body hidden>
+        <div class="sn-chart" id="r-timeline" data-source="coach"></div>
+        <p class="ck-note" id="r-tl-note">Each training cycle runs Base, Build, Specific, Taper, then Recover, pointed at its target race. Bar height is the block's planned training hours per week (left axis; a taper shows its average); the outlined block is now. A bar too narrow for its phase name shows two letters (Ba Base, Bu Build, Sp Specific, Ta Taper, Re Recover). Tap a block for its goals, a race for its page.</p>
+        <button class="ck-disc sn-tlmore" id="r-tl-more" type="button" aria-expanded="false" aria-controls="r-tl-list"><span>Blocks and races as a list</span><svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg></button>
+        <ul class="ck-list sn-tlist" id="r-tl-list" aria-label="Blocks and races on the timeline" hidden></ul>
+      </div>
+    </article>
+    <!-- Race details open inline under the race tapped in the Season list (the athlete, Nov 2, 2026); tap again to close.
+         In the 7 days before a race the same block moves onto the Week tab (#w-race). One block, moved between the two. -->
+    <div class="sn-hub" id="r-hub" hidden>
+      <article class="ck-tile sn-hero" id="r-hero" data-source="coach"></article>
+      <article class="ck-tile sn-card" id="r-week" hidden>
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3">Until race day</h2><span class="ck-sub">From the week plan</span></div>
+        <ul class="ck-list sn-days" id="r-days" data-source="coach"></ul>
+      </article>
+      <article class="ck-tile sn-card" id="r-plan">
+        <h2 class="ck-h3">Race plan</h2>
+        <ul class="ck-list sn-plan" id="r-notes" data-source="coach"></ul>
+      </article>
+      <article class="ck-tile sn-card" id="r-kit">
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3">Kit</h2><span class="status" id="rk-status" data-source="coach" data-where="kind=race_kit" data-derived="kit-count"></span></div>
+        <span class="ck-zone-track sn-kitbar" aria-hidden="true"><i class="ck-zone-fill" id="rk-meter" style="width:0%"></i></span>
+        <div class="sn-kit" id="rk-list" data-source="coach"></div>
+      </article>
+    </div>
+    <div class="sn-split">
+      <article class="ck-tile sn-season" id="r-season" aria-labelledby="r-season-h">
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-season-h">Season</h2><span class="ck-sub">Tap a race for its plan and kit</span></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <div class="sn-sbody" data-body hidden>
+          <div class="sn-key" id="r-key"></div>
+          <div class="sn-years" id="r-list" data-source="coach"></div>
+        </div>
+      </article>
+      <article class="ck-tile sn-road" id="r-road" aria-labelledby="r-road-h">
+        <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-road-h">Roadmap</h2><a class="ck-btn ck-btn--quiet ck-btn--sm sn-doc" id="r-doc" href="#" target="_blank" rel="noopener">Full plan<svg class="ck-i" aria-hidden="true"><use href="#cx-external"/></svg></a></div>
+        <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
+        <ul class="ck-list sn-roadl" id="r-blocks" data-body data-source="coach" hidden></ul>
+      </article>
+    </div>
+  </section>
+  <!-- Page footer, on every tab: the Coach package version and when coach.json was built (app.js renderHeader fills it from
+       the build row). With no version in the build row the version span is left out, so no empty mark shows. -->
+  <footer class="cx-foot" id="cx-foot" hidden><p class="cx-foot-t" id="cx-foot-t"></p></footer>
+</div>
+<script src="calc.js"></script>
+<script src="cockpit.js"></script>
+<script src="charts.js"></script>
+<script src="app.js"></script>
+<script src="season.js"></script>
+<script src="forms.js"></script>
+<script src="lifts.js"></script>
+<script src="records.js"></script>
+<script src="body.js"></script>
+<script src="pillars.js"></script>
+<script src="checkins.js"></script>
+<script src="block.js"></script>

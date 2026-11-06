@@ -1,0 +1,67 @@
+name: Pull Garmin data
+
+on:
+  schedule:
+    # GitHub cron is UTC. Pairs cover both EDT (UTC-4) and EST (UTC-5) so a pull
+    # always lands around 6:25 AM Eastern, with an hour-later catch-up for late sleep sync.
+    - cron: "23 10 * * *"   # 6:23 AM EDT / 5:23 AM EST
+    - cron: "23 11 * * *"   # 7:23 AM EDT / 6:23 AM EST
+    - cron: "23 16 * * *"   # midday catch-up
+    - cron: "23 23 * * *"   # evening reconciliation (7:23 PM EDT / 6:23 PM EST)
+  workflow_dispatch:
+    inputs:
+      extra_days_back:
+        description: "Backfill this many extra days (0 = today and yesterday only)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: garmin-pull
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install --quiet "garminconnect==0.3.17" curl_cffi cryptography
+
+      - name: Pull today and yesterday
+        id: pull
+        env:
+          GARMIN_TOKEN_KEY: ${{ secrets.GARMIN_TOKEN_KEY }}
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          EXTRA_DAYS_BACK: ${{ github.event.inputs.extra_days_back }}
+        run: |
+          set +e
+          python scripts/pull_garmin.py
+          echo "rc=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Commit changes
+        run: |
+          git config user.name "garmin-pull-bot"
+          git config user.email "garmin-pull-bot@users.noreply.github.com"
+          git add data state
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -q -m "Garmin pull $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull -q --rebase && git push -q
+          fi
+
+      - name: Fail visibly if the pull failed
+        if: steps.pull.outputs.rc != '0'
+        run: |
+          echo "Pull failed with code ${{ steps.pull.outputs.rc }}. See data/status/last_run.json."
+          exit 1

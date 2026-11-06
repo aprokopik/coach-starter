@@ -1,0 +1,58 @@
+/* HOST-APPROXIMATIONS: the live Dashboard host's exact token values, fonts and toolbar are unknown.
+   These values are stand-ins chosen so the page renders plausibly; colour, spacing and font metrics
+   (and therefore contrast ratios, wrapping and heights) may differ from the real host. */
+:root {
+  color-scheme: light dark;
+  --color-bg: #ffffff;
+  --color-panel: #f7f7f5;
+  --color-fg: #1a1a1a;
+  --color-fg-muted: #6b6b6b;
+  --color-border-line: #e3e3e0;
+  --color-ok: #1d7a3f;
+  --color-warn: #b26a00;
+  --color-bad: #b42318;
+  --font-anthropic-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-anthropic-serif: Georgia, "Times New Roman", "DejaVu Serif", serif;
+  --cds-radius: 8px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 16px; --cds-pad-xl: 24px;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 16px; --cds-gap-xl: 24px;
+  --cds-font-size-caption: 12px; --cds-font-size-body: 14px; --cds-font-size-heading: 16px; --cds-font-size-title: 22px;
+  --cds-font-weight-medium: 500;
+  --cds-chart-grid: #ececea;
+  --cds-chart-axis: #8a8a85;
+  --cds-chart-reference: #7a7a75;
+  --cds-chart-muted: #b5b5b0;
+  --cds-chart-status-critical: #b42318;
+  --cds-surface-popover: #ffffff;
+  --cds-border: #e3e3e0;
+  --cds-shadow-popover: 0 4px 16px rgba(0, 0, 0, .12);
+  --cds-text-secondary: #6b6b6b;
+  --cds-dur-slow: 300ms;
+  --cds-ease-out: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #141413;
+    --color-panel: #1f1f1d;
+    --color-fg: #f0efe9;
+    --color-fg-muted: #a3a39c;
+    --color-border-line: #353532;
+    --color-ok: #4fbf74;
+    --color-warn: #e0a030;
+    --color-bad: #f0655a;
+    --cds-chart-grid: #2a2a28;
+    --cds-chart-axis: #8f8f88;
+    --cds-chart-reference: #9a9a93;
+    --cds-chart-muted: #5c5c57;
+    --cds-chart-status-critical: #f0655a;
+    --cds-surface-popover: #262624;
+    --cds-border: #353532;
+    --cds-shadow-popover: 0 4px 16px rgba(0, 0, 0, .5);
+    --cds-text-secondary: #a3a39c;
+  }
+}
+html { background: var(--color-bg); }
+body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); }
+.host-toolbar { height: 48px; box-sizing: border-box; border-bottom: 1px solid var(--color-border-line); display: flex; align-items: center; padding: 0 16px; font-size: 13px; color: var(--color-fg-muted); }
+#dash-root { padding: 0 var(--dash-gutter, 16px); }
+.dash-skeleton { background: var(--color-border-line); border-radius: 4px; color: transparent !important; min-height: 1em; }

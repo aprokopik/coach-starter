@@ -1,0 +1,70 @@
+/* charts.css: the Phase 4 chart frame, range bar and chart motion, scoped to .ck. Only --ck-* tokens are used here.
+   The tokens themselves come from cockpit.css (the Cockpit system, loaded before this file since Phase 5); until Phase 5
+   this file carried its own copy of them, which also ignored the host's [data-mode] toggle. */
+
+/* ============ Phase 4 chart frame: the ck-chart part of Phase 3 components.css, applied to the page's charts only.
+   Every chart host carries .ck .ck-chart (charts.js adds them). Inside an existing card the host is .ck-chart--in:
+   no second border, padding or shadow (a card inside a card). Standalone .ck-chart keeps the Phase 3 frame. ============ */
+.ck.ck-chart { position: relative; display: grid; gap: var(--ck-s1); margin: 0; min-width: 0; padding: var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); box-shadow: var(--ck-shadow-1); font-family: var(--ck-font); }
+.ck.ck-chart.ck-chart--in { padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; min-height: 0; }
+.ck .ck-chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px var(--ck-s2); }
+.ck .ck-chart-unit { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-3); }
+.ck .ck-chart-svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; -webkit-tap-highlight-color: transparent; border-radius: 4px; }
+.ck .ck-chart-svg:focus { outline: none; }
+.ck .ck-chart-svg:focus-visible { outline: var(--ck-focus-w) solid var(--ck-focus); outline-offset: var(--ck-focus-off); }
+.ck .ck-chart-svg text { font-family: var(--ck-font); font-size: var(--ck-t1); font-variant-numeric: var(--ck-num); }
+.ck .ck-chart-svg .ck-c-endlabel { font-size: var(--ck-t2); font-weight: var(--ck-w-bold); }
+.ck .ck-chart-svg .ck-c-serlabel, .ck .ck-chart-svg .ck-c-rowlabel { font-size: var(--ck-t1); font-weight: var(--ck-w-med); }
+.ck .ck-chart-svg .ck-c-thlabel { font-size: var(--ck-t1); font-weight: var(--ck-w-bold); }
+.ck .ck-chart-svg .ck-c-thlabel.ck-c-light, .ck .ck-chart-svg .ck-c-light { font-weight: var(--ck-w-reg); }
+.ck .ck-chart-svg .ck-c-unit { font-size: var(--ck-t1); }
+.ck .ck-chart-svg .ck-c-axis, .ck .ck-chart-svg .ck-c-grid { stroke-width: 1; fill: none; }
+.ck .ck-chart-svg .ck-c-band { stroke-width: 1; }
+.ck .ck-chart-svg .ck-c-threshold { stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.ck .ck-chart-svg .ck-c-seg { transform-box: fill-box; transform-origin: left center; }
+.ck .ck-chart-svg.ck-spark { touch-action: auto; }
+.ck .ck-chart-cap { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); }
+.ck .ck-chart-cap[hidden] { display: none; }
+/* the part key under a stacked bar: only the parts too short for a direct label (CHARTS.md 2, labels) */
+.ck .ck-chart-key { display: flex; flex-wrap: wrap; gap: var(--ck-s1) var(--ck-s3); margin: 0 0 var(--ck-s1); font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-med); color: var(--ck-fg-2); }
+.ck .ck-chart-key span { display: inline-flex; align-items: center; gap: var(--ck-s1); }
+.ck .ck-chart-sw { width: 10px; height: 10px; border-radius: 2px; border: 1px solid transparent; box-sizing: border-box; }
+.ck .ck-note { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+/* tooltip: tap or Enter opens, Escape or a tap elsewhere closes, one open at a time, never on a timer */
+.ck .ck-tip { position: absolute; z-index: var(--ck-z-3); pointer-events: none; max-width: min(260px, 90%); display: grid; gap: 2px; padding: var(--ck-s1) var(--ck-s2); background: var(--ck-surface-3); color: var(--ck-fg); border: 1px solid var(--ck-line); border-radius: var(--ck-r1); box-shadow: var(--ck-shadow-2); font-size: var(--ck-t2); line-height: var(--ck-l2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
+.ck .ck-tip[hidden] { display: none; }
+.ck .ck-tip-h { color: var(--ck-fg-2); }
+.ck .ck-tip-r { display: flex; align-items: center; gap: 6px; }
+.ck .ck-tip-k { display: inline-block; width: 12px; height: 3px; border-radius: 1px; }
+.ck-live { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ============ ck-rb: range bar, copied from Phase 3 components.css (the night tiles use it through CKC.rangeBar) ============ */
+.ck.ck-rb, .ck .ck-rb { display: grid; gap: 2px; padding: 5px 0 0; min-width: 0; font-family: var(--ck-font); }
+.ck .ck-rb-track { position: relative; display: block; height: 10px; border-radius: var(--ck-rp); background: var(--ck-surface-2); box-shadow: inset 0 0 0 1px var(--ck-edge); }
+.ck .ck-rb-band { position: absolute; top: 2px; bottom: 2px; border-radius: var(--ck-rp); background: var(--ck-band); }
+.ck .ck-rb-mid { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ck-fg-2); }
+.ck .ck-rb-dot { position: absolute; z-index: var(--ck-z-1); top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--ck-marker); box-shadow: 0 0 0 2px var(--ck-surface); }
+.ck .ck-rb-target { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--ck-chart-threshold); }
+.ck .ck-rb-target[hidden] { display: none; }
+.ck .ck-rb-scale { position: relative; display: block; height: var(--ck-l1); font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
+.ck .ck-rb-scale > span { position: absolute; top: 0; }
+.ck .ck-rb-scale > .ck-rb-hi { transform: translateX(-100%); }
+.ck .ck-rb.is-empty .ck-rb-scale, .ck.ck-rb.is-empty .ck-rb-scale { display: flex; justify-content: space-between; }
+.ck .ck-rb.is-empty .ck-rb-scale > span, .ck.ck-rb.is-empty .ck-rb-scale > span { position: static; }
+.ck .ck-rb.is-empty .ck-rb-track, .ck.ck-rb.is-empty .ck-rb-track { background: repeating-linear-gradient(90deg, var(--ck-line) 0 4px, transparent 4px 8px); box-shadow: inset 0 0 0 1px var(--ck-edge); }
+
+/* ============ zone rows (Phase 0 item 21): fixed 0 to 100 track, neutral fill (Phase 3 ck-zone) ============ */
+.ck.zbars .zrow .track { background: var(--ck-surface-2); border-color: var(--ck-edge); }
+.ck.zbars .zrow .track i { background: var(--ck-zone-fill); }
+
+/* ============ motion (Phase 3 motion.css): one-time fills, only without Reduce Motion ============ */
+@media (prefers-reduced-motion: no-preference) {
+  .ck .ck-first-draw .ck-rb-band, .ck.ck-first-draw .ck-rb-band { animation: ck-grow 200ms cubic-bezier(.2, .8, .2, 1) both; transform-origin: center; }
+  .ck .ck-first-draw .ck-rb-dot, .ck.ck-first-draw .ck-rb-dot { animation: ck-dot 200ms cubic-bezier(.2, .8, .2, 1) 60ms both; }
+  @keyframes ck-grow { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes ck-dot { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+}
+
+/* page classes that would otherwise win on specificity inside a chart (season timeline and year strip labels) */
+.ck .ck-chart-svg text.bl, .ck .ck-chart-svg text.rl, .ck .ck-chart-svg text.hp-ax { font-size: var(--ck-t1); }
+.ck .ck-chart-svg text.bl { font-weight: var(--ck-w-med); }

@@ -1,0 +1,172 @@
+<title>{{ATHLETE}}'s Race Season</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a year strip per season (months across, a marker per race), then the race list grouped by year, phone first. */
+:root {
+  --bg: #f3f5f2; --panel: #ffffff; --fg: #18211c; --muted: #5d6a62; --line: #d9dfd9;
+  --pine: #1f6b4a; --bike: #1e9e4a; --run: #d63a32; --trail: #8a5cd6; --tri: #18211c; --ok: #1f7a3a; --reg: #2a6fd6;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111613; --panel: #1a211d; --fg: #e8eee9; --muted: #9aa8a0; --line: #2d3832;
+  --pine: #5fbf8f; --bike: #2fb35a; --run: #e5534b; --trail: #9d74e0; --tri: #e8eee9; --ok: #4fb36a; --reg: #5b9cf0; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111613; --panel: #1a211d; --fg: #e8eee9; --muted: #9aa8a0; --line: #2d3832;
+  --pine: #5fbf8f; --bike: #2fb35a; --run: #e5534b; --trail: #9d74e0; --tri: #e8eee9; --ok: #4fb36a; --reg: #5b9cf0; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 880px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 8vw, 3.6rem); line-height: .95; letter-spacing: .01em; margin: 0; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--pine); }
+.lead { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
+.key { display: grid; gap: 10px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+.kg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.kg > b { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; min-width: 52px; }
+.kg > span { display: inline-flex; align-items: center; gap: 5px; }
+.kh { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.kh b { color: var(--fg); font-weight: 600; }
+.chip { display: inline-block; font-size: 11px; line-height: 1.6; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; padding: 0 .6em; border-radius: 999px; border: 1.5px solid var(--muted); color: var(--muted); white-space: nowrap; }
+.chip.registered { background: var(--reg); border-color: var(--reg); color: #fff; }
+.chip.planned { background: var(--fg); border-color: var(--fg); color: var(--panel); }
+.chip.considering { border-style: dashed; color: var(--fg); }
+.chip.exploring { border-style: dotted; }
+.chip.done { background: var(--ok); border-color: var(--ok); color: var(--panel); }
+.race.done { opacity: .92; }
+.res { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--mono); font-size: 12.5px; }
+.res b { font-family: var(--display); font-weight: 800; font-size: 1.25rem; margin-right: 3px; }
+.ico { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ico.bike { color: var(--bike); } .ico.run { color: var(--run); } .ico.trail { color: var(--trail); } .ico.tri { color: var(--tri); } .ico.adventure { color: #c2367a; }
+.year { display: grid; gap: 12px; }
+.year h2 { font-family: var(--display); font-weight: 800; font-size: 2rem; margin: 0; line-height: 1; display: flex; align-items: baseline; gap: 10px; }
+.year h2 small { font-family: var(--body); font-weight: 500; font-size: 13px; color: var(--muted); }
+.strip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 6px; }
+.strip > svg { display: block; width: 100%; height: auto; }
+.strip text { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+.list { display: grid; gap: 10px; }
+.race { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 14px; }
+.race.registered { border-color: var(--reg); box-shadow: inset 4px 0 0 var(--reg); }
+.race.done { border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); }
+.date { font-family: var(--mono); text-align: center; line-height: 1.1; padding-top: 2px; }
+.date b { display: block; font-family: var(--display); font-weight: 800; font-size: 1.9rem; }
+.date span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.date i { display: block; font-style: normal; font-size: 10px; color: var(--muted); margin-top: 2px; }
+.body { display: grid; gap: 5px; min-width: 0; }
+.top { display: flex; align-items: flex-start; gap: 8px; }
+.top .ico { margin-top: 1px; }
+.name { font-weight: 600; font-size: 1.05rem; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 13.5px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13px; }
+.who { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.who span { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--pine) 14%, transparent); color: var(--fg); }
+a { color: var(--pine); font-weight: 600; text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; border-radius: 3px; }
+.foot { color: var(--muted); font-size: 12.5px; }
+.wx { display: grid; gap: 2px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--fg) 4%, transparent); border: 1px solid var(--line); font-size: 13px; }
+.wx .t { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.wx .lab { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.wx .deg { font-family: var(--display); font-weight: 800; font-size: 1.3rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.wx .deg small { font-family: var(--body); font-weight: 500; font-size: 12px; color: var(--muted); margin-left: 2px; }
+.wx .x { color: var(--muted); }
+.wx.fc { border-color: var(--pine); }
+@media (max-width: 420px) { .race { grid-template-columns: 52px minmax(0, 1fr); padding: 12px; } .date b { font-size: 1.6rem; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Race season <span>2026–2029</span></h1>
+    <p class="lead">{{ATHLETE}}'s races and rides, with the ones we're doing together marked. Dates with ≈ follow last year's edition until the new date is posted.</p>
+  </header>
+  <div class="key" id="key"></div>
+  <main id="years"></main>
+  <p class="foot">Updated Nov 6, 2026. Ask {{ATHLETE}} for the latest; plans can shift.</p>
+</div>
+
+<script>
+(() => {
+  const RACES = [
+
+  ];
+  const ICON = {
+    bike: '<circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16 9.5 9H15l3.5 7M9.5 9 12 16l3-7M8 6.5h3M15 9l1-3h2"/>',
+    run: '<circle cx="15.5" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><path d="M14.5 8 11 13.5"/><path d="M11 13.5l3.5 3-1.5 5"/><path d="M11 13.5 7.5 16H4"/><path d="M14 9l3 2.5 3-1"/><path d="M14 9l-4-1-2.5 2.5"/>',
+    trail: '<path d="M2 19 9 7l4 6.5 2.5-3.5L22 19z"/><path d="M8 19c1.6-1.6 3.5-2.2 5-2.8 1.4-.6 2.2-1.5 2.5-3" stroke-dasharray="1.2 2.2"/>',
+    tri: '<path d="M2 19.5c1.7-1.2 3.3-1.2 5 0s3.3 1.2 5 0 3.3-1.2 5 0 3.3 1.2 5 0"/><circle cx="7" cy="10" r="3.5"/><circle cx="17" cy="5" r="1.5"/><path d="m16.6 7.5-1.1 4 2.6 2.2M15.5 11.5l-2.2 3M16.7 8.6l2.6 1.4"/>',
+  };
+  ICON.adventure = '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/>';
+  const TYPE = { bike: 'Bike ride', run: 'Road race', trail: 'Trail race', tri: 'Triathlon', adventure: 'Adventure race' };
+  TYPE.run = 'Road race';
+  const STAT = { done: 'Done', registered: 'Registered', planned: 'Planned', considering: 'Considering', exploring: 'Exploring' };
+  const HELP = { done: 'finished', registered: 'entered', planned: 'committed, not entered yet', considering: 'a specific event that fits', exploring: 'type and timing only' };
+  const icon = (t, extra) => `<svg class="ico ${t}" viewBox="0 0 24 24" role="img" aria-label="${TYPE[t]}"${extra || ''}>${ICON[t]}</svg>`;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const D = (s) => new Date(s + 'T12:00:00Z');
+  // Weather: a race-day forecast from about 7 days out, otherwise typical temperatures for the date (approximate)
+  const wxBox = (r) => {
+    if (!r.wx || r.s === 'done') return '';
+    const fc = r.wx.k === 'forecast';
+    return `<div class="wx${fc ? ' fc' : ''}"><div class="t"><span class="lab">${fc ? 'Race-day forecast' : 'Typical weather'}</span><span class="deg">${Math.round(r.wx.hi)}°<small>/ ${Math.round(r.wx.lo)}°F</small></span><span>${esc(r.wx.txt)}</span></div>` +
+      (r.wx.water ? `<div class="x">Water: ${esc(r.wx.water)}</div>` : '') +
+      (fc ? `<div class="x">National Weather Service forecast${r.wx.at ? ', updated ' + MON[D(r.wx.at).getUTCMonth()] + ' ' + D(r.wx.at).getUTCDate() : ''}</div>` : '') + '</div>';
+  };
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  document.getElementById('key').innerHTML =
+    `<div class="kg"><b>Type</b>${Object.keys(TYPE).map((t) => `<span>${icon(t)}${TYPE[t]}</span>`).join('')}</div>` +
+    `<div class="kg"><b>Status</b>${Object.keys(STAT).map((s) => `<span class="chip ${s}">${STAT[s]}</span>`).join('')}</div>` +
+    `<p class="kh"><b>Planned</b> committed, not entered yet · <b>Considering</b> a specific event that fits · <b>Exploring</b> type and timing only</p>` +
+    `<p class="kh"><b>Weather</b> race-day forecast from about a week out; before that, typical temperatures for the date (approximate)</p>`;
+
+  const main0 = document.getElementById('years');
+  window.__W = Math.max(300, Math.round((main0.clientWidth || 360) - 26));
+  RACES.sort((a, b) => (a.d < b.d ? -1 : 1));
+  const years = [...new Set(RACES.map((r) => r.d.slice(0, 4)))];
+  const out = years.map((y) => {
+    const rs = RACES.filter((r) => r.d.startsWith(y));
+    // Year strip: 12 month columns, a marker per race at its day of the year
+    const W = window.__W, L = 4, R = 4, top = 8;
+    const x = (s) => { const dt = D(s); const start = Date.UTC(+y, 0, 1), end = Date.UTC(+y + 1, 0, 1); return L + (dt - start) / (end - start) * (W - L - R); };
+    let svg = `<svg viewBox="0 -8 ${W} 82" aria-label="${y} at a glance">`;
+    for (let m = 0; m < 12; m++) {
+      const mx = x(`${y}-${String(m + 1).padStart(2, '0')}-01`);
+      svg += `<line x1="${mx}" x2="${mx}" y1="${top}" y2="54" stroke="var(--line)" stroke-width="1"/><text x="${mx + 2}" y="68">${W < 520 ? MON[m][0] : MON[m]}</text>`;
+    }
+    svg += `<line x1="${L}" x2="${W - R}" y1="36" y2="36" stroke="var(--line)" stroke-width="2"/>`;
+    const placed = [];
+    for (const r of rs) {
+      let cx = x(r.d); let row = 0;
+      while (placed.some((p) => p.row === row && Math.abs(p.x - cx) < 24)) row++;
+      placed.push({ x: cx, row });
+      const cy = 22 - row * 14;
+      const dash = r.s === 'considering' ? ' stroke-dasharray="3 2"' : r.s === 'exploring' ? ' stroke-dasharray="1 2"' : '';
+      const fill = r.s === 'registered' ? 'var(--reg)' : r.s === 'planned' ? 'var(--fg)' : r.s === 'done' ? 'var(--ok)' : 'var(--panel)';
+      svg += `<g><title>${esc(r.n)}, ${MON[D(r.d).getUTCMonth()]} ${D(r.d).getUTCDate()}</title><circle cx="${cx}" cy="36" r="4" fill="${fill}" stroke="var(--fg)" stroke-width="1.5"${dash}/>` +
+        `<svg x="${cx - 11}" y="${cy - 12}" width="22" height="22" viewBox="0 0 24 24" class="ico ${r.t}">${ICON[r.t]}</svg></g>`;
+    }
+    svg += '</svg>';
+    const cards = rs.map((r) => {
+      const dt = D(r.d);
+      const who = r.who.length ? `<span class="who">${r.who.map((w) => `<span>with ${esc(w)}</span>`).join('')}</span>` : '';
+      const link = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">Event page ↗</a>` : '';
+      return `<article class="race ${r.s}">
+        <div class="date"><span>${MON[dt.getUTCMonth()]}</span><b>${r.a ? '≈' : ''}${dt.getUTCDate()}</b><i>${DOW[dt.getUTCDay()]}</i></div>
+        <div class="body">
+          <div class="top">${icon(r.t)}<span class="name">${esc(r.n)}</span></div>
+          <div class="row"><span class="chip ${r.s}">${STAT[r.s]}</span>${who}</div>
+          <div class="meta">${esc(r.dist)} · ${esc(r.loc)}</div>
+          ${wxBox(r)}
+          ${r.res ? `<div class="res">${r.res.map(([v, u]) => `<span><b>${esc(v)}</b>${esc(u)}</span>`).join('')}</div>` : ''}
+          ${link ? `<div class="row">${link}</div>` : ''}
+        </div>
+      </article>`;
+    }).join('');
+    return `<section class="year"><h2>${y}<small>${rs.length} event${rs.length > 1 ? 's' : ''}</small></h2><div class="strip">${svg}</div><div class="list">${cards}</div></section>`;
+  });
+  const main = document.getElementById('years');
+  main.style.display = 'grid'; main.style.gap = '30px';
+  main.innerHTML = out.join('');
+})();
+</script>

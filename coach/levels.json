@@ -1,0 +1,4 @@
+{
+ "about": "Block levels for the markers computed on the page (run pace at 150 bpm, bike power at 130 bpm). Methodology (the athlete, Oct 23, 2026): levels are fixed for a whole training block. Baseline = the 28-day average on the block's first day (measured on the page from the series; a value here overrides it). Target and Strong = where the coach expects the athlete to come out of the block, set at block start and never moved until the block ends. Earlier blocks stay on the chart as history; rows for later blocks are provisional (status) until that block starts and its baseline is measured. Hold blocks (taper, recover) carry no target. Units: run min/mi (lower is better), bike W (higher is better).",
+ "rows": []
+}

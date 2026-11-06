@@ -1,0 +1,5 @@
+{
+ "about": "Per-exercise strength history, built by coach/tools/lifts.py history from coach/strength_log.csv; never edit by hand. score basis: e1rm = estimated 1-rep max in lb (Epley; weighted pull-ups include the day's body weight), reps or seconds for bodyweight, band and timed work. trend compares the last session with the best of the 3 before it (improving above +1%, down below -3%). stalled = no new best in the last 3 sessions. gap = the latest break of 28+ days and how the return compares with the best before it (level = within 3%).",
+ "as_of": null,
+ "rows": []
+}

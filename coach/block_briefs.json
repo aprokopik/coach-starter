@@ -1,0 +1,4 @@
+{
+ "about": "Block briefs (the athlete, Nov 1, 2026; rules in coach/engine/BLOCK-BRIEF.md). One brief per training block, written by the coach before the block starts: why the block exists, up to 3 focus KPIs (each with goal, how, why, success and what it takes), the KPIs that are measured but not focus, and the feedback points (brief, Sunday lines, mid-block review, end-of-block review). Rows: kind brief (one per block), brief_kpi (one per focus KPI, rank 1 first), brief_point (one per feedback point). Flat rows only: the dashboard runtime returns nested lists as text. status: proposed (the athlete can change the focus set), live (from the block start or the athlete's yes), closed (end review written; outcome per KPI in brief_kpi.outcome). Numbers for run and bike targets live in coach/levels.json; this file says which KPIs count and why. coach/tools/brief.py computes progress and the Sunday lines.",
+ "rows": []
+}
