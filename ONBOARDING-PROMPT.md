@@ -1,10 +1,14 @@
 # Onboarding prompt
 
-Start a new session at claude.ai/code with your coach repository selected (INSTALL.md, step 7). Copy everything below the line and send it as your first message.
+Start a new session at claude.ai/code with your coach repository selected (INSTALL.md, step 7). Copy everything below the line and send it as your first message. If Claude guided you through Part 1 (`SETUP-PROMPT.md`), paste its setup notes at the very end of the same message.
 
 ---
 
 You are setting up Coach, a personal endurance and health coach, for me. My repository is the one attached to this session; it was made from the Coach starter kit. Work in two stages: first interview me, then set everything up. Read `START-HERE.md`, `coach/engine/RULES.md` (sections 1 and 2), `coach/engine/SCREEN.md` and `setup/answers.example.json` before the first question, so you know what the coach needs and why.
+
+## Setup log (from the first message to the last)
+
+Help the kit's makers improve the next version. If my message ends with PART 1 SETUP NOTES, start `setup/SETUP-LOG.md` now: fill its header and paste the notes under "Part 1". If there are none, start it anyway and note "Part 1 not guided". From then on, add a row under "Part 2" for each Stage 2 step (minutes, done or failed, what happened, what fixed it), and a line under "Unclear or wrong instructions" whenever a guide or prompt in this repository was wrong, out of date or confused me. About the setup only: never my health data, answers, passwords, tokens, email addresses or account names. Save it with my answers.
 
 ## Stage 1: the interview
 
@@ -50,6 +54,7 @@ Do each step, then tell me its result in one line. If a step fails, say so plain
    - **Race calendar watch** (if I said yes), Sundays at about 5:30 AM: prompt "Attach the repository {{owner}}/{{repo}}, read coach/ops/TASK-PROMPT-weekly.md and follow the text below its line."
    - **Monthly research scan** (if I said yes), the 1st of each month at about 5:00 AM: prompt "Attach the repository {{owner}}/{{repo}}, read coach/ops/TASK-PROMPT-research.md and follow the text below its line."
    If you cannot create scheduled tasks from this session, give me each prompt and its time in a copy-ready block and tell me where to create it.
-9. **Finish.** Send me one closing message: my dashboard link (and Race Season link), each scheduled task with its time, anything not done, and what to expect in the first two weeks (baseline, easy sessions, a feel check each morning, a first training block proposed by the end of week 2). Ask me to open the dashboard on my phone and add it to my home screen.
+9. **Feedback.** Ask me four quick questions, one at a time, each skippable: how easy the setup was overall (1 = painful to 5 = easy), the hardest step, whether I would recommend Coach to a training partner (yes, maybe, no), and one thing I would change (my own words). Fill the Summary, Feedback and Still not done sections of `setup/SETUP-LOG.md`, show me the whole log, and cut anything I ask. Run `python3 setup/feedback.py`; if it says NOT READY, fix those lines with me and run it again. Give me its LINK (it opens a prefilled issue on the kit's repository: I press **Submit new issue**) and tell me that if the link does not open for me, I can copy the TEXT block and send it to whoever invited me. Commit `setup/SETUP-LOG.md` with the message "Setup log" and push. Tell me I can say "send kit feedback" in any later session to send an update.
+10. **Finish.** Send me one closing message: my dashboard link (and Race Season link), each scheduled task with its time, anything not done, and what to expect in the first two weeks (baseline, easy sessions, a feel check each morning, a first training block proposed by the end of week 2). Ask me to open the dashboard on my phone and add it to my home screen.
 
 Never edit `coach/engine/RULES.md`, `coach/engine/schemas.json`, `coach/research/PROTOCOL.md`, `.github/` or `scripts/` during onboarding, except the changes `setup/personalize.py` makes. Never send my health data to any outside service.

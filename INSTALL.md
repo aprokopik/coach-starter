@@ -1,6 +1,8 @@
 # Install Coach
 
-Read `START-HERE.md` first. Do these steps on a computer, in order. Each step ends with a **Check** so you know it worked before you move on.
+Read `START-HERE.md` first. **Easiest:** paste `SETUP-PROMPT.md` into a new chat at claude.ai and let Claude walk you through these same steps, troubleshoot with you, and keep the setup log. This page is the written version. Do these steps on a computer, in order. Each step ends with a **Check** so you know it worked before you move on.
+
+Something not working or not clear? Note it: Claude adds it to `setup/SETUP-LOG.md` in Part 2, and step 9 of the onboarding sends it back to the kit's makers.
 
 ---
 
@@ -39,7 +41,7 @@ GitHub encrypts secrets; nobody can read them after you save them, not even you.
 2. Click **Pull Garmin data** in the list on the left, then **Run workflow**. In the box, type `7` (the number of past days to fetch) and click the green **Run workflow**.
 3. Wait about 2 minutes and refresh the page.
 
-**Check:** the run has a green tick, and `data/summary.csv` in your repository now has one row per day for the last week.
+**Check:** the run has a green tick, and `data/summary.csv` in your repository now has one row per day for the last week. Yellow notices about Node.js 20 or Ubuntu are GitHub housekeeping and do not matter.
 
 4. Now fetch your history, so the coach knows your past training: click **Backfill Garmin history**, then **Run workflow**, leave every box empty, and click the green **Run workflow**. It fetches up to two years and can take a while; if it stops before the end, run it again and it picks up where it left off.
 
@@ -86,6 +88,8 @@ When the interview ends, Claude does the rest and tells you each result:
 3. Creates your private **dashboard** and gives you its link. Open it on your phone and add it to your home screen.
 4. Creates your **daily check-in** at the time you chose, plus the weekly race watch and the monthly research scan if you asked for them.
 5. Saves everything to your repository.
+
+6. Asks you four quick questions about the setup, shows you the setup log, and gives you a link to send it back (or text to send to whoever invited you).
 
 **Check:** Claude's last message lists your dashboard link and each scheduled task with its time. If any line says "not done", ask Claude to retry that step.
 

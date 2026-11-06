@@ -1,7 +1,7 @@
 # Coach
 
 A personal endurance and health coach that runs on Claude, GitHub and your Garmin watch.
-Start with `START-HERE.md`. The setup steps are in `INSTALL.md`; the interview that personalizes the coach is `ONBOARDING-PROMPT.md`.
+Start with `START-HERE.md`. `SETUP-PROMPT.md` lets Claude walk you through the install; the written steps are in `INSTALL.md`; the interview that personalizes the coach is `ONBOARDING-PROMPT.md`. Setup problems and ideas go in `setup/SETUP-LOG.md` and back to the kit's makers with `setup/feedback.py`.
 
 ## Reading guide (for the coach)
 | Path | What it is |
