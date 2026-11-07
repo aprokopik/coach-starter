@@ -45,7 +45,7 @@ GitHub encrypts secrets; nobody can read them after you save them, not even you.
 
 4. Now fetch your history, so the coach knows your past training: click **Backfill Garmin history**, then **Run workflow**, leave every box empty, and click the green **Run workflow**. It fetches up to two years and can take a while; if it stops before the end, run it again and it picks up where it left off.
 
-From now on the pull runs by itself four times a day. GitHub emails you if a run fails.
+Once Part 2 sets your time zone, the pull runs by itself four times a day (until then, only when you run it). GitHub emails you if a run fails.
 
 ### If the pull fails
 - **"two-step verification code"**: your Garmin account uses two-step login. Finish Part 2 first, then ask your coach: "help me set up the Garmin token for two-step login". It walks you through `scripts/setup_token.py`.

@@ -1,13 +1,6 @@
 name: Pull Garmin data
 
 on:
-  schedule:
-    # GitHub cron is UTC. Pairs cover both EDT (UTC-4) and EST (UTC-5) so a pull
-    # always lands around 6:25 AM Eastern, with an hour-later catch-up for late sleep sync.
-    - cron: "23 10 * * *"   # 6:23 AM EDT / 5:23 AM EST
-    - cron: "23 11 * * *"   # 7:23 AM EDT / 6:23 AM EST
-    - cron: "23 16 * * *"   # midday catch-up
-    - cron: "23 23 * * *"   # evening reconciliation (7:23 PM EDT / 6:23 PM EST)
   workflow_dispatch:
     inputs:
       extra_days_back:

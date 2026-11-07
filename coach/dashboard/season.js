@@ -4,6 +4,11 @@
 // window.CX.renderRaces and window.CX.renderRaceWeek, which app.js render() and renderWeek() call.
 (() => {
   const { $, CKC, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, kind, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, spaced, sportGroups, stamp, state, truthy } = window.CX.app;
+  // Race start time (the athlete, Nov 7, 2026): start_time is 'HH:MM' local at the start line, start_basis posted or expected
+  // (the previous edition's time); an expected time shows with ≈, the way an approximate date does.
+  const fStart = (r) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String((r && r.start_time) || '').trim()); if (!m) return ''; const h = +m[1];
+    const t = m[2] === '00' && h === 0 ? 'midnight' : m[2] === '00' && h === 12 ? 'noon' : `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
+    return (String(r.start_basis || '').toLowerCase() === 'posted' ? '' : '≈') + t; };
 
   // ---------- SEASON SO FAR (endowed progress: credit already earned) ----------
   // Phase 5: Cockpit tiles (seasonTile) with every figure, unit and date marked; the panel has the shared states.
@@ -291,7 +296,9 @@
     nm.append(ri, el('span', null, 'Race week · '), mark(el('span', null, r.name), 'coach', 'name', w)); t.append(nm);
     box.style.setProperty('--sp', ri.style.color);
     const line = el('span', 'ck-sub wk-rwline');
-    line.append(mark(el('span', null, fWd(P(r.date))), 'coach', null, w, 'formatted'), ' · ', mark(el('span', null, n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`), 'coach', null, w, 'days-until'));
+    line.append(mark(el('span', null, fWd(P(r.date))), 'coach', null, w, 'formatted'));
+    if (fStart(r)) line.append(' · ', mark(el('span', null, fStart(r) + ' start'), 'coach', null, w, 'start-time'));
+    line.append(' · ', mark(el('span', null, n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`), 'coach', null, w, 'days-until'));
     if (r.wx_hi != null && r.wx_hi !== '') line.append(' · ', mark(el('span', null, `${Math.round(r.wx_hi)}°`), 'coach', 'wx_hi', w), '/', mark(el('span', null, `${Math.round(r.wx_lo)}°`), 'coach', 'wx_lo', w), `F${r.wx_kind === 'forecast' ? '' : ' typical'}`);
     t.append(line);
     head.append(t, icon('chevron', 'ck-chev'));
@@ -307,11 +314,14 @@
     const hero = $('r-hero'); hero.replaceChildren();
     const n = daysTo(r.date);
     const head = el('div', 'ck-tile-head sn-hhead'); const eb = el('span', 'sn-heb'); eb.append(statusChip(r.status)); if (r.priority) eb.append(el('span', 'ck-eyebrow', `${r.priority} race`));
-    head.append(eb, mkSpan(fWd(P(r.date)), 'coach', null, rwh, 'formatted')); head.lastChild.className = 'ck-sub';
+    const when = el('span', 'ck-sub'); when.append(mkSpan(fWd(P(r.date)), 'coach', null, rwh, 'formatted')); if (fStart(r)) when.append(' · ', mkSpan(fStart(r) + ' start', 'coach', null, rwh, 'start-time'));
+    head.append(eb, when);
     const name = el('h2', 'ck-h3 sn-hname'); name.append(raceIcon(r), mkSpan(r.name, 'coach', 'name', rwh));
     const cnt = el('div', 'sn-count'); const big = el('span', 'ck-big'); big.append(mkSpan(n >= 0 ? String(n) : '✓', 'coach', null, rwh, 'days-until')); cnt.append(big, el('span', 'ck-unit', n === 1 ? 'day to go' : n >= 0 ? 'days to go' : 'done'));
     const dl = el('dl', 'sn-facts');
-    for (const [k, v, f] of [['Where', r.location, 'location'], ['Distance', r.distance, 'distance'], ['Result', r.result, 'result'], ['Goal', r.goal, 'goal'], ['Registration', r.status !== 'registered' && r.registration ? `${r.registration}${r.reg_checked ? ' (checked ' + fDay(P(r.reg_checked)) + ')' : ''}` : '', null], ['Forecast', r.forecast, 'forecast'], ['Limit', r.limit, 'limit']]) if (v) dl.append(el('dt', null, k), mark(el('dd', null, v), 'coach', f, rwh, f ? null : 'formatted'));
+    const startDd = () => { if (!fStart(r)) return null; const dd = el('dd'); dd.append(mkSpan(fStart(r), 'coach', null, rwh, 'start-time'), String(r.start_basis || '').toLowerCase() === 'posted' ? ' (posted)' : ' (last edition\'s time, not yet posted)');
+      if (r.start_note) { dd.append(el('br')); dd.append(mark(el('small', 'ck-sub', r.start_note), 'coach', 'start_note', rwh)); } return dd; };
+    for (const [k, v, f] of [['Where', r.location, 'location'], ['Distance', r.distance, 'distance'], ['Start', startDd, null], ['Result', r.result, 'result'], ['Goal', r.goal, 'goal'], ['Registration', r.status !== 'registered' && r.registration ? `${r.registration}${r.reg_checked ? ' (checked ' + fDay(P(r.reg_checked)) + ')' : ''}` : '', null], ['Forecast', r.forecast, 'forecast'], ['Limit', r.limit, 'limit']]) { if (typeof v === 'function') { const dd = v(); if (dd) dl.append(el('dt', null, k), dd); } else if (v) dl.append(el('dt', null, k), mark(el('dd', null, v), 'coach', f, rwh, f ? null : 'formatted')); }
     hero.append(head, name, cnt);
     if (r.status === 'done' && r.stats) { const st = el('div', 'sn-stats'); for (const pair of String(r.stats).split(';')) { const [v, l] = pair.split('|'); const s1 = mark(el('span'), 'coach', null, rwh, 'stats'); s1.append(el('b', null, v), l || ''); st.append(s1); } hero.append(st); }
     hero.append(dl);
@@ -430,7 +440,8 @@
         for (const w of String(x.with || '').split(';').filter(Boolean)) row.append(el('span', 'sn-who', 'with ' + w));
         if (dn >= 0) row.append(mkSpan(dn > 0 ? `in ${dn} d` : 'today', 'coach', null, rw, 'days-until')); row.lastChild.classList.add('ck-sub');
         bd.append(row);
-        const t2 = el('span', 'ck-sub sn-rt2'); [['distance', x.distance], ['location', x.location]].filter((p2) => p2[1]).forEach((p2, i) => { if (i) t2.append(' · '); t2.append(mkSpan(p2[1], 'coach', p2[0], rw)); }); bd.append(t2);
+        const t2 = el('span', 'ck-sub sn-rt2'); const xst = x.status !== 'done' ? fStart(x) : ''; if (xst) t2.append(mkSpan('Starts ' + xst, 'coach', null, rw, 'start-time'));
+        [['distance', x.distance], ['location', x.location]].filter((p2) => p2[1]).forEach((p2, i) => { if (i || xst) t2.append(' · '); t2.append(mkSpan(p2[1], 'coach', p2[0], rw)); }); bd.append(t2);
         if (x.status === 'done' && x.stats) { const st = el('span', 'sn-stats'); for (const pair of String(x.stats).split(';')) { const [v, l] = pair.split('|'); const s1 = mark(el('span'), 'coach', null, rw, 'stats'); s1.append(el('b', null, v), l || ''); st.append(s1); } bd.append(st); }
         else if (x.status === 'done' && x.result) { const t3 = el('span', 'sn-rt3', 'Result: '); t3.append(mkSpan(x.result, 'coach', 'result', rw)); bd.append(t3); }
         if (x.status !== 'done' && x.wx_hi != null && x.wx_hi !== '') { const wl = el('span', 'ck-sub sn-rwx', `${x.wx_kind === 'forecast' ? 'Forecast' : 'Typical'} `); wl.append(mkSpan(`${Math.round(x.wx_hi)}°`, 'coach', 'wx_hi', rw), '/', mkSpan(`${Math.round(x.wx_lo)}°`, 'coach', 'wx_lo', rw), 'F'); if (x.wx_text) wl.append(' · ', mkSpan(x.wx_text.split(/[;,]/)[0], 'coach', null, rw, 'first-clause')); bd.append(wl); }
@@ -454,7 +465,7 @@
     // Races come straight from races.json (the athlete, Nov 3, 2026): registered, planned and done ones, plus roadmap: true;
     // milestone rows in plan.json hold only non-race items, so a sign-up reaches the Roadmap with no second edit.
     const ms = [...kind('milestone').map((m) => ({ ...m, _t: 'ms', _d: m.date, _w: 'kind=milestone&key=' + m.key })),
-      ...races.filter((x) => ['registered', 'planned', 'done'].includes(x.status) || truthy(x.roadmap)).map((x) => ({ name: (truthy(x.approx) ? '≈ ' : '') + (x.public_name || x.name), date: x.date, _t: 'ms', _d: x.date, _w: 'kind=race&race_id=' + x.race_id, _race: true }))];
+      ...races.filter((x) => ['registered', 'planned', 'done'].includes(x.status) || truthy(x.roadmap)).map((x) => ({ name: (truthy(x.approx) ? '≈ ' : '') + (x.public_name || x.name), date: x.date, _t: 'ms', _d: x.date, _w: 'kind=race&race_id=' + x.race_id, _race: true, _st: x.status !== 'done' ? fStart(x) : '' }))];
     const items = [...blocks, ...ms].sort((a, b) => (a._d < b._d ? -1 : a._d > b._d ? 1 : a._t === 'block' ? -1 : 1));
     if (!items.length) { road.replaceChildren(); $('r-doc').hidden = true; cardState($('r-road'), 'empty', 'The roadmap fills when the plan has blocks or milestones.'); return; }
     cardState($('r-road'), null); road.replaceChildren();
@@ -487,7 +498,7 @@
         const row = el('div', 'ck-row sn-ms'); const rr = races.find((x) => x.date === it.date);
         if (rr) { const ic = raceIcon(rr); row.append(ic); } else row.append(icon('flag'));
         const main = el('span', 'ck-row-main'); const t = el('span', 'ck-row-t'); t.append(it._race ? mkSpan(it.name, 'coach', null, it._w, 'public-name') : mkSpan(it.name, 'coach', 'name', it._w));
-        const s2 = el('span', 'ck-row-s'); s2.append(mkSpan(fWd(P(it.date)), 'coach', null, it._w, 'formatted'), ' · ', mkSpan(inDays(daysTo(it.date)), 'coach', null, it._w, 'days-until'));
+        const s2 = el('span', 'ck-row-s'); s2.append(mkSpan(fWd(P(it.date)), 'coach', null, it._w, 'formatted')); if (it._st) s2.append(' · ', mkSpan(it._st, 'coach', null, it._w, 'start-time')); s2.append(' · ', mkSpan(inDays(daysTo(it.date)), 'coach', null, it._w, 'days-until'));
         main.append(t, s2); row.append(main, el('span'));
         li.append(row);
       }

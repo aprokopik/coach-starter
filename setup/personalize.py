@@ -363,7 +363,9 @@ def cron_rewrite(tz, source="garmin", strava=False):
              + "\n".join(f'    - cron: "23 {h} * * *"' for h in sorted(hours)) + "\n")
     garmin = ROOT / ".github/workflows/pull-garmin.yml"
     text = garmin.read_text(encoding="utf-8")
-    text = re.sub(r"  schedule:\n(?:    #.*\n)*(?:    - cron: .*\n)+", block if source == "garmin" else "", text)
+    text = re.sub(r"  schedule:\n(?:    #.*\n)*(?:    - cron: .*\n)+", "", text)
+    if source == "garmin":  # the kit ships with no schedule; the athlete's own is added here
+        text = text.replace("on:\n", "on:\n" + block, 1)
     garmin.write_text(text, encoding="utf-8")
     sv = ROOT / ".github/workflows/pull-strava.yml"
     if sv.exists():

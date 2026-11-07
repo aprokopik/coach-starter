@@ -4,7 +4,7 @@ The shared page ({{SEASON_URL}}, source coach/dashboard/season.html) used to kee
 hand-typed race list, which fell behind (Bobcat was missing). This script writes the list between the RACES markers in
 season.html from races.json, using public fields only, and sets the footer date when the list changes.
 
-Public fields: public_name or name, date, approx, sport, status, public_distance or distance, public_location or location,
+Public fields: public_name or name, date, approx, start time (start_time, ~ when expected), sport, status, public_distance or distance, public_location or location,
 with, stats (done races), url, and the weather box (wx_kind, wx_hi, wx_lo, wx_text, wx_at, water). Never goal, plans,
 kit, cutoffs, limits, finish estimates, wx_plan, lat/lon or registration notes: the page is shared by link.
 
@@ -12,6 +12,7 @@ CLI: python3 coach/tools/build_season.py [--check]
   writes season.html and prints "changed" or "unchanged"; with --check writes nothing and exits 1 when the page is stale.
 """
 import json
+import re
 import os
 import sys
 from datetime import date
@@ -21,7 +22,8 @@ PAGE = os.path.join(ROOT, "coach", "dashboard", "season.html")
 BEGIN, END = "  const RACES = [", "\n  ];"
 FOOT_BEGIN, FOOT_END = '<p class="foot">Updated ', ". Ask {{ATHLETE}} for the latest; plans can shift.</p>"
 SPORT = {"Ride": "bike", "Run": "run", "Trail run": "trail", "Triathlon": "tri", "Adventure race": "adventure"}
-PUBLIC = ("d", "a", "n", "t", "s", "dist", "loc", "who", "res", "url", "wx")
+PUBLIC = ("d", "a", "n", "t", "s", "st", "dist", "loc", "who", "res", "url", "wx")
+START_RE = re.compile(r"^\d{1,2}:\d{2}$")
 PRIVATE_FIELDS = ("goal", "forecast", "limit", "cutoffs", "cutoffs_src", "wx_plan", "registration", "lat", "lon", "result", "priority")
 
 
@@ -38,6 +40,8 @@ def entry(r):
               "who": [w.strip() for w in str(r.get("with") or "").split(";") if w.strip()]})
     if r.get("status") == "done" and r.get("stats"):
         e["res"] = [p.split("|", 1) if "|" in p else [p, ""] for p in str(r["stats"]).split(";") if p]
+    if r.get("status") != "done" and START_RE.match(str(r.get("start_time") or "")):
+        e["st"] = ("" if str(r.get("start_basis") or "").lower() == "posted" else "~") + str(r["start_time"])  # Nov 7, 2026: race start time
     if r.get("url"):
         e["url"] = r["url"]
     if r.get("status") != "done" and r.get("wx_hi") not in (None, ""):

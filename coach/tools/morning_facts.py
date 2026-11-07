@@ -20,7 +20,7 @@ Sections of facts.json (every number carries its label; a missing value is null,
   block       current block, days in, its stated weekly hours vs the budget for the period
   weight      latest, 4- and 7-day rolling means, 21-day slope, plan path, fuel mode today and tomorrow;
               body_comp: scale lean mass and body fat as 14-day means, vs the pre-deficit baseline
-  races       upcoming races: days to go, forecast, limit, cutoffs and margins; registration: reg_dates within 14 days
+  races       upcoming races: days to go, start time (start_time HH:MM local, start_basis posted|expected), forecast, limit, cutoffs and margins; registration: reg_dates within 14 days
               and whether the check-in says each today (coach/tools/race_check.py)
   calibration easy-day RPE vs HR agreement; guardrail retire check
   predictions reconciliation summary from coach/outcomes.csv (7 and 28 days)
@@ -732,7 +732,8 @@ def section_races(today, data):
             margin = {"best_case": hms(limit_min - lo), "worst_case": hms(limit_min - hi), "thin": (limit_min - hi) < 60}
         out.append({"race_id": x.get("race_id"), "name": x.get("name"), "date": x["date"], "days_to_go": days, "status": x.get("status"), "priority": x.get("priority"),
                     "forecast": x.get("forecast"), "forecast_minutes": [lo, hi], "limit": x.get("limit"), "limit_minutes": limit_min, "cutoffs": cut, "cutoffs_src": x.get("cutoffs_src"),
-                    "margin_overall": margin, "within_3_days": days <= 3})
+                    "margin_overall": margin, "within_3_days": days <= 3,
+                    "start_time": x.get("start_time"), "start_basis": x.get("start_basis"), "start_note": x.get("start_note")})
     try:  # gaps against coach/race_template.json (Nov 2, 2026); never block the check-in
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import race_check

@@ -10,7 +10,8 @@ import race_check  # noqa: E402
 
 BASE = {"kind": "race", "race_id": "x", "name": "X", "date": "2026-11-20", "location": "L", "sport": "Trail run", "distance": "11 mi",
         "status": "registered", "priority": "C", "goal": "g", "wx_kind": "typical", "wx_hi": 50, "wx_lo": 35, "wx_text": "t", "wx_plan": "p",
-        "wx_src": "s", "url": "u", "limit": "5:00", "cutoffs": "none", "lat": 39.6, "lon": -77.4}
+        "wx_src": "s", "url": "u", "limit": "5:00", "cutoffs": "none", "lat": 39.6, "lon": -77.4,
+        "start_time": "09:00", "start_basis": "posted"}
 
 
 class TestRaceCheck(unittest.TestCase):
@@ -34,6 +35,17 @@ class TestRaceCheck(unittest.TestCase):
         self.assertTrue(any(g.startswith("forecast refresh") for g in race_check.missing(r, rows, date(2026, 11, 15))))
         r["wx_at"] = "2026-11-15"
         self.assertEqual(race_check.missing(r, rows, date(2026, 11, 15)), [])
+
+    def test_start_time_required_once_committed_and_posted_by_prep(self):
+        r = {k: v for k, v in BASE.items() if k not in ("start_time", "start_basis")}
+        gaps = race_check.missing(r, [], date(2026, 10, 1))
+        self.assertIn("start_time", gaps)
+        self.assertIn("start_basis", gaps)
+        r.update(start_time="09:00", start_basis="expected")
+        self.assertEqual(race_check.missing(r, [], date(2026, 10, 1)), [])  # far out: last edition's time is enough
+        self.assertTrue(any(g.startswith("start_time posted") for g in race_check.missing(r, [], date(2026, 11, 2))))
+        r["start_basis"] = "posted"
+        self.assertFalse(any(g.startswith("start_time posted") for g in race_check.missing(r, [], date(2026, 11, 2))))
 
     def test_exploring_needs_registration_dates_not_location(self):
         r = {k: v for k, v in BASE.items() if k not in ("url", "limit", "cutoffs", "lat", "lon")}

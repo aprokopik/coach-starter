@@ -1,7 +1,7 @@
 """What each race in coach/races.json is missing against coach/race_template.json (the athlete, Nov 2, 2026).
 
 Every race fills the same structure by stage: race info and typical weather from the day it is added, link/limit/cutoffs/location
-once committed, finish estimate, plan sections and kit from 21 days out, the NWS forecast in race week, result and stats when done.
+once committed (start_time and start_basis too, Nov 7, 2026), finish estimate, plan sections and kit from 21 days out, the NWS forecast in race week, result and stats when done.
 The morning facts carry the gaps per upcoming race (races.upcoming[].missing) so the coach fills them in the same run.
 
 Registration watch (Nov 5, 2026): every race not yet registered or done carries reg_dates ('YYYY-MM-DD|what|basis;...',
@@ -66,6 +66,8 @@ def missing(race, rows, today, tpl=None):
     prep = st.get("prep", {})
     if status == "registered" and days <= 21:
         need("prep")
+        if prep.get("start_posted") and _filled(race.get("start_time")) and str(race.get("start_basis") or "").lower() != "posted":
+            out.append("start_time posted (still expected from the previous edition; check the athlete guide)")
         have = {r.get("section") for r in rows if r.get("kind") == "race_note" and r.get("race_id") == race.get("race_id") and _filled(r.get("text"))}
         for s in prep.get("notes", []):
             if s not in have:

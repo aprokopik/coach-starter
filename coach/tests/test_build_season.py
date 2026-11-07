@@ -38,6 +38,14 @@ class TestSeason(unittest.TestCase):
         for t in notes:
             self.assertNotIn(t, block)
 
+    def test_start_time_on_the_shared_page(self):
+        base = {"kind": "race", "race_id": "t", "name": "T", "date": "2027-01-01", "sport": "Run", "status": "registered"}
+        self.assertEqual(build_season.entry(dict(base, start_time="08:30", start_basis="posted"))["st"], "08:30")
+        self.assertEqual(build_season.entry(dict(base, start_time="06:00", start_basis="expected"))["st"], "~06:00")
+        self.assertNotIn("st", build_season.entry(dict(base, start_time="tbd")))
+        self.assertNotIn("st", build_season.entry(dict(base, status="done", start_time="08:30")))
+        self.assertNotIn("start_note", build_season.races_block([dict(base, start_time="08:30", start_note="secret source note")]))
+
     def test_new_race_changes_page_and_footer(self):
         rows = ROWS + [{"kind": "race", "race_id": "t", "name": "Test 10K", "date": "2027-01-01", "sport": "Run", "status": "registered", "goal": "secret goal text here"}]
         out, changed = build_season.render(HTML, rows, today=date(2027, 1, 2))
