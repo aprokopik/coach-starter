@@ -3,10 +3,11 @@
 
     python3 setup/personalize.py setup/answers.json            # write the personal files
     python3 setup/personalize.py setup/answers.json --check    # say what is still missing, change nothing
+    python3 setup/personalize.py setup/answers.json --refresh  # after a kit update (setup/update.py): re-apply settings only
 
 Claude runs this during onboarding (ONBOARDING-PROMPT.md) after the interview has filled
-setup/answers.json (shape: setup/answers.example.json). It is safe to run again: every personal
-file is rewritten from the answers, and every {{PLACEHOLDER}} still present in the tree is filled
+setup/answers.json (shape: setup/answers.example.json). Without --refresh it rewrites every personal
+file from the answers, so after onboarding use --refresh (a full run would reset CURRENT-STATE and LOG), and every {{PLACEHOLDER}} still present in the tree is filled
 from the answers (so adding the dashboard link later and re-running finishes the job).
 
 It writes: coach/athlete/profile.json, PROFILE.md, screen.json, RESPONSE-PROFILE.md;
@@ -55,6 +56,18 @@ FOUNDATION = [("consistency", 10, "all", "Showing up predicts progress and injur
               ("lifts", 8, "strength", "Strength protects joints and holds muscle for the long run.")]
 ZONE_NAMES = ["Recovery", "Easy", "Steady", "Threshold", "VO2max"]
 ZONE_CUTS = [0.0, 0.70, 0.78, 0.85, 0.92, 1.0]  # share of max HR at each zone's lower edge
+
+# Sections the support team (coach/engine/TEAM.md) reads. Written at onboarding, and added by --refresh
+# to coaches set up before they existed. The coach fills them in over time; setup never overwrites them.
+PERSONA = """## Persona
+- Not set yet. The coach learns how the athlete likes to be spoken to and pushed from their replies and the feel
+  check, and writes it here once it has seen it a few times. The athlete can also just say it ("be blunt", "less data").
+"""
+PUSH = """## Push contract
+- None yet. After the baseline weeks the coach may propose one (when to push harder, the data gate, the stop rules).
+  Nothing changes until the athlete says yes.
+"""
+ENSURE = {"coach/athlete/PROFILE.md": ("## Persona", PERSONA), "coach/CURRENT-STATE.md": ("## Push contract", PUSH)}
 
 
 def load(p):
@@ -246,7 +259,8 @@ Written at onboarding on {today.isoformat()} from {name}'s own answers (Reported
 - Data source: {'Apple Health via the iPhone Shortcut' + (', workouts from Strava' if a.get('strava') else ', no workout feed (workouts are reported in words)') if profile['data_source'] == 'apple_health' else 'Garmin Connect'}.
 - {'; '.join(profile['equipment']) or 'not given'}.
 - Not measured: {', '.join(profile['not_measured'])}.
-""")
+
+{PERSONA}""")
     weight_line = (f"- Weight goal: {w['target_lo']} to {w['target_hi']} {w.get('unit', 'lb')} by {w.get('target_by')}, gradual and training first; lift through it."
                    if w.get("target_lo") else "- Weight goal: none set.")
     write("coach/CURRENT-STATE.md", f"""# Current state
@@ -268,6 +282,7 @@ Last updated: {today.isoformat()} (onboarding).
   keeps every session easy, and writes the first training block into plan.json by the end of week 2.
 {'- SCREEN HOLD: no hard or high-intensity sessions until a clinician clears: ' + ', '.join(i['question'] for i in flagged) + '.' if flagged else ''}
 
+{PUSH}
 ## Open questions
 - None yet.
 """)
@@ -284,6 +299,14 @@ Observed individual response facts, each with a count of observations. Empty at 
 once they are seen at least 3 times (for example: legs the morning after a long run, sleep after late sessions).
 """)
 
+    kit_owned(a, today)
+    return {"hr_max": hr_max, "screen_flagged": [i["question"] for i in flagged]}
+
+
+def kit_owned(a, today):
+    """The athlete's settings inside kit-owned files: the feeds in data_paths.json and the pull schedules.
+    Run at onboarding and again after every kit update (--refresh), which replaces these files."""
+    sch, opts, tz = a.get("schedule", {}), a.get("options", {}), a["athlete"]["timezone"]
     # data_paths.json: drop feeds the athlete does not use
     dp = load("coach/ops/data_paths.json")
     off = set()
@@ -316,7 +339,7 @@ once they are seen at least 3 times (for example: legs the morning after a long 
                           "writes": ["data/summary.csv", "data/status/last_run.json"], "cadence": "each morning after waking",
                           "fallback": "open Shortcuts and run 'Send health to coach' by hand; until then the check-in runs on the data on hand and says so",
                           "owner": "athlete (iPhone)"})
-        if a.get("strava"):
+        if a.get("strava") and not any(p["id"] == "strava" for p in dp["paths"]):  # safe to run twice
             dp["paths"].insert(1, {"id": "strava", "what": "Workouts from Strava",
                                    "route": "GitHub Actions pull-strava.yml (schedule set at onboarding) plus the morning check-in's dispatch; scripts/pull_strava.py",
                                    "writes": ["data/activities.csv", "data/status/strava_last_run.json"], "cadence": "four times a day",
@@ -329,7 +352,6 @@ once they are seen at least 3 times (for example: legs the morning after a long 
 
     # Garmin pull schedule at about 6:20 AM, 7:20 AM, 12:20 PM and 7:20 PM local, in UTC for standard and daylight time
     cron_rewrite(tz, source_of(a), bool(a.get("strava")))
-    return {"hr_max": hr_max, "screen_flagged": [i["question"] for i in flagged]}
 
 
 def restore_workflows():
@@ -404,6 +426,36 @@ def fill_placeholders(a):
     return left
 
 
+def ensure_sections():
+    """Add a section the engine reads to an athlete file that predates it. Never rewrites existing text."""
+    added = []
+    for rel, (head, text) in ENSURE.items():
+        f = ROOT / rel
+        if f.is_file() and head not in f.read_text(encoding="utf-8"):
+            body = f.read_text(encoding="utf-8").rstrip("\n")
+            f.write_text(body + "\n\n" + text, encoding="utf-8")
+            added.append(f"{rel}: {head[3:]}")
+    return added
+
+
+def sha(path):
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def record_installed():
+    """Fingerprint every kit-owned file as installed (setup/installed.json). setup/update.py compares against
+    it: a file whose fingerprint still matches was not edited here and can be replaced by a newer kit."""
+    man = ROOT / "setup" / "kit-manifest.json"
+    if not man.is_file():
+        return 0
+    m = json.loads(man.read_text(encoding="utf-8"))
+    files = {rel: sha(ROOT / rel) for rel in m["kit_files"] if (ROOT / rel).is_file()}
+    save("setup/installed.json", {"about": "Fingerprints of the kit's own files as installed here. Written by setup/personalize.py; read by setup/update.py. Do not edit.",
+                                  "version": (ROOT / "VERSION").read_text().strip(), "files": files})
+    return len(files)
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)
@@ -421,10 +473,25 @@ def main(argv):
     if restored:
         print(f"Restored {restored} workflow file(s) into .github/workflows (the upload had skipped the hidden folder).")
     today = datetime.now(ZoneInfo(a["athlete"]["timezone"])).date()
+    import subprocess
+    if "--refresh" in argv:
+        # After a kit update: put the athlete's settings back into the kit's own files. Personal files
+        # (profile, current state, log, plans, data) are left exactly as they are.
+        kit_owned(a, today)
+        left = fill_placeholders(a)
+        added = ensure_sections()
+        subprocess.run([sys.executable, str(ROOT / "coach/tools/build_season.py")], cwd=ROOT, capture_output=True)
+        n = record_installed()
+        print(f"Refreshed for {a['athlete']['name']}: settings, links and schedules re-applied; {n} kit files fingerprinted.")
+        for line in added:
+            print(f"Added section: {line}")
+        for k, files in sorted(left.items()):
+            print(f"Still to fill: {k} in {', '.join(sorted(set(files))[:3])}")
+        return 0
     info = build(a, today)
     left = fill_placeholders(a)
-    import subprocess
     subprocess.run([sys.executable, str(ROOT / "coach/tools/build_season.py")], cwd=ROOT, capture_output=True)
+    record_installed()
     print(f"Personalized for {a['athlete']['name']}: max HR used {info['hr_max']}.")
     if info["screen_flagged"]:
         print("SCREEN: see a clinician before hard training: " + "; ".join(info["screen_flagged"]))

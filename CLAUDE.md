@@ -10,3 +10,7 @@ The kit's makers improve it from testers' setup logs. Help close that loop:
 - When the athlete says "send kit feedback" (or anything like it), update the Summary and Feedback sections with them, show them the log, let them cut anything, then run `python3 setup/feedback.py` and give them its link and its text block (step 9 of `ONBOARDING-PROMPT.md`, Stage 2). Commit `setup/SETUP-LOG.md`.
 - The log never holds health data, passwords, tokens, email addresses or account names. `setup/feedback.py` refuses to send a log that seems to.
 - Never edit `setup/kit.json`; it says where feedback goes.
+
+## Updates
+
+`VERSION` says which kit this coach is on. When the athlete asks to update, follow `UPDATE-PROMPT.md` (from the kit's home repository if this copy is older): `setup/update.py` swaps in the kit's own files and never touches the athlete's. After any setup change, use `python3 setup/personalize.py setup/answers.json --refresh`; a run without `--refresh` rewrites CURRENT-STATE, LOG and the profile from the onboarding answers.

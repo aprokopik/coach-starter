@@ -19,6 +19,10 @@ Coach is a personal endurance and health coach that runs on Claude. Every mornin
 
 **The easy way: let Claude walk you through it.** Open a new chat at claude.ai, paste the prompt in **`SETUP-PROMPT.md`**, and Claude guides you through Part 1 one step at a time, helps with anything that goes wrong (send it screenshots), then hands you over to Part 2, which uses **`ONBOARDING-PROMPT.md`**. If you would rather read the steps yourself, they are all in **`INSTALL.md`**.
 
+## Updates
+
+The coach gets better over time. When a new version is out, paste `UPDATE-PROMPT.md` into Claude Code: it updates the coach's engine, tools and dashboard and never touches your own profile, plans, log or data.
+
 ## Help us make it better
 
 This is an alpha. As you go, Claude keeps a short setup log of what was slow, broken or confusing (`setup/SETUP-LOG.md`, never your health data). At the end it shows you the log and gives you a one-click link to send it back to the kit's makers, or text you can send to whoever invited you. Later, say "send kit feedback" to your coach any time something about the setup or the coach itself could be better.

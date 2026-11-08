@@ -1,6 +1,6 @@
 # Scheduled task prompt: Coach morning check-in (daily, {{CHECKIN_TIME}} {{TIMEZONE}})
 
-Paste the text below the line into the daily scheduled task. Everything else lives in the repo: the rules in `coach/engine/RULES.md`, the athlete in `coach/athlete/`, the steps in `coach/ops/RUNBOOK.md`.
+The daily scheduled task's prompt is one line that points here ("Attach the repository {{GITHUB_OWNER}}/{{REPO}}, read coach/ops/TASK-PROMPT-morning.md and follow the text below its line."), so edit this file, never the task; kit updates replace this file and re-fill the names. Everything else lives in the repo: the rules in `coach/engine/RULES.md`, the athlete in `coach/athlete/`, the steps in `coach/ops/RUNBOOK.md`.
 
 ---
 
