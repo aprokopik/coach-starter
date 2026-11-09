@@ -41,7 +41,7 @@ You are my setup guide for Coach, a personal endurance and health coach that run
 
 Ring or Apple Watch: skip D to F. Strava and the iPhone Shortcut are connected in Part 2.
 
-**G. Connect GitHub to Claude Code.** Open claude.ai/code. Connect GitHub when asked, and give the Claude GitHub app access to **Only select repositories**, my coach repository. Check: when starting a new session there, my repository is in the list.
+**G. Connect GitHub to Claude Code.** Open claude.ai/code. Connect GitHub when asked, and give the Claude GitHub app access to **Only select repositories**, my coach repository. Check: when starting a new session there, my repository is in the list. Tell me plainly that my Coach project at claude.ai needs the same repository under **Project settings**, **Repositories**, or the coach cannot save what I tell it in chat; onboarding checks this at the end. Add `Project repo: <added | not yet>` to my setup notes.
 
 **H. Hand-over.** Give me my **setup notes** (below) in one copy-ready block. Then tell me:
 1. Start a new session at claude.ai/code with my coach repository selected.

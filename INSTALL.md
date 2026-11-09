@@ -61,7 +61,9 @@ Once Part 2 sets your time zone, the pull runs by itself four times a day (until
 1. Go to claude.ai/code and sign in.
 2. Connect your GitHub account when Claude asks, and give the Claude GitHub app access to your coach repository (choose **Only select repositories**, then pick `my-coach`).
 
-**Check:** when you start a new session at claude.ai/code, your coach repository is in the list of repositories you can pick.
+3. Your coach also talks to you in the Claude app, in your **Coach project**, and its scheduled tasks run there too. That project needs the repository as well: open the project at claude.ai, then **Project settings**, then **Repositories**, and add `my-coach`. (If you have no Coach project yet, onboarding makes one with you in step 8; do this then.)
+
+**Check:** when you start a new session at claude.ai/code, your coach repository is in the list of repositories you can pick, and your Coach project's Repositories list shows it. If the coach ever says it "can't reach your coach repo", this step is the fix; if it still can't, open claude.ai/connect-github and make sure your coach repository is ticked.
 
 ### 7. Start your onboarding session
 1. At claude.ai/code, start a new session with your coach repository selected.

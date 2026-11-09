@@ -77,6 +77,7 @@
   };
   const LAB5 = { sleep_q: ['Awful', 'Poor', 'OK', 'Good', 'Great'], energy: ['Drained', 'Low', 'OK', 'Good', 'Great'], legs: ['Trashed', 'Heavy', 'OK', 'Good', 'Fresh'], stress: ['Calm', 'Low', 'Some', 'High', 'Maxed'] };
   const PAINW = (p) => { p = Number(p); return p <= 0 ? 'None' : p <= 2 ? 'Niggle' : p <= 4 ? 'Hurts' : 'Stop'; };
+  const FOOTW = { smooth: 'smooth footing', roots: 'roots and rocks', technical: 'technical footing', mud: 'mud or snow' };
   const EFFW = (r) => { r = Number(r); return r <= 2 ? 'Very easy' : r <= 3 ? 'Easy' : r <= 4 ? 'Steady' : r <= 6 ? 'Hard' : 'Very hard'; };
   const to5 = (d) => { if (!d || Number(d.scale) === 5) return d; const o = { ...d }; for (const k of Object.keys(LAB5)) if (o[k] !== null && o[k] !== undefined && o[k] !== '' && !isNaN(Number(o[k]))) o[k] = Math.min(5, Math.max(1, Math.round(1 + (Number(o[k]) - 1) * 4 / 9))); for (const k of ['pain']) if (o[k] !== null && o[k] !== undefined && o[k] !== '') { const p = Number(o[k]); o[k] = p <= 0 ? 0 : p <= 2 ? 1 : p <= 4 ? 3 : 6; } o.scale = 5; return o; };
   const words = (d) => {
@@ -136,7 +137,11 @@
   const isManual = () => sel.value === '__manual';
   const cur = () => acts.find((a) => String(a.activity_id) === sel.value) || null;
   const minutes = () => (isManual() ? Number(man.st.m_min) || null : cur() ? Math.round(Number(cur().duration_min)) || null : null);
-  function fuelVis() { $('fs-fuelq').hidden = !((minutes() || 0) >= 90); }
+  function fuelVis() { $('fs-fuelq').hidden = !((minutes() || 0) >= 90); footVis(); }
+  // Footing (the athlete, Nov 8, 2026): only after hilly runs and hikes, 60 ft of climb per mile or more, as scripts/streams.py picks them
+  const hilly = () => { const a = cur(); if (!a || isManual()) return false; const t = String(a.type || '').toLowerCase(); const mi = Number(a.distance_mi) || 0;
+    return /run|hik/.test(t) && !/treadmill|virtual|indoor/.test(t) && mi >= 0.6 && (Number(a.ascent_ft) || 0) / mi >= 60; };
+  function footVis() { $('fs-footq').hidden = !hilly(); }
   function docId() { if (isManual()) return man.st.m_type ? `manual-${TODAY}-${man.st.m_type}` : null; return sel.value || null; }
   function sSaveSoon() { sEditing = true; $('fs-done').hidden = false; status('fs-status', 'Saving…'); clearTimeout(sTimer); sTimer = setTimeout(saveSession, 900); }
   function saveSession() {
@@ -145,12 +150,12 @@
     const a = cur(); const mins = minutes(); const rpe = numOrNull(s.st.rpe);
     const body = { date: isManual() ? TODAY : String(a.local_start).slice(0, 10), activity_id: id, activity: isManual() ? `${man.st.m_type} (logged on the dashboard)` : `${a.type}: ${a.name}`,
       minutes: mins, rpe, srpe_load: typeof rpe === 'number' && mins ? Math.round(rpe * mins) : null, vs_plan: s.st.vs_plan || '', pain: numOrNull(s.st.pain), pain_site: (s.st.pain_site || []).join(';'),
-      fuel: (mins || 0) >= 90 ? s.st.fuel || '' : '', note: $('fs-note').value.trim(), saved_at: new Date().toISOString() };
+      fuel: (mins || 0) >= 90 ? s.st.fuel || '' : '', footing: hilly() ? s.st.footing || '' : '', note: $('fs-note').value.trim(), saved_at: new Date().toISOString() };
     if (isManual()) body.type = man.st.m_type;
     sSaving = sSaving.then(() => db.doc('feel_sessions/' + id).set(body)).then(() => { logged.set(id, body); window.CX.live = logged; status('fs-status', 'Saved ' + stamp(body.saved_at), 'ok', body.saved_at); $('fs-sumtext').textContent = sWords(body); paintOptions(); })
       .catch((e) => status('fs-status', `Not saved (${e && e.code ? e.code : 'error'}). Reply to the check-in instead.`, 'err'));
   }
-  const sWords = (d) => [d.rpe !== null && d.rpe !== undefined ? EFFW(d.rpe) : 'No effort rating', d.vs_plan ? { '-': 'easier', '=': 'as planned', '+': 'harder' }[d.vs_plan] : null, d.pain ? `pain: ${PAINW(d.pain)}${d.pain_site ? ' (' + String(d.pain_site).replace(/;/g, ', ') + ')' : ''}` : null, d.fuel || null].filter(Boolean).join(' · ');
+  const sWords = (d) => [d.rpe !== null && d.rpe !== undefined ? EFFW(d.rpe) : 'No effort rating', d.vs_plan ? { '-': 'easier', '=': 'as planned', '+': 'harder' }[d.vs_plan] : null, d.pain ? `pain: ${PAINW(d.pain)}${d.pain_site ? ' (' + String(d.pain_site).replace(/;/g, ', ') + ')' : ''}` : null, d.fuel || null, d.footing ? FOOTW[d.footing] || d.footing : null].filter(Boolean).join(' · ');
   function sessionView() {
     const id = docId(); const saved = id ? logged.get(id) : null;
     $('fs-manual').hidden = !isManual();

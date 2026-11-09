@@ -127,6 +127,7 @@ for r in read_csv("coach/feel_sessions.csv"):
         "pain": num(r.get("pain")),
         "pain_site": text(r.get("pain_site")),
         "fuel": text(r.get("fuel")),
+        "footing": text(r.get("footing")),  # hilly runs and hikes only (the athlete, Nov 8, 2026): smooth, roots, technical, mud
     })
 
 for r in read_csv("coach/vo2max.csv"):

@@ -20,7 +20,7 @@
   {"id": "vo2", "pillar": "heart", "order": 1, "name": "Cardio fitness (VO2max)", "w": 10, "cad": "Watch, after runs", "src": "Estimated", "chart": "mpt:vo2", "min_step": 0.3,
    "what": "How much oxygen your body can use at full effort. The watch estimates it from outdoor runs.",
    "why": "This is the strongest fitness predictor of a long life. Each step up lowers mortality, and no upper limit has been found.",
-   "target": "60th percentile for your age and sex or better (43.4 for men 30–39)",
+   "target": "60th percentile for your age and sex or better (the dashed line on the chart)",
    "basis": "Latest Garmin running estimate. There's no extra averaging because the watch already smooths it. Percentile vs FRIEND 2022 lab norms, men 30–39.",
    "pop": "pct",
    "evidence": {"level": "Strong", "studies": [

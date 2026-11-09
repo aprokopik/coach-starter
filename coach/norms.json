@@ -1,6 +1,44 @@
 {
- "about": "Population distributions used for the Population line and percentile bands on the dashboard (the athlete, Oct 23, 2026: real finisher or rider distributions, not standards). Each row: key, population, source, date, n, and breakpoints as [value, percentile from the front (share of the population faster/better than this value)]. Units match the marker. Public sources, generic terms; nothing of the athlete's was sent anywhere. Distance-level norms (all races of a distance) are the primary reference (the athlete, Oct 23); a race's own distribution is kept as a note where the course or field differs clearly. Trail ultras are the exception: courses differ so much that the race's own prior-year results, or similar courses, are the better reference.",
+ "about": "Population distributions used for the Population line and percentile bands on the dashboard (the athlete, Oct 23, 2026: real finisher or rider distributions, not standards). Each row: key, population, source, date, n, and breakpoints as [value, percentile from the front (share of the population faster/better than this value)]. Units match the marker. Public sources, generic terms; nothing of the athlete's was sent anywhere. Distance-level norms (all races of a distance) are the primary reference (the athlete, Oct 23); a race's own distribution is kept as a note where the course or field differs clearly. Trail ultras are the exception: courses differ so much that the race's own prior-year results, or similar courses, are the better reference. Rows may carry sex (male, female; missing = both sexes mixed), age_band (30-39; missing = all ages), short (the population in a few words for the tile) and tail (log for times and paces, else normal); coach/tools/fit_ladder.py picks the row for the athlete's sex and age band and builds the athlete's percentile ladder from it (Nov 8, 2026).",
  "rows": [
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "men 20–29, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     18.23,
+     5
+    ],
+    [
+     20.15,
+     10
+    ],
+    [
+     25.23,
+     25
+    ],
+    [
+     29.68,
+     50
+    ],
+    [
+     36.02,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated). The 20–29 row uses the source's 23–29 group; the source prints the same top 5% and 10% for 19–22 and 23–29, a possible copy error, so recheck at the next refresh.",
+   "sex": "male",
+   "age_band": "20-29",
+   "tail": "log",
+   "short": "men 20–29, US 5K races"
+  },
   {
    "kind": "norm",
    "key": "5k",
@@ -33,7 +71,391 @@
      75
     ]
    ],
-   "note": "Median all men 32:00, all women 39:00; 1.85% of all finishers under 20:00."
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated). Median all men 32:00, all women 39:00; 1.85% of all finishers under 20:00.",
+   "sex": "male",
+   "age_band": "30-39",
+   "tail": "log",
+   "short": "men 30–39, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "men 40–49, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     21.23,
+     5
+    ],
+    [
+     23.08,
+     10
+    ],
+    [
+     26.72,
+     25
+    ],
+    [
+     31.82,
+     50
+    ],
+    [
+     39.43,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "male",
+   "age_band": "40-49",
+   "tail": "log",
+   "short": "men 40–49, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "men 50–59, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     22.33,
+     5
+    ],
+    [
+     24.18,
+     10
+    ],
+    [
+     27.78,
+     25
+    ],
+    [
+     33.07,
+     50
+    ],
+    [
+     41.88,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "male",
+   "age_band": "50-59",
+   "tail": "log",
+   "short": "men 50–59, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "men 60–69, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     23.65,
+     5
+    ],
+    [
+     25.47,
+     10
+    ],
+    [
+     29.35,
+     25
+    ],
+    [
+     35.38,
+     50
+    ],
+    [
+     45.8,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "male",
+   "age_band": "60-69",
+   "tail": "log",
+   "short": "men 60–69, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "men 70–79, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     26.27,
+     5
+    ],
+    [
+     28.1,
+     10
+    ],
+    [
+     32.5,
+     25
+    ],
+    [
+     39.63,
+     50
+    ],
+    [
+     48.92,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "male",
+   "age_band": "70-79",
+   "tail": "log",
+   "short": "men 70–79, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 20–29, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     23.97,
+     5
+    ],
+    [
+     26.07,
+     10
+    ],
+    [
+     30.52,
+     25
+    ],
+    [
+     35.43,
+     50
+    ],
+    [
+     42.77,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated). The 20–29 row uses the source's 23–29 group; the source prints the same top 5% and 10% for 19–22 and 23–29, a possible copy error, so recheck at the next refresh.",
+   "sex": "female",
+   "age_band": "20-29",
+   "tail": "log",
+   "short": "women 20–29, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 30–39, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     24.93,
+     5
+    ],
+    [
+     27.12,
+     10
+    ],
+    [
+     31.08,
+     25
+    ],
+    [
+     36.57,
+     50
+    ],
+    [
+     44.62,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "female",
+   "age_band": "30-39",
+   "tail": "log",
+   "short": "women 30–39, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 40–49, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     25.73,
+     5
+    ],
+    [
+     27.88,
+     10
+    ],
+    [
+     32.05,
+     25
+    ],
+    [
+     38.18,
+     50
+    ],
+    [
+     47.03,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "female",
+   "age_band": "40-49",
+   "tail": "log",
+   "short": "women 40–49, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 50–59, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     27.18,
+     5
+    ],
+    [
+     29.37,
+     10
+    ],
+    [
+     33.8,
+     25
+    ],
+    [
+     41.08,
+     50
+    ],
+    [
+     50.58,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "female",
+   "age_band": "50-59",
+   "tail": "log",
+   "short": "women 50–59, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 60–69, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     28.43,
+     5
+    ],
+    [
+     30.8,
+     10
+    ],
+    [
+     36.02,
+     25
+    ],
+    [
+     44.47,
+     50
+    ],
+    [
+     52.62,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "female",
+   "age_band": "60-69",
+   "tail": "log",
+   "short": "women 60–69, US 5K races"
+  },
+  {
+   "kind": "norm",
+   "key": "5k",
+   "unit": "min",
+   "better": -1,
+   "population": "women 70–79, US 5K road races, 2024",
+   "source": "Outside Run (Brian Rock), about 2.2 million 2024 US 5K results, 12 min to 1 h, ages 10–79; published Jul 2025, updated Apr 2026",
+   "url": "https://run.outsideonline.com/road/road-racing/whats-a-good-5k-time-heres-what-the-latest-data-says/",
+   "date": "2026-04",
+   "n": 2200000,
+   "breakpoints": [
+    [
+     31.78,
+     5
+    ],
+    [
+     34.73,
+     10
+    ],
+    [
+     40.42,
+     25
+    ],
+    [
+     47.93,
+     50
+    ],
+    [
+     54.2,
+     75
+    ]
+   ],
+   "note": "Published top 5%, top 10%, top 25%, median and bottom 25% for this age group and sex; the ladder's other edges are interpolated, and its top 1% and 0.5% and bottom 10% and 20% come from a log-normal tail (Estimated).",
+   "sex": "female",
+   "age_band": "70-79",
+   "tail": "log",
+   "short": "women 70–79, US 5K races"
   },
   {
    "kind": "norm",
@@ -125,7 +547,8 @@
      0.8
     ]
    ],
-   "note": "Weak: one event, mixed sexes, riders may have been cruising; 20-min power, not FTP. Replace with a men-only, larger sample when found."
+   "note": "Weak: one event, mixed sexes, riders may have been cruising; 20-min power, not FTP. Replace with a men-only, larger sample when found.",
+   "short": "riders in one Zwift event, both sexes"
   },
   {
    "kind": "norm",
@@ -171,7 +594,59 @@
      99
     ]
    ],
-   "note": "Open-water race pace with a wetsuit where allowed; pool pace is not identical (no sighting, but no wetsuit). Eagleman swim is a non-wetsuit swim most years (water over 76 F), so treat the comparison as rough. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous)."
+   "note": "Open-water race pace with a wetsuit where allowed; pool pace is not identical (no sighting, but no wetsuit). Eagleman swim is a non-wetsuit swim most years (water over 76 F), so treat the comparison as rough. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous).",
+   "sex": "male",
+   "short": "70.3 men's swims",
+   "tail": "log"
+  },
+  {
+   "kind": "norm",
+   "key": "hm703_swim_pace",
+   "unit": "s/100 yd",
+   "better": -1,
+   "population": "women, all IRONMAN 70.3 races 2004–2020 (swim 1.2 mi, as pace per 100 yd over 2,112 yd)",
+   "source": "Knechtle et al. 2023, Sports Medicine - Open 9:88: 823,459 IRONMAN 70.3 age-group finishers (625,393 men), all official 70.3 races worldwide 2004–2020; men's mean (SD) swim 38:42 (7:52), bike 2:54:29 (21:18), run 2:05:14 (26:10), overall 5:46:53 (48:10). Breakpoints here are a normal approximation from mean and SD (Estimated; finish times are right-skewed, so the slow tail is understated). Per-age-group table queued.",
+   "url": "https://link.springer.com/article/10.1186/s40798-023-00636-x",
+   "date": "2023-09",
+   "n": 625393,
+   "breakpoints": [
+    [
+     78.2,
+     5
+    ],
+    [
+     86.6,
+     10
+    ],
+    [
+     100.7,
+     25
+    ],
+    [
+     116.2,
+     50
+    ],
+    [
+     131.8,
+     75
+    ],
+    [
+     145.9,
+     90
+    ],
+    [
+     154.2,
+     95
+    ],
+    [
+     170.0,
+     99
+    ]
+   ],
+   "note": "Women's overall mean (SD) from the same paper (198,066 finishers): swim 40:55 (8:08), bike 3:11:34 (23:06), run 2:15:01 (25:22); normal approximation like the men's rows, Estimated. No age-group table in the paper's text, so all ages.",
+   "sex": "female",
+   "short": "70.3 women's swims",
+   "tail": "log"
   },
   {
    "kind": "norm",
@@ -217,7 +692,8 @@
      99
     ]
    ],
-   "note": "1.2 mi swim time. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous)."
+   "note": "1.2 mi swim time. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous).",
+   "sex": "male"
   },
   {
    "kind": "norm",
@@ -263,7 +739,55 @@
      99
     ]
    ],
-   "note": "56 mi bike split; courses vary widely (Eagleman is flat). Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous)."
+   "note": "56 mi bike split; courses vary widely (Eagleman is flat). Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous).",
+   "sex": "male"
+  },
+  {
+   "kind": "norm",
+   "key": "hm703_bike",
+   "unit": "min",
+   "better": -1,
+   "population": "women, all IRONMAN 70.3 races 2004–2020",
+   "source": "Knechtle et al. 2023, Sports Medicine - Open 9:88: 823,459 IRONMAN 70.3 age-group finishers (625,393 men), all official 70.3 races worldwide 2004–2020; men's mean (SD) swim 38:42 (7:52), bike 2:54:29 (21:18), run 2:05:14 (26:10), overall 5:46:53 (48:10). Breakpoints here are a normal approximation from mean and SD (Estimated; finish times are right-skewed, so the slow tail is understated). Per-age-group table queued.",
+   "url": "https://link.springer.com/article/10.1186/s40798-023-00636-x",
+   "date": "2023-09",
+   "n": 625393,
+   "breakpoints": [
+    [
+     153.57,
+     5
+    ],
+    [
+     161.96,
+     10
+    ],
+    [
+     175.99,
+     25
+    ],
+    [
+     191.57,
+     50
+    ],
+    [
+     207.15,
+     75
+    ],
+    [
+     221.17,
+     90
+    ],
+    [
+     229.56,
+     95
+    ],
+    [
+     245.31,
+     99
+    ]
+   ],
+   "note": "Women's overall mean (SD) from the same paper (198,066 finishers): swim 40:55 (8:08), bike 3:11:34 (23:06), run 2:15:01 (25:22); normal approximation like the men's rows, Estimated. No age-group table in the paper's text, so all ages.",
+   "sex": "female"
   },
   {
    "kind": "norm",
@@ -309,7 +833,55 @@
      99
     ]
    ],
-   "note": "13.1 mi run split. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous)."
+   "note": "13.1 mi run split. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous).",
+   "sex": "male"
+  },
+  {
+   "kind": "norm",
+   "key": "hm703_run",
+   "unit": "min",
+   "better": -1,
+   "population": "women, all IRONMAN 70.3 races 2004–2020",
+   "source": "Knechtle et al. 2023, Sports Medicine - Open 9:88: 823,459 IRONMAN 70.3 age-group finishers (625,393 men), all official 70.3 races worldwide 2004–2020; men's mean (SD) swim 38:42 (7:52), bike 2:54:29 (21:18), run 2:05:14 (26:10), overall 5:46:53 (48:10). Breakpoints here are a normal approximation from mean and SD (Estimated; finish times are right-skewed, so the slow tail is understated). Per-age-group table queued.",
+   "url": "https://link.springer.com/article/10.1186/s40798-023-00636-x",
+   "date": "2023-09",
+   "n": 625393,
+   "breakpoints": [
+    [
+     93.29,
+     5
+    ],
+    [
+     102.51,
+     10
+    ],
+    [
+     117.91,
+     25
+    ],
+    [
+     135.02,
+     50
+    ],
+    [
+     152.13,
+     75
+    ],
+    [
+     167.53,
+     90
+    ],
+    [
+     176.74,
+     95
+    ],
+    [
+     194.03,
+     99
+    ]
+   ],
+   "note": "Women's overall mean (SD) from the same paper (198,066 finishers): swim 40:55 (8:08), bike 3:11:34 (23:06), run 2:15:01 (25:22); normal approximation like the men's rows, Estimated. No age-group table in the paper's text, so all ages.",
+   "sex": "female"
   },
   {
    "kind": "norm",
@@ -355,7 +927,8 @@
      99
     ]
    ],
-   "note": "Overall time. Eagleman 2023's own field was slower (median about 6:05, sexes mixed; heat), so a race-day percentile sits earlier in that field than in this one: judgment, per the athlete (Oct 23), distance-level norms first, race-specific as a note. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous)."
+   "note": "Overall time. Eagleman 2023's own field was slower (median about 6:05, sexes mixed; heat), so a race-day percentile sits earlier in that field than in this one: judgment, per the athlete (Oct 23), distance-level norms first, race-specific as a note. Bottom 5% and 1% lines added Oct 23 (same normal approximation; the slow tail is understated, so they are generous).",
+   "sex": "male"
   },
   {
    "kind": "norm",
@@ -513,7 +1086,8 @@
      67.2
     ]
    ],
-   "note": "Measured over a marathon (about 4 h) from race data; the dashboard's durability is first-half vs second-half efficiency on 75–120 min sessions, so a given % here is a shorter, easier test: decoupling grows with duration, and the comparison flatters."
+   "note": "Measured over a marathon (about 4 h) from race data; the dashboard's durability is first-half vs second-half efficiency on 75–120 min sessions, so a given % here is a shorter, easier test: decoupling grows with duration, and the comparison flatters.",
+   "short": "recreational marathoners"
   }
  ]
 }

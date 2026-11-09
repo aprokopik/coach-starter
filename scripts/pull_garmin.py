@@ -6,6 +6,7 @@ Runs inside GitHub Actions. Never prints tokens or credentials.
 Layout written (relative to repo root):
   data/daily/YYYY-MM-DD.json        exact Garmin responses per method for that date
   data/activities/<activityId>.json exact activity summary, splits, HR zones, weather
+  data/streams/<activityId>.csv.gz  hilly runs and hikes only: a compact 5 s stream (scripts/streams.py)
   data/summary.csv                  one row per date of key metrics (derived, labeled); weight
                                     comes from data/body_comp.csv (the scale) when there is one
   data/activities.csv               one row per activity (derived)
@@ -27,6 +28,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import body_comp  # scale weigh-ins from Apple Health; the scale wins over a Garmin manual entry
+import streams  # per-second detail for hilly runs and hikes (Nov 8, 2026)
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -375,6 +377,9 @@ def main() -> int:
                    "summary": a, **extras, "method_status": ex_status}
         changed = write_if_changed(ACTS / f"{aid}.json", payload, ["summary"] + [k for k, _ in ACTIVITY_EXTRAS])
         status["activities"][str(aid)] = {"changed": changed, "methods": ex_status}
+        st = streams.pull(g, call, a)  # never raises past call(); a failure is only recorded
+        if st != "skipped":
+            status["activities"][str(aid)]["stream"] = st
         act_rows.append(activity_row(a))
 
     upsert_csv(DATA / "summary.csv", SUMMARY_FIELDS, "date", summary_rows)

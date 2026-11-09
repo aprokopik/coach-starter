@@ -1,11 +1,11 @@
 {
  "version": 1,
- "updated": "2026-11-03",
+ "updated": "2026-11-08",
  "note": "Single source for how each data feed and each scheduled task reaches the repo: route, cadence, how lateness is detected and the fallback. RUNBOOK, CURRENT-STATE and the task prompts point here instead of restating routes. A PR that changes a route edits this file in the same PR (PR template checkbox). Reference data, not coaching instructions.",
  "paths": [
   {"id": "garmin", "what": "Garmin daily health and activities",
-   "route": "GitHub Actions pull-garmin.yml: four cron pulls a day (UTC 10:23, 11:23, 16:23, 23:23) that in practice land 5 to 10 h late (Oct 23 to Nov 3, 2026), plus the morning check-in's own workflow_dispatch, which lands in about a minute",
-   "writes": ["data/summary.csv", "data/activities.csv", "data/daily/<date>.json", "data/status/last_run.json"],
+   "route": "GitHub Actions pull-garmin.yml: four cron pulls a day (UTC 10:23, 11:23, 16:23, 23:23) that in practice land 5 to 10 h late (Oct 23 to Nov 3, 2026), plus the morning check-in's own workflow_dispatch, which lands in about a minute; an on-request dispatch during the day is followed by a dashboard refresh (RUNBOOK, On-request refresh); hilly runs and hikes also get a 5 s detail stream (scripts/streams.py, Nov 8, 2026), and a stream that fails to land is flagged in that morning's check-in (morning_facts freshness)",
+   "writes": ["data/summary.csv", "data/activities.csv", "data/daily/<date>.json", "data/status/last_run.json", "data/streams/<activityId>.csv.gz"],
    "cadence": "daily, before the 7:45 AM check-in", "evidence": {"kind": "json_field", "file": "data/status/last_run.json", "field": "run_at_utc"},
    "max_age_hours": 26, "alert": true,
    "fallback": "dispatch again once; if nothing lands, the check-in runs on the data on hand and says so (RUNBOOK Data 2 and 3)", "owner": "pipeline"},

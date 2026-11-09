@@ -101,7 +101,7 @@
     if (c.startsWith('bars:')) { bars(box, seriesFor(m, r), m); return; }
     if (c.startsWith('mpt:')) {
       const pts = window.CX.inSpan(seriesFor(m, r)); if (!pts.length) { box.append(el('p', 'ck-note', 'No data in this range yet.')); return; }
-      const sub = m.id === 'vo2' ? [43.4] : m.id === 'reg' ? [45] : []; // script-held targets (CHARTS.md)
+      const sub = m.id === 'vo2' ? (Number.isFinite(+m.target_num) && m.target_num !== '' && m.target_num != null ? [+m.target_num] : []) : m.id === 'reg' ? [45] : []; // vo2: the 60th percentile of the athlete's FRIEND group (pillars.py target_num); reg: script-held (CHARTS.md)
       LC(box, pts, { h: 130, digits: 1, today: false, nice: false, main: 0, xDomain: [window.CX.spanStart(pts), pts[pts.length - 1].date], thresholds: sub.map((v) => ({ value: v, label: 'target ' + v, marks: { held: 'pillars.js chartFor ' + m.id + ' target' } })), key: 'p-' + m.id, title: m.name, window: window.CX.spanName(), unit: unitOf(m), marks: { source: 'coach', field: 'value', where: 'kind=mpt&key=' + c.slice(4), key: 'date' }, series: [{ key: 'v', label: m.name, tone: 'series-1', connect: true }] });
       if (sub.length) { const pn = el('p', 'ck-note', 'Dashed: target '); pn.append(ruleSpan(String(sub[0]), 'pillars.js chartFor: ' + m.id + ' target ' + sub[0] + ' (held, CHARTS.md section 10)'), '.'); wrap.append(pn); } return;
     }

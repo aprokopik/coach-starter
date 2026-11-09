@@ -22,7 +22,7 @@ from datetime import date, timedelta
 LEVELS = "coach/levels.json"
 PLAN = "coach/plan.json"
 UNITS = {"run": ("/mi", -1), "bike": ("W", 1), "ftp": ("W", 1), "5k": ("min", -1), "swim": ("s/100 yd", -1), "durability": ("%", -1),
-         "strength": ("per week", 1), "sleepreg": ("min", -1), "consistency": ("days/week", 1), "vo2": ("", 1), "wkg": ("W/kg", 1)}
+         "strength": ("per week", 1), "sleepreg": ("min", -1), "consistency": ("days/week", 1), "vo2": ("", 1), "wkg": ("W/kg", 1), "aerobic": ("", 1), "vo2bike": ("", 1)}
 
 
 def load():

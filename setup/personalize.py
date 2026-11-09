@@ -143,6 +143,8 @@ def build(a, today):
         "about": "Machine-readable athlete parameters read by coach/tools/morning_facts.py. The human-readable profile is coach/athlete/PROFILE.md; live decisions are in coach/CURRENT-STATE.md. Change a number here, not in prose.",
         "athlete": name,
         "pronouns": ath["pronouns"],
+        "sex": ath.get("sex"),  # reference ranges (VO2max norms, coach/tools/vo2_norms.py)
+        "birth_year": birth_year,
         "timezone": tz,
         "units": ath.get("units", "imperial"),
         "budget_hours": {"default": [lo, hi], "note": f"Planning budget, not a ceiling ({name}, {today.isoformat()}).", "periods": []},

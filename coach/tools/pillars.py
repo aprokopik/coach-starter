@@ -17,7 +17,8 @@ import os
 import statistics
 from datetime import date, timedelta
 
-from markers import HEIGHT_IN, FRIEND_M30, percentile_vo2
+from markers import HEIGHT_IN
+import vo2_norms
 
 DEFS = "coach/pillars.json"
 RANK = {"act": 3, "watch": 2, "unknown": 1, "good": 0}
@@ -233,14 +234,22 @@ def build(today, rows, root="."):
 
     # ---------------- Heart & fitness ----------------
     vo2 = sorted(mpt.get("vo2", []))
-    if vo2:
+    G = vo2_norms.group(T, root)  # FRIEND 2022 norms for the athlete's age band and sex (vo2_norms.py)
+    NORM = vo2_norms.points("treadmill", G)
+    if vo2 and not G:
         v = vo2[-1][1]
-        pc = percentile_vo2(v)
+        put("vo2", f"{v:.1f}", "add sex and birth year for norms", "unknown", v,
+            extra={"pop_text": "No percentile yet: add \"sex\" and \"birth_year\" to coach/athlete/profile.json so the norms match your age and sex."})
+    elif vo2:
+        v = vo2[-1][1]
+        pc = vo2_norms.percentile(v, NORM)
+        over = pc == "over 90th"
         pc = pc if isinstance(pc, int) else None
-        nb = next(((p, b) for p, b in FRIEND_M30 if b > v), None)
-        put("vo2", f"{v:.1f}", f"{pc}th percentile" if pc else "under the 10th percentile", band(v, (43.4, 37.0)), v,
-            extra={"pop_text": (f"Better than about {pc}% of men 30–39 (FRIEND 2022 lab norms)." if pc else "Under the 10th percentile for men 30–39 (FRIEND 2022).")
-                   + (f" The {nb[0]}th percentile is {nb[1]}." if nb else "")})
+        nb = next(((p, b) for p, b in NORM if b > v), None)
+        q = dict(NORM)
+        put("vo2", f"{v:.1f}", f"{pc}th percentile" if pc else "over the 90th percentile" if over else "under the 10th percentile", band(v, (q[60], q[40])), v,
+            extra={"pop_text": (f"Better than about {pc}% of {G['label']} (FRIEND 2022 lab norms)." if pc else f"{'Over the 90th' if over else 'Under the 10th'} percentile for {G['label']} (FRIEND 2022).")
+                   + (f" The {nb[0]}th percentile is {nb[1]}." if nb else ""), "target_num": q[60]})
     else:
         put("vo2", "—", "no estimate yet", "unknown")
     wk_act = []
@@ -562,13 +571,13 @@ def build(today, rows, root="."):
             whole = abs(im["to"]) >= 100 or (float(im["to"]).is_integer() and float(im["from"]).is_integer())
             fmt = (lambda x: f"{x:.0f}") if whole else (lambda x: f"{x:.1f}")
             wins.append({"metric": m["id"], "icon": "up", "text": f"{m['name']}: {fmt(im['from'])} → {fmt(im['to'])}{(' ' + u) if u and len(u) < 9 else ''} over {im['weeks']} weeks."})
-    if vo2:
-        cur_p = next((p for p, b in reversed(FRIEND_M30) if vo2[-1][1] >= b), None)
+    if vo2 and NORM:
+        cur_p = next((p for p, b in reversed(NORM) if vo2[-1][1] >= b), None)
         old = [v for d0, v in vo2 if d0 <= T - timedelta(days=28)]
-        old_p = next((p for p, b in reversed(FRIEND_M30) if old and old[-1] >= b), None) if old else None
+        old_p = next((p for p, b in reversed(NORM) if old and old[-1] >= b), None) if old else None
         if cur_p and old_p is not None and cur_p > old_p:
-            nb = next(((p, b) for p, b in FRIEND_M30 if b > vo2[-1][1]), None)
-            wins.insert(0, {"metric": "vo2", "icon": "star", "text": f"VO2max passed the {cur_p}th percentile for men your age." + (f" Next: the {nb[0]}th at {nb[1]}." if nb else "")})
+            nb = next(((p, b) for p, b in NORM if b > vo2[-1][1]), None)
+            wins.insert(0, {"metric": "vo2", "icon": "star", "text": f"VO2max passed the {cur_p}th percentile for {G['label']}." + (f" Next: the {nb[0]}th at {nb[1]}." if nb else "")})
     for i, w in enumerate(wins[:3]):
         out.append({"kind": "pwin", "order": i + 1, **w})
 

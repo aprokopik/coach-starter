@@ -13,7 +13,8 @@ The library source is `src/charts.src.js`. The page ships the minified build, `c
 | The same trend, small, beside a title | **Sparkline** (`CKC.spark`, the line at a small size: no axes, no tooltip) | Pillar header sparks |
 | An amount per week or per day | **Bar** (`CKC.bar`), with the **so far** marker on the open period | Training hours by week, volume, consistency, pain |
 | Parts of a week's amount (the parts are not a share of anything) | **Stacked bar** (`CKC.bar` with `stack`), parts labelled directly | Hours by sport |
-| How a whole splits into parts | **Share bar on a fixed 0 to 100 axis** (`CKC.share`), ordered ramp | Heart-rate zone time |
+| How a whole splits into parts | **Share bar on a fixed 0 to 100 axis** (`CKC.share`), ordered ramp | No chart uses it since Nov 8, 2026 (5.2.0) |
+| Shares of a few ordered parts, with the period before | **Zone columns** (app.js `renderZones`, HTML, not charts.js): one column per part scaled to the biggest share, ramp colour, share on top, dashed mark for the period before, a tap shows the amount | Heart-rate zone time |
 | A range per period (typical value plus spread) | **Dot and whisker** (`CKC.whisker`) | Self-test: sleep by week |
 | One reading today against your usual range | **Range bar** (`CKC.rangeBar`, the Phase 3 component) | Last night vs your normal tiles (behind All N vitals since Phase 6) |
 | Last night in one number against your normal | **Gauge**, the one held exception (app.js `renderGauge`, drawn in the page, not in charts.js; see section 10) | Last night gauge on Today |
@@ -314,7 +315,7 @@ These numbers still live in script. Each one is passed to the chart with a `held
 | closeRange FLOOR and CAP (le8 capped at 100) | app.js closeRange | `marker` rows: `y_min`, `y_max` |
 | Open-ended tier width, 25% of the edge | app.js closedSpan (`* 0.25`) | `marker` rows: `open_width` |
 | Strength sessions denominator of at least 2 | app.js renderWeek, Strength tile (`max(2, strPlan)`; marked `data-rule` since Phase 5) | `week_view` plan rows (planned strength count) |
-| Pillar targets: VO2max 43.4, sleep regularity 45 (the chart's threshold carries a `held` mark; since Phase 5 the "Dashed: target" note under the chart names the value with `data-rule`) | pillars.js chartFor (`sub`) | `pbar` or `level_block` target rows for vo2 and reg |
+| Pillar targets: VO2max at the 60th percentile of the athlete's FRIEND group (`target_num`, 43.4 for men 30–39), sleep regularity 45 (the chart's threshold carries a `held` mark; since Phase 5 the "Dashed: target" note under the chart names the value with `data-rule`) | pillars.js chartFor (`sub`) | `pbar` or `level_block` target rows for vo2 and reg |
 | Pillar spark: drawn only from 4 points, and keeps the last 16 (weekly) points (the spark box carries `data-rule` since Phase 5) | pillars.js spark | the pillar `marker` row: `spark_min`, `spark_n` |
 | Weight note "146–148 by Jan 31", shown above the weight chart | calc.js 295 (the weight scorecard note) | built from the `target` row for weight (`lo`, `hi`, `end`), as the chart's own target label already is |
 | Weight plan end cap 2027-02-14 | app.js drawWeight | the `target` row for weight (`end`) |
@@ -342,7 +343,7 @@ These numbers still live in script. Each one is passed to the chart with a `held
 | Week: three key sessions every week, the rule start date Nov 2, 2026 (`KEY_RULE_FROM`), the easy-day heart-rate limits run 150 and bike 135 (`data-rule`) | app.js renderWeek, key sessions block | `coach/engine/KEY-SESSIONS.md` already holds the three; `chart_rule` `key_from` (2026-11-02), `easy_hr_run` (150), `easy_hr_bike` (135), or the `marker` rows' `hr_ref` |
 | Fitness stale banner: the 26 h Garmin lateness (`data-rule`, as on Week, Health, Season, Check-in) | app.js renderFitStale (`GARMIN_MAX_H`) | `coach/ops/data_paths.json` garmin `max_age_hours`, copied into the `build` row |
 | Level charts: 280 px tall under 480 px, and three bands in Nearby levels (Phase 6); the 14 px collision distance and 40 px tick spacing live in charts.js as grammar | app.js drawFitChart, drawMarker (`narrow: {h: 280}`), nearRange | `chart_rule` `level_h_narrow` (280), `near_bands` (3); the 480 is the system breakpoint and stays |
-| Fitness zones: the 2-minute zone bucket and the fixed 0 to 100 percent share axis (`data-rule`) | app.js renderZones | a `zone` row: `bucket_min` (2); the axis is a control and can stay |
+| Fitness zones: the 2-minute zone bucket (`ZONE_RULE`) | app.js renderZones | a `zone` row: `bucket_min` (2) |
 | Health: the weight 7-day average window (`data-rule`) | pillars.js weight read-out | the weight dataset row's `window_days` (calc.js) |
 | Season: the race forecast shows from 7 days out (`data-rule`) | season.js renderRaceWeek | the `race` rows or `chart_rule` `forecast_days` (7) |
 | Check-in: the kit note's 7:45 AM ET morning run (`data-rule`, was a wrong typed 7:00 before Phase 5) and the monthly survey wording "the month just ended" | index.html kit note, checkins.js periodOf | `coach/ops/data_paths.json` morning task `time`, copied into the `build` row; the `ci_survey` row monthly (`period_text`) |
@@ -361,6 +362,8 @@ Removals (dead code, left in place in Phase 4 on purpose). Done in Phase 5 (Heal
 Behaviour changes:
 
 - Done in Phase 5 (Fitness fixes): VO2max and resting HR follow `state.span`. They draw through `drawMarker` (inSpan, spanStart) whenever a tile opens them; the `drawFitChart` branches for them were never reachable and are removed. With today's data the vo2 and rhr markers sit in the health section, so no Fitness tile shows them; the harness `vo2fit` variant (both as Foundation tiles) shows 1M, 3M, 1Y and All differ (VO2max 8, 26, 52, 178 points; resting HR 32, 92, 366, 924).
+- Band sources (Nov 8, 2026): `drawMarker` labels bands by name only; one `.ft-basis` line above the chart names the main source and lists any bands from another (removed and redrawn on each draw; the run and bike calc tiles remove it).
+- Aerobic engine (Nov 8, 2026): the open `aerobic` tile gets a Run / Bike switch (`#f-sport`, a `ck-seg` above `#c-fit`, built by `sportPick`); the picked sport's marker draws through `drawMarker` (title from `chart_title`) with its own tier bands, zoom bar and detail, and follows `state.span`. The Health pillar VO2max chart's dashed target reads `target_num` (the 60th percentile of the athlete's group) instead of a held 43.4.
 - Done in Phase 5 (Season): the timeline and year strip click targets are keyboard reachable, through "Blocks and races as a list" and the race rows under each strip (see section 7, Custom).
 - Done in Phase 5 (Fitness): one colour system. `PAL` is gone from app.js; `COL()`, `sportCol()` and `BASIS` return token names (`var(--ck-run)` and so on), so the tiles, the sport key, the block meters, the Season race icons and the charts read the same tokens. The run and bike tooltip lines carry the sport tone. `dash.colors` is no longer read on Fitness.
 - The `zones` hex lists in PAL went with PAL (Phase 5).

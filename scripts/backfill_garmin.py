@@ -9,6 +9,7 @@ dashboard read backfilled days exactly like daily pulls. Differences:
   - backfilled daily files are written compact (no indent) and marked "capture": "backfill";
   - a date where Garmin has no core data (watch not worn yet) is not written; it is listed
     in state/backfill_progress.json so a re-run skips it;
+  - hilly runs and hikes get their 5 s stream (scripts/streams.py) when they have none yet, old or new;
   - the run stops itself at BACKFILL_MINUTES, or when Garmin starts refusing calls, and a
     re-run carries on where it stopped.
 
@@ -27,6 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pull_garmin as pg  # noqa: E402
+import streams  # noqa: E402
 
 PROGRESS = pg.ROOT / "state" / "backfill_progress.json"
 CORE = ["sleep_h", "sleep_score", "hrv_overnight_ms", "resting_hr", "body_battery_high"]
@@ -65,6 +67,9 @@ def backfill_activities(g, start: date, end: date, status: dict, out_of_time) ->
         if aid is None:
             continue
         rows.append(pg.activity_row(a))
+        if streams.is_hilly(a) and not streams.path_for(aid).exists() and not out_of_time():  # streams for past hilly runs too
+            st = streams.pull(g, pg.call, a)
+            status.setdefault("streams", {})[str(aid)] = st
         path = pg.ACTS / f"{aid}.json"
         if path.exists() or out_of_time():  # captured already, or no time left for extras
             continue

@@ -28,7 +28,7 @@
   const COL = () => ({ bike: tokv('bike'), run: tokv('run'), swim: tokv('swim'), strength: tokv('strength'), hike: tokv('surface'), other: tokv('other'), adv: tokv('series-7'), race: tokv('run'), walk: tokv('fg-3'), test: tokv('fg-3'), rest: tokv('line') });
   const NAME = { bike: 'Bike', run: 'Run', swim: 'Swim', strength: 'Strength', hike: 'Hike/walk', walk: 'Walk', other: 'Other', race: 'Race', test: 'Check', rest: 'Rest' };
   const PAGES = ['today', 'checkins', 'week', 'lifts', 'trends', 'goals', 'races'];
-  const state = { zoom: {}, page: 'today', bound: 'nominal', week: monday(TODAY), mode: 'hours', range: 28, race: null, open: new Set(), openDays: new Set(), openBlock: null, linked: false, vSport: 'all', vMeasure: 'time', zSport: 'all', span: (() => { try { return localStorage.getItem('cx-span') || '3m'; } catch (e) { return '3m'; } })(), fit: null, openTest: null };
+  const state = { zoom: {}, page: 'today', bound: 'nominal', week: monday(TODAY), mode: 'hours', range: 28, race: null, open: new Set(), openDays: new Set(), openBlock: null, linked: false, vSport: 'all', vMeasure: 'time', zSport: 'all', span: (() => { try { return localStorage.getItem('cx-span') || '3m'; } catch (e) { return '3m'; } })(), fit: null, fitSport: {}, openTest: null };
   window.CX.state = state;
 
   const ds = (id) => dash.data(id);
@@ -217,7 +217,7 @@
   function renderProgress() {
     const box = $('t-progress'), list = $('t-progress-list'); if (!box) return;
     const items = [];
-    for (const m of kind('marker').filter((x) => x.tiers && x.chart && x.section !== 'calc')) {
+    for (const m of kind('marker').filter((x) => x.tiers && x.chart && x.section !== 'calc' && !x.quiet)) { // quiet: the same series climbs another marker's ladder (Health vo2 and Fitness aerobic)
       const rows = seriesFor(m); if (rows.length < 2) continue; const last = rows[rows.length - 1], prev = rows[rows.length - 2];
       if (dayN(last.date) <= TN - 7) continue; const it = progressItem(m, prev, last); if (it) items.push(it);
     }
@@ -1129,7 +1129,7 @@
   for (const inp of document.querySelectorAll('#v-sport input')) inp.addEventListener('change', () => { if (!inp.checked) return; state.vSport = inp.value; if (state.vSport === 'all' && state.vMeasure === 'dist') state.vMeasure = 'time'; drawVolume(); ftFocus('#v-sport input:checked'); });
   for (const inp of document.querySelectorAll('#v-measure input')) inp.addEventListener('change', () => { if (!inp.checked) return; state.vMeasure = inp.value; if (state.vMeasure === 'dist' && state.vSport === 'all') state.vSport = 'run'; if (state.vMeasure === 'climb' && state.vSport === 'swim') state.vSport = 'all'; drawVolume(); ftFocus('#v-measure input:checked'); });
 
-  // Heart-rate zones: the Phase 4 share bar, then one Cockpit zone row per zone on the fixed 0 to 100 percent track
+  // Heart-rate zones: one column per zone, Z1 to Z5, with the period before as a dashed mark (Nov 8, 2026)
   const ZONE_RULE = 'calc.js hrz rows: Garmin 2-minute heart-rate samples during each session';
   function renderZones() {
     segRadio('z-sport', state.zSport);
@@ -1163,31 +1163,47 @@
       if (d === 0) dl.append('Same share as ', pn());
       else { dl.append(mark(el('b', null, `${d > 0 ? '▲' : '▼'} ${Math.abs(d)} point${Math.abs(d) === 1 ? '' : 's'}`), 'coach', null, 'kind=hrz', 'share-change'), ' vs ', pn(), ' (', mark(el('span', null, `${Math.round(ps * 100)}%`), 'coach', null, 'kind=hrz', 'zone-share-before'), ')'); }
     } else if (prevName) dl.append('No data for ', pn(), ' to compare');
-    { const shost = el('div', 'z-share'); box.append(shost);
-      const parts = (ms) => ms.map((v, i) => ({ key: 'z' + (i + 1), label: 'Z' + (i + 1), name: `Zone ${i + 1}${zdef(i + 1).name ? ' (' + zdef(i + 1).name + ')' : ''}`, value: v, tip: `${hm(v)}${zdef(i + 1).name ? ' · ' + zdef(i + 1).name : ''}` }));
-      const capz = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-      CKC().share(shost, { key: 'zones', title: 'Heart-rate zone time' + (state.zSport === 'all' ? '' : ', ' + (NAME[state.zSport] || state.zSport).toLowerCase()), window: spanName(),
-        rows: [{ label: capz(spanName()), parts: parts(cm) }, ...(pt >= 30 && prevName ? [{ label: capz(prevName), parts: parts(pm) }] : [])], marks: { source: 'coach', where: 'kind=hrz' } }); }
-    // the zone rows: name and range from the zone row, share and time from the hrz rows; the track is fixed 0 to 100 (Phase 0 item 21)
-    const list = el('ul', 'ck-zones ft-zones');
-    for (let z = 5; z >= 1; z--) {
-      const d = zdef(z);
-      const range = state.zSport === 'all' ? mark(el('span', 'ck-sub', d.name || ''), 'coach', 'name', zw(z)) : mark(el('span', 'ck-sub', z === 1 ? `under ${N(d.hi) + 1}` : z === 5 ? `${N(d.lo)}+ bpm` : `${N(d.lo)}–${N(d.hi)}`), 'coach', null, zw(z), 'zone-range');
-      const li = el('li', 'ck-zone ft-zone' + (z - 1 === top ? ' is-top' : ''));
-      const nm = el('span', 'ck-zone-name ft-zn'); nm.append(mark(el('b', null, `Z${z}`), 'coach', null, zw(z), 'zone'));
-      if (z - 1 === top) { const g = el('span', 'ft-ztop', '●'); g.setAttribute('aria-hidden', 'true'); nm.append(el('span', 'ck-vh', ' most time'), g); }
-      nm.append(range);
-      const track = el('span', 'ck-zone-track'); track.setAttribute('aria-hidden', 'true'); const fill = el('i', 'ck-zone-fill'); fill.style.width = `calc(${(share[z - 1] * 100).toFixed(1)}% - 4px)`; track.append(fill);
-      const zv = el('span', 'ck-zone-val ft-zv'); zv.append(mark(el('b', null, Math.round(share[z - 1] * 100) + '%'), 'coach', null, 'kind=hrz', 'zone-share'), mark(el('span', 'ck-sub', cm[z - 1] ? hm(cm[z - 1]) : '0 min'), 'coach', null, 'kind=hrz', 'zone-minutes'));
-      li.append(nm, track, zv); list.append(li);
-    }
-    const axis = el('div', 'ck-zone-axis ft-zaxis'); axis.setAttribute('aria-hidden', 'true'); const ax = el('span'); ax.setAttribute('data-rule', 'fixed 0 to 100 percent scale (Phase 0 item 21)'); ax.append(el('span', null, '0'), el('span', null, '50'), el('span', null, '100%')); axis.append(el('span'), ax, el('span')); list.append(axis);
-    box.append(list);
-    const pct = (a, b) => Math.round((share.slice(a, b).reduce((s, v) => s + v, 0)) * 100);
-    const sum = $('z-sum'); sum.replaceChildren();
-    sum.append(el('b', null, `Easy Z1–2 ${pct(0, 2)}%`), ` · Steady Z3 ${pct(2, 3)}% · Hard Z4–5 ${pct(3, 5)}%`);
+    // Zone columns (Nov 8, 2026, the athlete picked A1 "Clean" in thread "Redesign heart-rate zone chart"): Z1 to Z5 left to right,
+    // height scaled to the biggest share in either period, the zone's ramp colour, the share on top, a dashed mark for the
+    // period before. Each column is a button: a tap shows its time in #z-sum.
+    const hasPrev = pt >= 30 && !!prevName;
+    const psh = pm.map((v) => (pt ? v / pt : 0));
+    const mx = Math.max(...share, ...(hasPrev ? psh : [0])) || 1;
+    const pc = (v) => Math.round(v * 100) + '%';
+    const zname = (z) => zdef(z).name || '';
+    const wrap = el('div', 'ft-zc');
+    const sentence = `Heart-rate zone time${state.zSport === 'all' ? '' : ', ' + (NAME[state.zSport] || state.zSport).toLowerCase()}, ${spanName()}: ` +
+      share.map((v, i) => `Z${i + 1} ${pc(v)}`).join(', ') + (hasPrev ? `. ${prevName.charAt(0).toUpperCase() + prevName.slice(1)}: ` + psh.map((v, i) => `Z${i + 1} ${pc(v)}`).join(', ') : '') + '.';
+    wrap.append(el('p', 'ck-vh', sentence));
+    const leg = el('div', 'ft-zleg'); leg.setAttribute('aria-hidden', 'true');
+    { const a1 = el('span'); a1.append(el('span', 'ft-zsw'), spanName()); leg.append(a1); }
+    if (hasPrev) { const a2 = el('span'); a2.append(el('span', 'ft-ztick'), prevName); leg.append(a2); }
+    wrap.append(leg);
+    const grid = el('div', 'ft-zcols');
+    const sum = $('z-sum');
+    const hint = () => sum.replaceChildren('Tap a column for its time.');
+    let sel = -1; const btns = [];
+    const pick1 = (i) => {
+      sel = sel === i ? -1 : i; btns.forEach((b, j) => b.setAttribute('aria-pressed', String(j === sel)));
+      if (sel < 0) { hint(); return; }
+      const z = sel + 1;
+      sum.replaceChildren(mark(el('b', null, `Z${z} ${zname(z)}`), 'coach', null, zw(z), 'zone'), ': ', mark(el('span', null, cm[sel] ? hm(cm[sel]) : '0 min'), 'coach', null, 'kind=hrz', 'zone-minutes'), ` of ${hm(ct)}`);
+      if (hasPrev) sum.append(` · ${prevName} `, mark(el('span', null, pc(psh[sel])), 'coach', null, 'kind=hrz', 'zone-share-before'));
+    };
+    share.forEach((v, i) => {
+      const z = i + 1, b = el('button', 'ft-zcol' + (i === top ? ' is-top' : '')); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-label', `Zone ${z}${zname(z) ? ' ' + zname(z) : ''}: ${pc(v)}, ${cm[i] ? hm(cm[i]) : '0 min'}${hasPrev ? `; ${prevName} ${pc(psh[i])}` : ''}`);
+      const val = mark(el('span', 'ft-zpct', pc(v)), 'coach', null, 'kind=hrz', 'zone-share');
+      const well = el('span', 'ft-zwell'); well.setAttribute('aria-hidden', 'true');
+      const bar = el('i', 'ft-zbar'); bar.style.height = `${(v / mx * 100).toFixed(1)}%`; bar.style.background = `var(--ck-seq-${z})`; well.append(bar);
+      if (hasPrev) { const t = el('i', 'ft-zprev'); t.style.bottom = `${(psh[i] / mx * 100).toFixed(1)}%`; well.append(t); }
+      const lab = el('span', 'ft-zlab'); lab.append(mark(el('b', null, `Z${z}`), 'coach', null, zw(z), 'zone'), state.zSport === 'all' ? mark(el('span', 'ck-sub', zname(z)), 'coach', 'name', zw(z)) : mark(el('span', 'ck-sub', z === 1 ? `<${N(zdef(z).hi) + 1}` : z === 5 ? `${N(zdef(z).lo)}+` : `${N(zdef(z).lo)}–${N(zdef(z).hi)}`), 'coach', null, zw(z), 'zone-range'));
+      b.append(val, well, lab); b.addEventListener('click', () => pick1(i)); btns.push(b); grid.append(b);
+    });
+    wrap.append(grid); box.append(wrap); hint();
     const rz = (s) => { const z2 = zr.find((r) => r.set === s && N(r.zone) === 2); return z2 ? mark(el('span', null, String(N(z2.hi))), 'coach', 'hi', `kind=zone&set=${s}&zone=2`) : el('span', null, 'not set'); };
-    $('z-note').replaceChildren('Easy days belong in Z1–2: the guardrail is the top of Z2 (run ', rz('run'), ', bike ', rz('bike'), `). Zones are provisional (wrist HR, estimated thresholds) and get recalculated after the November tests. Time comes from Garmin's 2-minute heart rate samples during each session, stops included, so short surges are smoothed. ${state.zSport === 'all' ? 'All includes hikes and swims on standard zones; walks are left out.' : ''}`);
+    const det = el('details', 'ft-zdet'); det.append(el('summary', null, 'How zones are measured'), `Zones are provisional (wrist HR, estimated thresholds) and get recalculated after the November tests. Time comes from Garmin's 2-minute heart rate samples during each session, stops included, so short surges are smoothed.${state.zSport === 'all' ? ' All includes hikes and swims on standard zones; walks are left out.' : ''}`);
+    const nt = $('z-note'); nt.replaceChildren('Easy days stay in Z1–2: heart rate at most ', rz('run'), ' running, ', rz('bike'), ' riding.', det);
   }
   for (const inp of document.querySelectorAll('#z-sport input')) inp.addEventListener('change', () => { if (!inp.checked) return; state.zSport = inp.value; renderZones(); ftFocus('#z-sport input:checked'); });
 
@@ -1260,8 +1276,27 @@
     if (!tilesBox.querySelector('.ft-tile')) { cardState(card, 'empty', 'No fitness markers yet. They fill in as runs and Zwift rides arrive from Garmin.'); return; }
     const panel = $('f-expand');
     if (!placeExpand(tilesBox, panel, state.fit)) { state.fit = null; return; }
-    if (state.fit === 'run' || state.fit === 'bike') { $('f-detail').replaceChildren(); drawFitChart(run, bike); }
-    else { const m = kind('marker').find((x) => x.key === state.fit); if (!m) { state.fit = null; return renderFitness(); } drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { note: m.why ? mark(el('span', null, m.why), 'coach', 'why', 'kind=marker&key=' + m.key) : null })); }
+    if (state.fit === 'run' || state.fit === 'bike') { const sb = $('f-sport'); if (sb) sb.remove(); $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); drawFitChart(run, bike); }
+    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { note: m.why ? mark(el('span', null, m.why), 'coach', 'why', 'kind=marker&key=' + m.key) : null })); }
+  }
+  // A marker row with pair names a second marker for the same tile (the athlete, Nov 8, 2026: the Aerobic engine tile, VO2max per sport). The open
+  // tile gets a switch above its chart (Run / Bike, from each row's sport_label) and shows one sport at a time, with that sport's own ladder.
+  // The paired row has section 'pair', so it is never a tile. One sport only: no pair, no switch. Returns the marker to draw.
+  function sportPick(m) {
+    const old = $('f-sport'); if (old) old.remove();
+    // m.pair names one paired row, or several separated by commas (Climbing: Run, Hike and Steep grade bands, the athlete Nov 8, 2026);
+    // a row's seg orders the options (lowest first), else the tile's own row comes first
+    const pms = String(m.pair || '').split(',').map((k) => kind('marker').find((x) => x.key === k.trim())).filter(Boolean); if (!pms.length) return m;
+    const all = [m, ...pms].map((x, i) => ({ x, o: x.seg !== undefined && x.seg !== null && x.seg !== '' ? Number(x.seg) : i })).sort((a, b) => a.o - b.o).map((a) => a.x);
+    const pick = all.find((x) => x.key === state.fitSport[m.key]) || m;
+    const bar = el('fieldset', 'ck-seg ft-seg ft-sport'); bar.id = 'f-sport'; bar.append(el('legend', 'ck-vh', m.seg_legend || 'Sport'));
+    for (const x of all) {
+      const opt = el('label', 'ck-seg-opt'); const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-sport-' + m.key; inp.value = x.key; inp.checked = x === pick;
+      inp.addEventListener('change', () => { if (!inp.checked) return; state.fitSport[m.key] = x.key; renderFitness(); ftFocus(`#f-sport input[value="${x.key}"]`); });
+      opt.append(inp, mark(el('span', null, x.sport_label || x.label), 'coach', 'sport_label', 'kind=marker&key=' + x.key)); bar.append(opt);
+    }
+    $('c-fit').before(bar);
+    return pick;
   }
   // Fitness KPIs grouped by race type and ordered by weight (the athlete, Nov 1, 2026; coach/fitness_layout.json): a header per group with its
   // current target race, a rank number on each tile, the tile's top stripe in its sport token (the only thing colour means here).
@@ -1523,10 +1558,12 @@
     }
     return bar;
   }
-  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
   function subtiersOf(m) {
-    const ts = tiersOf(m); const n = Math.max(1, Number(m.split) || 2); const better = Number(m.better) || 1; const out = [];
-    for (const t of ts) {
+    const ts = tiersOf(m); const n0 = Math.max(1, Number(m.split) || 2); const better = Number(m.better) || 1; const out = [];
+    const per = String(m.splits || '').split(',').filter((x) => x.trim() !== '').map(Number); // per-band sub-levels: finer near the top (the athlete, Nov 8, 2026)
+    for (const [ti, t] of ts.entries()) {
+      const n = ti < per.length ? Math.max(1, per[ti]) : n0;
       if (t.lo === null || t.hi === null || n === 1) { out.push({ ...t, parent: t.label }); continue; }
       const step = (t.hi - t.lo) / n;
       for (let i = 0; i < n; i++) { const lo = t.lo + step * i, hi = i === n - 1 ? t.hi : t.lo + step * (i + 1); const num = better === 1 ? i + 1 : n - i; out.push({ label: `${t.label} ${ROMAN[num - 1]}`, lo, hi, parent: t.label, note: '', basis: t.basis }); }
@@ -1542,21 +1579,21 @@
     const k = m.key, u = short ? '' : (m.unit || '');
     if (k === 'swim') return (v) => `${mss(v / 60)}${short ? '' : ' /100 yd'}`;
     if (k === '5k') return (v) => mss(v);
-    if (k === 'run') return (v) => `${mss(v)}${short ? '' : '/mi'}`;
+    if (k === 'run' || k === 'trailgap') return (v) => `${mss(v)}${short ? '' : '/mi'}`;
     if (k === 'wkg') return (v) => `${window.CX.fixed(v, 2)}${short ? '' : ' W/kg'}`;
     if (k === 'sleepreg') return (v) => `±${f0(v)}${short ? '' : ' min'}`;
     if (k === 'durability') return (v) => `${f1(v)}%`;
-    if (['bike', 'ftp', 'rhr', 'le8', 'strength', 'sauna', 'consistency'].includes(k)) return (v) => `${f0(v)}${u ? ' ' + u : ''}`;
+    if (['bike', 'ftp', 'rhr', 'le8', 'strength', 'sauna', 'consistency', 'climb150'].includes(k)) return (v) => `${f0(v)}${u ? ' ' + u : ''}`;
     return (v) => `${f1(v)}${u ? ' ' + u : ''}`;
   }
   function deltaFmt(m) {
     const k = m.key, u = m.unit || '';
     if (k === 'swim') return (d) => `${Math.round(d)} s`;
-    if (k === '5k' || k === 'run') return (d) => mss(d) + (k === 'run' ? '/mi' : '');
+    if (k === '5k' || k === 'run' || k === 'trailgap') return (d) => mss(d) + (k === '5k' ? '' : '/mi');
     if (k === 'wkg') return (d) => `${window.CX.fixed(d, 2)} W/kg`;
     if (k === 'sleepreg') return (d) => `${f0(d)} min`;
     if (k === 'durability' || k === 'le8' || k === 'vo2') return (d) => `${f1(d)} points`;
-    if (['bike', 'ftp', 'rhr'].includes(k)) return (d) => `${f0(d)} ${u}`;
+    if (['bike', 'ftp', 'rhr', 'climb150'].includes(k)) return (d) => `${f0(d)} ${u}`;
     return (d) => `${f1(d)}${u ? ' ' + u : ''}`;
   }
   function milestoneInfo(m, rows) {
@@ -1648,7 +1685,7 @@
         ul.append(li);
       }
       scb.append(ul);
-      scb.append(dLine(null, `Sub-tiers (I, II${(Number(m.split) || 2) > 2 ? ', III' : ''}) are equal steps inside each band, higher is nearer the next band; the bands carry the evidence, the steps are for pacing progress.`));
+      scb.append(dLine(null, m.splits ? 'Sub-levels (I, II, III and on) are equal steps inside each band, and the upper bands have more, smaller steps because gains come slower there; higher is nearer the next band. The bands carry the evidence, the steps are for pacing progress (coach guide).' : `Sub-tiers (I, II${(Number(m.split) || 2) > 2 ? ', III' : ''}) are equal steps inside each band, higher is nearer the next band; the bands carry the evidence, the steps are for pacing progress.`));
     }
     if (m.how) scb.append(dLine(null, mf('how')));
     if (d.children.length) wrap.append(main.dt);
@@ -1679,7 +1716,7 @@
     }
     const rows = pts.map((p) => ({ date: p.date, value: N(p.value), raw: N(p.raw), extra: p.extra }));
     const hasRaw = rows.some((r) => r.raw !== null);
-    const fmt = m.key === 'swim' ? (v) => mss(v / 60) : m.key === '5k' ? (v) => mss(v) : (v) => f1(v).replace(/\.0$/, '');
+    const fmt = m.key === 'swim' ? (v) => mss(v / 60) : (m.key === '5k' || m.key === 'trailgap') ? (v) => mss(v) : (v) => f1(v).replace(/\.0$/, '');
     const hasBlocks = kind('level_block').some((b) => b.key === m.key); const bcm = hasBlocks ? blockContext(m.key, allPts.map((p) => ({ date: p.date, value: N(p.value), extra: p.extra }))) : null; const blockDraw = bcm ? blockDrawFor(bcm, fmt) : [];
     const bxEnd = bcm ? isoN(Math.max(TN + 28, bcm.cur ? dayN(bcm.cur.end) : TN)) : null;
     const ts = tiersOf(m); const vmin = d3.min(rows, (r) => r.value), vmax = d3.max(rows.flatMap((r) => [r.value, r.raw]).filter((v) => v !== null));
@@ -1687,15 +1724,25 @@
     const zoom = zoomOf(m.key); const inc = tierInclude(ts, vmin, vmax, zoom);
     const nearLines = blockDraw.filter((b) => b.current || dayN(b.start) > TN).flatMap((b) => b.lines.map((l) => l.v));
     const closeR = zoom === 'close' && ts.length ? closeRange(m, last) : zoom === 'near' && ts.length ? nearRange(ts, rows.flatMap((r) => [r.value, r.raw]), last) : null; const lowerIsBetter = (Number(m.better) || 1) === -1;
-    const tbands = ts.map((t) => ({ ...t, label: `${t.label} (${basisOf(t.basis).word})`, now: cur && t.label === cur.label, tone: basisOf(t.basis).tone }));
+    const tbands = ts.map((t) => ({ ...t, now: cur && t.label === cur.label, tone: basisOf(t.basis).tone }));
+    // Where the bands come from, said once above the chart instead of after every band name (the athlete, Nov 8, 2026). Mixed sources name
+    // the bands that differ from the main one; the band tint still follows its source.
+    { if (box.parentNode) box.parentNode.querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove());
+      if (ts.length) {
+        const cnt = new Map(); for (const t of ts) cnt.set(t.basis, (cnt.get(t.basis) || 0) + 1);
+        const main = [...cnt.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        const odd = [...cnt.keys()].filter((b) => b !== main).map((b) => `${basisOf(b).label}: ${ts.filter((t) => t.basis === b).map((t) => t.label).join(', ')}`);
+        const bl = el('p', 'ck-note ft-basis'); bl.append(ruleSpan(`Bands: ${basisOf(main).label}${odd.length ? ' · ' + odd.join(' · ') : ''}`, 'app.js drawMarker: each band carries its basis in the marker row tiers (research, race target or coach guide)'));
+        box.before(bl);
+      } }
     const dotTag = hasRaw ? (m.key === 'swim' ? 'each swim' : 'each run') : m.key === 'durability' ? 'each long session' : m.key === 'swim' ? 'each swim' : null;
-    const axisL = m.key === '5k' ? 'time, min:s' : m.key === 'swim' ? 'min:s per 100 yd' : undefined;
-    const lowerBetter = m.key === 'swim' || m.key === '5k' || m.key === 'durability' || m.key === 'rhr' || m.key === 'sleepreg';
+    const axisL = m.key === 'trailgap' ? 'min:s per mile' : m.key === '5k' ? 'time, min:s' : m.key === 'swim' ? 'min:s per 100 yd' : undefined;
+    const lowerBetter = m.key === 'swim' || (m.key === '5k' || m.key === 'trailgap') || m.key === 'durability' || m.key === 'rhr' || m.key === 'sleepreg';
     lineChart(box, rows, {
-      key: 'marker-' + m.key, h: 190, narrow: ts.length ? { h: 280 } : undefined, today: false, axisLabel: axisL, nice: !lowerBetter || m.key === 'rhr' || m.key === 'sleepreg', main: 0, head: 0, fmt, unit: m.unit || '', words: (m.key === 'swim' || m.key === '5k') ? ['slower', 'faster'] : undefined, title: m.label, window: spanName(), marks: { source: 'coach', field: 'value', where: 'kind=mpt&key=' + m.key, key: 'date' },
-      yFixed: closeR ? ((m.key === 'swim' || m.key === '5k') ? [closeR[1], closeR[0]] : closeR) : undefined, clip: !!closeR,
-      yDomain: (m.key === 'swim' || m.key === '5k') ? [d3.max([vmax, ...inc]) + (m.key === 'swim' ? 5 : 0.5), d3.min([vmin, ...inc]) - (m.key === 'swim' ? 5 : 0.5)] : undefined,
-      yTicks: (m.key === 'swim' || m.key === '5k' || closeR) ? (() => { const hi = closeR ? closeR[1] : d3.max([vmax, ...inc]), lo = closeR ? closeR[0] : d3.min([vmin, ...inc]); const span = hi - lo; const step = m.key === 'swim' ? (span > 150 ? 30 : span > 60 ? 20 : span > 24 ? 5 : 2) : m.key === '5k' ? (span > 12 ? 4 : span > 8 ? 2 : span > 3 ? 1 : 0.5) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : undefined,
+      key: 'marker-' + m.key, h: 190, narrow: ts.length ? { h: 280 } : undefined, today: false, axisLabel: axisL, nice: !lowerBetter || m.key === 'rhr' || m.key === 'sleepreg', main: 0, head: 0, fmt, unit: m.unit || '', words: (m.key === 'swim' || (m.key === '5k' || m.key === 'trailgap')) ? ['slower', 'faster'] : undefined, title: m.chart_title || m.label, window: spanName(), marks: { source: 'coach', field: 'value', where: 'kind=mpt&key=' + m.key, key: 'date' },
+      yFixed: closeR ? ((m.key === 'swim' || (m.key === '5k' || m.key === 'trailgap')) ? [closeR[1], closeR[0]] : closeR) : undefined, clip: !!closeR,
+      yDomain: (m.key === 'swim' || (m.key === '5k' || m.key === 'trailgap')) ? [d3.max([vmax, ...inc]) + (m.key === 'swim' ? 5 : 0.5), d3.min([vmin, ...inc]) - (m.key === 'swim' ? 5 : 0.5)] : undefined,
+      yTicks: (m.key === 'swim' || (m.key === '5k' || m.key === 'trailgap') || closeR) ? (() => { const hi = closeR ? closeR[1] : d3.max([vmax, ...inc]), lo = closeR ? closeR[0] : d3.min([vmin, ...inc]); const span = hi - lo; const step = m.key === 'swim' ? (span > 150 ? 30 : span > 60 ? 20 : span > 24 ? 5 : 2) : (m.key === '5k' || m.key === 'trailgap') ? (span > 12 ? 4 : span > 8 ? 2 : span > 3 ? 1 : 0.5) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : undefined,
       yInclude: [...inc, ...(blockDraw.length && zoom !== 'close' ? nearLines : [])], blocks: blockDraw.length ? blockDraw : undefined, xDomain: [spanStart(allPts), bxEnd || TODAY], today: !!bxEnd,
       tbands: !ts.length ? undefined : zoom === 'close' ? subBands(m, last, (t) => basisOf(t.basis).tone) : tbands, sublines: zoom === 'close' ? undefined : subEdges(m), yMin: ['strength', 'sauna', 'le8', 'sleepreg', 'wkg'].includes(m.key) ? 0 : undefined,
       hbands: m.key === 'durability' && !ts.length ? [[0, 5]] : undefined,

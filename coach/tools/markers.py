@@ -11,40 +11,45 @@ import json
 import os
 from datetime import date, datetime, timedelta
 
-# FRIEND registry 2022 update (Kaminsky et al., Mayo Clin Proc 2022), men 30-39, treadmill VO2peak, ml/kg/min
+import fit_ladder
+import trail_effort
+import vo2_norms
+
 def mss(sec):
     sec = int(round(sec))
     return f"{sec // 60}:{sec % 60:02d}"
 
 
-FRIEND_M30 = [(10, 24.9), (20, 29.8), (30, 33.5), (40, 37.0), (50, 39.7), (60, 43.4), (70, 46.4), (80, 50.0), (90, 55.5)]
 HEIGHT_IN = 68.5  # Reported in CURRENT-STATE (about 5 ft 8.5 in)
 
 # Direction (-1 = lower is better) and the number of equal sub-tiers the page cuts inside each finite band (the athlete, Oct 23: more, nearer milestones).
 # Sub-tiers are equal steps inside an evidence band, not evidence themselves; integer counts (consistency, strength, sauna) are not split.
-BETTER = {"swim": -1, "5k": -1, "durability": -1, "rhr": -1, "sleepreg": -1, "run": -1}
-SPLIT = {"5k": 3, "swim": 3, "wkg": 3, "ftp": 3, "run": 3, "bike": 2, "vo2": 3, "rhr": 2, "sleepreg": 2, "le8": 3, "durability": 3,
-         "consistency": 1, "strength": 1, "sauna": 1, "selftests": 1, "physical": 1, "trail": 2, "lifts": 1}
+BETTER = {"swim": -1, "5k": -1, "durability": -1, "rhr": -1, "sleepreg": -1, "run": -1, "trailgap": -1}
+SPLIT = {"5k": 3, "swim": 3, "wkg": 3, "ftp": 3, "run": 3, "bike": 2, "vo2": 3, "rhr": 2, "sleepreg": 2, "le8": 3, "durability": 3, "aerobic": 3, "vo2bike": 3, "vo2run": 3,
+         "consistency": 1, "strength": 1, "sauna": 1, "selftests": 1, "physical": 1, "trail": 2, "lifts": 1, "trailgap": 3, "climb150": 3, "climbrun": 3, "climbsteep": 3}
 
 # Basis of each band (the athlete, Oct 23): "research" = papers or population statistics, "race" = a race target or forecast, "coach" = a coaching
 # convention or guide with no study behind it. The page colours bands by basis. Default per marker, with per-band overrides by label.
 BASIS = {"vo2": "research", "rhr": "research", "le8": "research", "strength": "research", "sauna": "research", "consistency": "research",
-         "5k": "research", "swim": "research", "wkg": "coach", "ftp": "coach", "durability": "coach", "sleepreg": "coach", "run": "research", "bike": "research",
-         "trail": "coach", "lifts": "coach"}
+         "5k": "research", "swim": "research", "wkg": "research", "ftp": "research", "durability": "research", "sleepreg": "coach", "run": "research", "bike": "research",
+         "trail": "coach", "trailgap": "coach", "climb150": "coach", "climbrun": "coach", "climbsteep": "coach", "lifts": "coach", "aerobic": "research", "vo2bike": "research", "vo2run": "research"}
 BASIS_OVERRIDE = {("consistency", "Better"): "coach", ("consistency", "Best"): "coach", ("consistency", "Watch"): "coach",
                   ("swim", "Cutoff risk"): "race",
                   ("durability", "Low decoupling"): "research", ("durability", "Moderate decoupling"): "research", ("durability", "High decoupling"): "research"}
 # What fixes each scale and what moves it (shown as the Anchor line). Scales never move by themselves; every change is logged.
 ANCHOR = {
-    "run": "Three layers (the athlete, Oct 23): blue bands = all 70.3 men's run splits (Knechtle 2023) as pace per mile, read as 'if you held this pace for the 13.1 mi run leg'; orange lines = the block goal. No coaching-guideline scale exists for pace at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Levels and milestones are read against the current block. Race-day reference: easy pace matching the Eagleman run forecast is 10:00–11:30/mi.",
-    "bike": "Three layers (the athlete, Oct 23): blue bands = all 70.3 men's bike splits (Knechtle 2023) turned into watts for a flat course through a power model (Estimated; see the band notes); orange lines = the block goal. No coaching-guideline scale exists for power at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast, the FTP test and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Race-day reference: the Eagleman bike forecast becomes a mostly easy ride at about 100–130 W at 130 bpm.",
-    "swim": "Percentile bands from all IRONMAN 70.3 men 2004–2020 (coach/norms.json, Knechtle 2023; normal approximation from the published mean and SD), fixed until the norm is refreshed. The Cutoff risk band uses Eagleman's 1.2 mi and 1:10 cutoff (estimated until the 2027 athlete guide). Judgment: pool pace vs an open-water race pace, and Eagleman is usually non-wetsuit.",
-    "ftp": "Coggan bands in watts at your weight on the test day; they move only when a new FTP result lands (next test Nov 16).",
-    "wkg": "Coggan power-profile bands, fixed.",
-    "5k": "Percentile bands from real finisher data (coach/norms.json: 2.2 million US 5K results, 2024, men 30–39), fixed until the norm is refreshed or your age group changes at 40. WMA age-grade is given alongside as a second reference.",
-    "durability": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide); the 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022, research), measured over about 4 h, so the research bands flatter a 90 min session. No elite-vs-novice table exists in the literature yet: faster marathoners decoupled less and later in that study. Fixed until the norm is refreshed.",
+    "run": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all 70.3 run splits (Knechtle 2023) as pace per mile, read as 'if you held this pace for the 13.1 mi run leg' for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). Orange lines = the block goal. No coaching-guideline scale exists for pace at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Levels and milestones are read against the current block. Race-day reference: easy pace matching the Eagleman run forecast is 10:00–11:30/mi.",
+    "bike": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all 70.3 bike splits (Knechtle 2023) turned into watts for a flat course through a power model (Estimated) for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Orange lines = the block goal. No coaching-guideline scale exists for power at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast, the FTP test and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Race-day reference: the Eagleman bike forecast becomes a mostly easy ride at about 100–130 W at 130 bpm.",
+    "swim": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all IRONMAN 70.3 finishers 2004–2020 (Knechtle 2023, normal approximation from the published mean and SD) for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). The Cutoff risk band uses Eagleman's 1.2 mi and 1:10 cutoff (estimated until the 2027 athlete guide). Judgment: pool pace vs an open-water race pace, and Eagleman is usually non-wetsuit.",
+    "ftp": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Shown in watts at your weight on the test day; they move only when a new FTP result lands (next test Nov 16).",
+    "wkg": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail).",
+    "5k": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from 2.2 million US 5K results, 2024 (coach/norms.json) for your sex and age band, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). WMA age-grade is given alongside as a second reference.",
+    "durability": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from 82,303 recreational marathoners (Smyth 2022), two published points for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
     "sleepreg": "Coach guide, fixed; replaced if a Sleep Regularity Index becomes computable from the watch.",
-    "vo2": "FRIEND 2022 norms for men 30–39, fixed; the age band changes at 40.",
+    "vo2": "FRIEND 2022 norms for your age band and sex (coach/tools/vo2_norms.py), fixed; the band moves on with your birth year.",
+    "aerobic": "FRIEND 2022 norms for your age band and sex, treadmill for run and cycle ergometer for bike, fixed; the band moves on with your birth year. The fitness ladder runs past the Health target to the top 10% (the athlete, Nov 8, 2026).",
+    "vo2bike": "FRIEND 2022 cycle ergometer norms for your age band and sex, fixed; the band moves on with your birth year.",
+    "vo2run": "FRIEND 2022 treadmill norms for your age band and sex, fixed; the band moves on with your birth year.",
     "rhr": "Zhang 2016 cut-offs, fixed.",
     "le8": "AHA Life's Essential 8 cut-offs, fixed.",
     "strength": "WHO 2020 and Momma 2022 cut-offs, fixed.",
@@ -52,10 +57,27 @@ ANCHOR = {
     "consistency": "Research cut-off (3 days) fixed; the Better and Best tiers are coach guides, fixed.",
     "trail": "Coach guide in hours of the longest run, fixed; the plan line comes from the block (coach/plan.json long_run_min) and changes only at a block start.",
     "lifts": "Coach guide in percent against your own baseline, fixed; each lift's baseline is its first 2 logged sessions.",
+    "trailgap": "Coach guide anchored on the Grindstone 100K 18 h cutoff (the athlete, Nov 8, 2026), fixed: no population norm exists for trail pace at a set heart rate.",
+    "climb150": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: built on mountain running references (1,000 m/h is the strong-amateur vertical-kilometre mark at hard effort; climb rate peaks around 18 to 25% grade); no population norm exists for climbing speed at a set heart rate. Moves only if the athlete agrees a change.",
+    "climbrun": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: built on mountain running references; runnable grades cap the climb rate, so this band runs lowest.",
+    "climbsteep": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: the top rung sits just under 1,000 m/h, the strong-amateur vertical-kilometre mark at hard effort, here held at easy effort.",
+}
+# The scale text when a coach scale stands in (no population norm for this athlete)
+ANCHOR_COACH = {
+    "5k": "WMA age-grade classes stand in until your sex and birth year are in coach/athlete/profile.json; then the percentile ladder for your age group and sex takes over.",
+    "swim": "Age-group triathlon coaching convention for pool pace, with the Eagleman cutoff band; stands in until your sex is in coach/athlete/profile.json.",
+    "run": "Coach guide anchored on the Eagleman run forecast, standing in until your sex is in coach/athlete/profile.json; orange lines = the block goal, fixed for the whole block.",
+    "bike": "Coach guide anchored on the Eagleman bike forecast, standing in until your sex is in coach/athlete/profile.json; orange lines = the block goal, fixed for the whole block.",
+    "ftp": "Coggan bands in watts at your weight on the test day; they move only when a new FTP result lands (next test Nov 16).",
+    "wkg": "Coggan power-profile bands, fixed.",
+    "durability": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide); the 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022, research), measured over about 4 h, so the research bands flatter a 90 min session. No elite-vs-novice table exists in the literature yet: faster marathoners decoupled less and later in that study. Fixed until the norm is refreshed.",
 }
 # Where you stand against a population, only where the library holds the figure
 POPULATION = {
     "vo2": lambda m: f"{m['rank']}" if m.get("rank") else "",
+    "aerobic": lambda m: m.get("rank", ""),
+    "vo2bike": lambda m: m.get("rank", ""),
+    "vo2run": lambda m: m.get("rank", ""),
     "rhr": lambda m: "General-population typical range is 60–80 bpm (Zhang 2016); you sit below it. No age-group percentile in the library.",
     "le8": lambda m: "US adults average about 65 of 100 (Lloyd-Jones 2022); scored on all 8 parts.",
     "5k": lambda m: m.get("_pop", ""),
@@ -124,27 +146,16 @@ def _swim_note(lo, hi, m_lo, m_hi):
     m = f"under about {m_hi}" if m_lo is None else f"about {m_lo}+" if m_hi is None else f"about {m_lo}–{m_hi}"
     race = f"Eagleman swim under {t(hi)}" if lo is None else f"Eagleman swim over {t(lo)}" if hi is None else f"Eagleman swim {t(lo)}–{t(hi)}"
     return f"{rng} /100 yd ({m} /100 m): {race}"
-_NSW = next((r for r in norm_rows() if r["key"] == "hm703_swim_pace"), None)
-if _NSW:
-    SWIM_TIERS = []
-    _labels = ["Top 5%", "Top 10%", "Top 25%", "Top half", "Lower half", "Bottom quarter", "Bottom 10%", "Bottom 5%", "Bottom 1%"]
-    for l, lo, hi, _ in tiers_from_norm(_NSW, _labels):
-        if hi is None:
-            hi = 180  # the lowest band ends where the cutoff band starts
-        t = lambda sec: mss(sec * 21.12)
-        rng = f"under {mss(hi)}" if lo is None else f"{mss(lo)}–{mss(hi)}"
-        race = f"70.3 swim under {t(hi)}" if lo is None else f"70.3 swim {t(lo)}–{t(hi)}"
-        SWIM_TIERS.append((l, lo, hi, f"{rng} /100 yd: {l.lower()} of {_NSW['population'].split(' (')[0]} ({race})"))
-    SWIM_TIERS.append(("Cutoff risk", 180, None, _swim_note(180, None, "3:17", None) + ", inside 7 min of the Eagleman 1:10 cutoff"))
-else:
-    SWIM_TIERS = [("Elite", None, 69, _swim_note(None, 69, None, "1:15")),
-                  ("Advanced", 69, 82, _swim_note(69, 82, "1:15", "1:30")),
-                  ("Strong age-grouper", 82, 96, _swim_note(82, 96, "1:30", "1:45")),
-                  ("Intermediate", 96, 110, _swim_note(96, 110, "1:45", "2:00")),
-                  ("Developing", 110, 128, _swim_note(110, 128, "2:00", "2:20")),
-                  ("Beginner", 128, 151, _swim_note(128, 151, "2:20", "2:45")),
-                  ("Novice", 151, 180, _swim_note(151, 180, "2:45", "3:17")),
-                  ("Cutoff risk", 180, None, _swim_note(180, None, "3:17", None) + ", inside 7 min of the 1:10 cutoff")]
+# Coach-guide swim scale, used only when no population norm matches the athlete (no sex in the profile, or no norms.json)
+SWIM_COACH_TIERS = [("Elite", None, 69, _swim_note(None, 69, None, "1:15")),
+                    ("Advanced", 69, 82, _swim_note(69, 82, "1:15", "1:30")),
+                    ("Strong age-grouper", 82, 96, _swim_note(82, 96, "1:30", "1:45")),
+                    ("Intermediate", 96, 110, _swim_note(96, 110, "1:45", "2:00")),
+                    ("Developing", 110, 128, _swim_note(110, 128, "2:00", "2:20")),
+                    ("Beginner", 128, 151, _swim_note(128, 151, "2:20", "2:45")),
+                    ("Novice", 151, 180, _swim_note(151, 180, "2:45", "3:17")),
+                    ("Cutoff risk", 180, None, _swim_note(180, None, "3:17", None) + ", inside 7 min of the 1:10 cutoff")]
+SWIM_CUTOFF = ("Cutoff risk", 180, None, _swim_note(180, None, "3:17", None) + ", inside 7 min of the Eagleman 1:10 cutoff")
 WKG_TIERS = [("Untrained", None, 2.0, "under 2.0 W/kg (Coggan's bottom rows start at about 1.9)"), ("Novice", 2.0, 2.4, "2.0–2.4 W/kg (Coggan: untrained to fair)"),
              ("Fair (Cat 5)", 2.4, 2.9, "2.4–2.9 W/kg"), ("Moderate (Cat 4)", 2.9, 3.5, "2.9–3.5 W/kg"),
              ("Good (Cat 3)", 3.5, 4.0, "3.5–4.0 W/kg"), ("Very good (Cat 2)", 4.0, 4.5, "4.0–4.5 W/kg"), ("Excellent (Cat 1)", 4.5, 5.1, "4.5–5.1 W/kg"), ("Exceptional", 5.1, None, "5.1+ W/kg")]
@@ -165,27 +176,30 @@ def speed_for_watts(w):
     return (lo + hi) / 2
 
 
-_NRUN = next((r for r in norm_rows() if r["key"] == "hm703_run"), None)
-_NBIKE = next((r for r in norm_rows() if r["key"] == "hm703_bike"), None)
-RUN150_POP = []
-BIKE130_POP = []
-RUN150_POP_NORM = BIKE130_POP_NORM = None
-if _NRUN:
-    RUN150_POP_NORM = {"kind": "norm", "key": "hm703_run_pace", "unit": "min/mi", "better": -1, "population": _NRUN["population"], "source": _NRUN["source"],
-                       "url": _NRUN["url"], "date": _NRUN["date"], "n": _NRUN["n"], "breakpoints": [[round(v / 13.1, 3), pct] for v, pct in _NRUN["breakpoints"]],
-                       "note": "70.3 run split as pace per mile over 13.1 mi; the dashboard reads your 150 bpm pace against it as 'if held for the whole run leg'. Derived."}
-    for l, lo, hi, _ in tiers_from_norm(RUN150_POP_NORM, ["Top 5%", "Top 10%", "Top 25%", "Top half", "Lower half", "Bottom quarter", "Bottom 10%", "Bottom 5%", "Bottom 1%"]):
-        rng = f"under {mss(hi * 60)}" if lo is None else (f"{mss(lo * 60)}+" if hi is None else f"{mss(lo * 60)}–{mss(hi * 60)}")
-        RUN150_POP.append((l, lo, hi, f"{rng}/mi held for 13.1 mi: {l.lower()} of 70.3 men's run splits"))
-if _NBIKE:
+def run_pace_norm(nrun):
+    """A 70.3 run-split norm as pace per mile over 13.1 mi (min/mi): what the easy-HR pace would mean held for the whole leg."""
+    if not nrun:
+        return None
+    word = "women's" if nrun.get("sex") == "female" else "men's" if nrun.get("sex") == "male" else ""
+    return {"kind": "norm", "key": "hm703_run_pace", "unit": "min/mi", "better": -1, "population": nrun["population"], "source": nrun["source"],
+            "url": nrun["url"], "date": nrun["date"], "n": nrun["n"], "breakpoints": [[round(v / 13.1, 3), pct] for v, pct in nrun["breakpoints"]],
+            "sex": nrun.get("sex"), "tail": "log", "short": f"70.3 {word} run legs, if held".replace("  ", " "),
+            "note": "70.3 run split as pace per mile over 13.1 mi; the dashboard reads your 150 bpm pace against it as 'if held for the whole run leg'. Derived."}
+
+
+def bike_w_norm(nbike):
+    """A 70.3 bike-split norm as the watts that hold it on a flat course (power model, Estimated)."""
+    if not nbike:
+        return None
+    word = "women's" if nbike.get("sex") == "female" else "men's" if nbike.get("sex") == "male" else ""
+
     def _w(minutes):
         return round(watts_for_speed(56 * 1609.344 / (minutes * 60)))
-    BIKE130_POP_NORM = {"kind": "norm", "key": "hm703_bike_w", "unit": "W", "better": 1, "population": _NBIKE["population"], "source": _NBIKE["source"],
-                        "url": _NBIKE["url"], "date": _NBIKE["date"], "n": _NBIKE["n"], "breakpoints": sorted([[_w(v), pct] for v, pct in _NBIKE["breakpoints"]]),
-                        "note": f"70.3 bike split turned into the watts that hold it on a flat, windless course for a {RIDER_KG:.0f} kg rider on a road bike (CdA {CDA}, Crr {CRR}, {int((1 - DRIVETRAIN) * 100)}% drivetrain loss). A model, Estimated: position, wind, drafting rules and heat move it by 10–20%. Derived."}
-    for l, lo, hi, _ in tiers_from_norm(BIKE130_POP_NORM, ["Top 5%", "Top 10%", "Top 25%", "Top half", "Lower half", "Bottom quarter", "Bottom 10%", "Bottom 5%", "Bottom 1%"]):
-        rng = f"under {hi} W" if lo is None else (f"{lo}+ W" if hi is None else f"{lo}–{hi} W")
-        BIKE130_POP.append((l, lo, hi, f"{rng} held for 56 mi flat: {l.lower()} of 70.3 men's bike splits (model, Estimated)"))
+    return {"kind": "norm", "key": "hm703_bike_w", "unit": "W", "better": 1, "population": nbike["population"], "source": nbike["source"],
+            "url": nbike["url"], "date": nbike["date"], "n": nbike["n"], "breakpoints": sorted([[_w(v), pct] for v, pct in nbike["breakpoints"]]),
+            "sex": nbike.get("sex"), "short": f"70.3 {word} bike legs, if held".replace("  ", " "),
+            "note": f"70.3 bike split turned into the watts that hold it on a flat, windless course for a {RIDER_KG:.0f} kg rider on a road bike (CdA {CDA}, Crr {CRR}, {int((1 - DRIVETRAIN) * 100)}% drivetrain loss). A model, Estimated: position, wind, drafting rules and heat move it by 10–20%. Derived."}
+
 
 # Pace at 150 bpm (min/mi, lower is better) and power at 130 bpm (W, higher is better): no population norms exist for output at a fixed heart rate,
 # so these are coach guides anchored on the Eagleman forecasts in CURRENT-STATE (run leg about 9:55–11:50/mi; bike split 16–18 mph, roughly 110–150 W for the athlete's size, Estimated).
@@ -203,14 +217,8 @@ AG_5K_OPEN_SEC, AG_FACTOR_35 = 12 * 60 + 49, 0.9916
 AG_5K_STD_SEC = AG_5K_OPEN_SEC / AG_FACTOR_35
 def _ag_min(pct):  # 5K minutes at an age-graded percentage (men, 35)
     return round(AG_5K_STD_SEC / (pct / 100) / 60, 2)
-_N5K = next((r for r in norm_rows() if r["key"] == "5k"), None)
-if _N5K:
-    AG_TIERS = []
-    for l, lo, hi, _ in tiers_from_norm(_N5K, ["Top 5%", "Top 10%", "Top 25%", "Top half", "Lower half", "Bottom quarter"]):
-        rng = f"under {mss(hi * 60)}" if lo is None else (f"{mss(lo * 60)}+" if hi is None else f"{mss(lo * 60)}–{mss(hi * 60)}")
-        AG_TIERS.append((l, lo, hi, f"{rng}: {l.lower()} of {_N5K['population']}"))
-else:
-    AG_TIERS = [("World class", None, _ag_min(90), f"under {mss(_ag_min(90) * 60)}: 90%+ age-graded (WMA)"),
+# WMA age-grade scale, used only when no 5K norm matches the athlete
+AG_WMA_TIERS = [("World class", None, _ag_min(90), f"under {mss(_ag_min(90) * 60)}: 90%+ age-graded (WMA)"),
                 ("National class", _ag_min(90), _ag_min(80), f"{mss(_ag_min(90) * 60)}–{mss(_ag_min(80) * 60)}: 80–90% (WMA)"),
                 ("Regional class", _ag_min(80), _ag_min(70), f"{mss(_ag_min(80) * 60)}–{mss(_ag_min(70) * 60)}: 70–80% (WMA)"),
                 ("Local class", _ag_min(70), _ag_min(60), f"{mss(_ag_min(70) * 60)}–{mss(_ag_min(60) * 60)}: 60–70% (WMA); sub-20 lands here"),
@@ -221,8 +229,6 @@ CONS_TIERS = [("Inactive", None, 1, "no training days"),
               ("Better", 4, 5, "4 days: load spread thinner per session, the thing behind the single-run spike rule (IR-01, IR-03); coach guide"),
               ("Best", 5, 7, "5–6 days with at least one low-load day; coach guide"),
               ("Watch", 7, None, "7 days: no low-load day (RULES 4)")]
-VO2_TIERS = [("Well below average", None, 29.8, "under the 20th percentile, men 30–39 (FRIEND 2022); the 10th is 24.9"), ("Below average", 29.8, 37.0, "20th–40th percentile, men 30–39 (FRIEND 2022)"), ("Average", 37.0, 43.4, "40th–60th percentile"),
-             ("Above average", 43.4, 50.0, "60th–80th percentile; about 49 is the lowest-risk plateau (Kokkinos 2022)"), ("High", 50.0, None, "80th percentile and up; no upper limit of benefit found (Mandsager 2018)")]
 RHR_TIERS = [("At the reference", None, 45, "under 45: the 45 bpm reference where risk was lowest (Zhang 2016); below here a lower value is a fitness marker, not a health target"),
              ("Athlete range", 45, 50, "45–50: within 5 bpm of the reference (Zhang 2016)"),
              ("Low", 50, 60, "50–59: about +9% all-cause risk per +10 bpm above 45 (Zhang 2016)"),
@@ -237,7 +243,41 @@ SLP_TIERS = [("Regular", None, 45, "within ±45 min (coach guide)"), ("Variable"
 TRAIL_TIERS = [("Short", None, 1, "under 1 h: road-race range"), ("Building", 1, 2, "1–2 h: half marathon and 25K range"),
                ("Long", 2, 3, "2–3 h: a 50K is in reach with hiking"), ("Ultra-ready", 3, 5, "3–5 h: the long-run range for a 50K to 100K build"),
                ("Ultra", 5, None, "5 h and over: race-day or a named exception (RULES 3)")]
-CLIMB_GRADE = 0.04  # a lap counts as uphill at 4%+ average grade (about 210 ft/mi)
+HILLY_FT_MI = 60  # a run or hike is hilly at 60 ft of climb per mile (scripts/streams.py)
+# Trail pace at 150 bpm, grade adjusted, min/mi, and climbing at 150 bpm, ft/h up (coach guides, the athlete Nov 8, 2026; no published norm exists)
+# Trail pace bands recalibrated on the first real detail (Nov 8, 2026): 100K in 18 h is about 15:30/mi flat-equivalent over the whole day
+# (climbs counted, aid stations, night and late slowing included), so an easy 150 bpm pace under 13:00 holds the cutoff with margin
+TRAILGAP_TIERS = [("Fast", None, 10.0, "under 10:00/mi grade adjusted at 150 bpm"), ("Strong", 10.0, 11.5, "10:00 to 11:30"),
+                  ("Comfortable", 11.5, 13.0, "11:30 to 13:00: Grindstone at easy effort with margin"),
+                  ("Finisher", 13.0, 15.0, "13:00 to 15:00: inside the 18 h cutoff at easy effort, little margin"), ("Cutoff risk", 15.0, None, "over 15:00")]
+# Climbing at 150 bpm by grade band (the athlete chose grade-specific levels on mountain running references, Nov 8, 2026): ft/h up.
+# Top rungs sit under 1,000 m/h (3,280 ft/h), the strong-amateur vertical-kilometre mark at hard effort (Uphill Athlete);
+# climb rate peaks around 18 to 25% grade, so gentler bands run lower. Coach guide, not a percentile.
+CLIMB_TIERS = {
+    "climbrun": [("Building", None, 900, "under 900 ft/h at 150 bpm on 5 to 10% grades"), ("Steady", 900, 1300, "900 to 1,300 ft/h"),
+                 ("Strong", 1300, 1700, "1,300 to 1,700 ft/h"), ("Mountain", 1700, 2200, "1,700 to 2,200 ft/h"), ("Fast climber", 2200, None, "2,200 ft/h and up")],
+    "climb150": [("Building", None, 1000, "under 1,000 ft/h at 150 bpm on 10 to 20% grades"), ("Steady", 1000, 1500, "1,000 to 1,500 ft/h"),
+                 ("Strong", 1500, 2000, "1,500 to 2,000 ft/h"), ("Mountain", 2000, 2600, "2,000 to 2,600 ft/h"),
+                 ("Fast climber", 2600, None, "2,600 ft/h and up")],
+    "climbsteep": [("Building", None, 1200, "under 1,200 ft/h at 150 bpm on 20%+ grades"), ("Steady", 1200, 1800, "1,200 to 1,800 ft/h"),
+                   ("Strong", 1800, 2400, "1,800 to 2,400 ft/h"), ("Mountain", 2400, 3000, "2,400 to 3,000 ft/h"),
+                   ("Fast climber", 3000, None, "3,000 ft/h and up: near 1,000 m/h, held at easy effort")],
+}
+CLIMB150_TIERS = CLIMB_TIERS["climb150"]
+BAND_WORDS = {"climbrun": "5–10%", "climb150": "10–20%", "climbsteep": "20%+"}
+
+
+def sublevel(v, tiers, n=3):
+    """The band and its third (I lowest) for a higher-is-better value, as the page names sub-levels."""
+    for l, lo, hi, _ in tiers:
+        if (lo is None or v >= lo) and (hi is None or v < hi):
+            if lo is None or hi is None:
+                return l
+            return f"{l} {('I', 'II', 'III')[min(n - 1, int((v - lo) / (hi - lo) * n))]}"
+    return ""
+
+
+FOOTING = {"smooth": "smooth", "roots": "roots and rocks", "technical": "technical", "mud": "mud or snow"}
 # Strength progression, percent vs your own baseline (coach guide, Nov 1, 2026)
 LIFT_TIERS = [("Below baseline", None, -3, "more than 3% under your baseline: check sleep, food and the deficit"), ("Holding", -3, 3, "within 3%: the goal while in a deficit"),
               ("Progressing", 3, 10, "3–10% over baseline"), ("Strong progress", 10, None, "10%+ over baseline")]
@@ -275,20 +315,6 @@ def _sd(xs):
         return None
     m = sum(xs) / len(xs)
     return (sum((x - m) ** 2 for x in xs) / (len(xs) - 1)) ** 0.5
-
-
-def percentile_vo2(v):
-    if v is None:
-        return None
-    pts = FRIEND_M30
-    if v <= pts[0][1]:
-        return "under 10th"
-    if v >= pts[-1][1]:
-        return "over 90th"
-    for (p1, v1), (p2, v2) in zip(pts, pts[1:]):
-        if v1 <= v <= v2:
-            return round(p1 + (v - v1) / (v2 - v1) * (p2 - p1))
-    return None
 
 
 FIVEK_WINDOW = 90  # days: the 5K tile and level use the fastest 5 km run in this window
@@ -345,6 +371,22 @@ def build(today, rows_so_far):
     T = today
     first_day = min((_d(r["date"]) for r in summ if r.get("date")), default=T)
     HIST_WEEKS = max(12, (_mon(T) - _mon(first_day)).days // 7)  # weekly chart series reach back to the first Garmin day
+    # Population norms for this athlete's sex and age band (the athlete, Nov 8, 2026: levels follow each person, never hard-coded);
+    # each ranked Fitness tile reads them on the shared percentile ladder (fit_ladder, vo2_norms.FIT_BANDS)
+    NG = vo2_norms.group(T)
+    NR = norm_rows()
+    N5K, NSW, NWKG, NDUR = (fit_ladder.pick(NR, k, NG) for k in ("5k", "hm703_swim_pace", "wkg", "marathon_decoupling"))
+    NRUN, NBIKE = run_pace_norm(fit_ladder.pick(NR, "hm703_run", NG)), bike_w_norm(fit_ladder.pick(NR, "hm703_bike", NG))
+    NO_NORM = " No population levels yet: add \"sex\" and \"birth_year\" to coach/athlete/profile.json so the norms match your age and sex; a coach scale stands in."
+
+    def ladder(key, norm, value, tiers_, resolution, extra=()):
+        """Annotate-ready rank for a ladder marker and set its per-band sub-levels after annot()."""
+        r, _p = fit_ladder.rank(norm, value, tiers_)
+        def after():
+            m = next((x for x in out if x.get("kind") == "marker" and x["key"] == key), None)
+            if m is not None:
+                m["splits"] = ",".join(str(x) for x in fit_ladder.splits(norm, tiers_, resolution) + [1] * len(extra))
+        return r, after
 
     def marker(section, order, key, label, value, unit="", sub="", status="", why="", how="", label_ev="", chart=""):
         out.append({"kind": "marker", "section": section, "order": order, "key": key, "label": label, "value": value,
@@ -353,19 +395,20 @@ def build(today, rows_so_far):
     def pt(key, d, v, extra=""):
         out.append({"kind": "mpt", "key": key, "date": str(d), "value": v, "extra": extra})
 
-    def annot(key, target="", gap="", tiers=(), rank="", rank_src=""):
+    def annot(key, target="", gap="", tiers=(), rank="", rank_src="", scale=None):
         """Target, gap, evidence tiers and a comparative rank for a marker (shown in the detail panel, Oct 23, 2026).
-        tiers: (label, lo, hi, note) with lo/hi numbers or None; serialized 'label|lo|hi|note;...' like other dashboard rows."""
+        tiers: (label, lo, hi, note) with lo/hi numbers or None; serialized 'label|lo|hi|note;...' like other dashboard rows.
+        scale: the basis when a coach scale stands in for the population ladder (no norm for this athlete)."""
         m = next((r for r in out if r.get("kind") == "marker" and r["key"] == key), None)
         if m is None:
             return
         m["target"], m["gap"], m["rank"], m["rank_src"] = target, gap, rank, rank_src
         m["better"], m["split"] = BETTER.get(key, 1), SPLIT.get(key, 2)  # direction and sub-tier count per band (the page derives the sub-tiers)
         clean = lambda t: str(t).replace(";", ",").replace("|", "/")  # the row format uses ; and | as separators
-        basis = lambda l: BASIS_OVERRIDE.get((key, l), BASIS.get(key, "coach"))
+        basis = lambda l: BASIS_OVERRIDE.get((key, l), scale or BASIS.get(key, "coach"))
         m["tiers"] = ";".join(f"{clean(l)}|{'' if lo is None else lo}|{'' if hi is None else hi}|{clean(n)}|{basis(l)}" for l, lo, hi, n in tiers)
-        m["basis"] = BASIS.get(key, "coach")
-        m["anchor"] = ANCHOR.get(key, "")
+        m["basis"] = scale or BASIS.get(key, "coach")
+        m["anchor"] = ANCHOR.get(key, "") if scale is None else ANCHOR_COACH.get(key, ANCHOR.get(key, ""))
         m["population"] = POPULATION[key](m) if key in POPULATION else ""
 
     def tier_of(v, tiers):
@@ -434,13 +477,20 @@ def build(today, rows_so_far):
                "How much efficiency (speed or power per heartbeat) falls from the first half to the second half of a long session. Under about 5% suggests the aerobic base holds up for the session's length: the thing that decides the back half of a 70.3, an ultra or a full IRONMAN.",
                "Long sessions only (rides 90+ min, runs 75+ min), from Garmin laps; Zwift rides use power, outdoor sessions use speed, and hilly ones (rides over 40 ft/mi, runs over 60 ft/mi, so trail runs) are left out. Wind, stops, heat and fueling move it, so read the trend over similar sessions, not one value. Coaching heuristic, Estimated.",
                "Estimated", "dots")
-        nd_ = next((r for r in norm_rows() if r["key"] == "marathon_decoupling"), None)
         md = next((r for r in out if r.get("kind") == "marker" and r["key"] == "durability"), None)
-        if md is not None and nd_:
-            pf = pct_from_front(nd_, last[2])
-            md["_pop"] = f"About {ordinal(100 - pf)} percentile of recreational marathon runners ({pf:.0f}% decoupled less; n {nd_['n']:,}, Smyth 2022), but theirs is measured over a marathon and yours over {last[3]} min, so the true standing is lower."
-        annot("durability", "Under 5% on long sessions (Friel); under 10% is the marathon study's low band", f"{last[2] - 5:+.1f} points vs 5%" + (f" · 8-wk avg {avg - 5:+.1f}" if avg is not None and len(recent) > 1 else ""),
-              DUR_TIERS, tier_of(last[2], DUR_TIERS), "Friel's 5% is a coaching convention (TrainingPeaks aerobic decoupling), not peer-reviewed. The 10% and 20% cuts are the tertiles of recreational marathoners in Smyth 2022 (research), over 4 h rather than 90 min. No elite-vs-novice table exists; durability as a trait is a young research area (Maunder 2021).")
+        gap_d = f"{last[2] - 5:+.1f} points vs 5%" + (f" · 8-wk avg {avg - 5:+.1f}" if avg is not None and len(recent) > 1 else "")
+        if NDUR:  # the athlete's percentile ladder on the marathon study (the athlete chose all six tiles, Nov 8, 2026): two published points, the rest a normal fit
+            if md is not None:
+                pf = pct_from_front(NDUR, last[2])
+                md["_pop"] = f"About {ordinal(100 - pf)} percentile of recreational marathon runners ({pf:.0f}% decoupled less; n {NDUR['n']:,}, Smyth 2022), but theirs is measured over a marathon and yours over {last[3]} min, so the true standing is lower."
+            dt = fit_ladder.tiers(NDUR, 1, lambda v: f"{v:.1f}%")
+            rk, after = ladder("durability", NDUR, last[2], dt, 0.1)
+            annot("durability", "Under 5% on long sessions (Friel's coaching convention); the ladder ranks you against recreational marathoners", gap_d, dt, rk,
+                  "Estimated: the study publishes two points (10% and 20% decoupling, Smyth 2022, 82,303 recreational marathoners, measured over about 4 h), and every other edge comes from a normal curve through them. A 75 to 120 min session drifts less than a marathon, so this ranking flatters. No elite-vs-novice table exists; durability as a trait is a young research area (Maunder 2021).")
+            after()
+        else:
+            annot("durability", "Under 5% on long sessions (Friel); under 10% is the marathon study's low band", gap_d,
+                  DUR_TIERS, tier_of(last[2], DUR_TIERS), "Friel's 5% is a coaching convention (TrainingPeaks aerobic decoupling), not peer-reviewed. The 10% and 20% cuts are the tertiles of recreational marathoners in Smyth 2022 (research), over 4 h rather than 90 min. No elite-vs-novice table exists; durability as a trait is a young research area (Maunder 2021).", scale="coach")
         if md is not None:
             md.pop("_pop", None)
     else:
@@ -469,12 +519,21 @@ def build(today, rows_so_far):
                "", "Average moving pace per 100 yd for a whole pool swim. Your swim has the least data of the three sports; this shows whether easy swims get faster at the same effort.",
                "Moving time over distance, 25 yd pool. Compare similar swims (easy, continuous). " + (css_note or "") + "Measured, Calculated.", "Measured", "dots")
         msw = next((r for r in out if r.get("kind") == "marker" and r["key"] == "swim"), None)
-        if msw is not None and _NSW:
-            pf = pct_from_front(_NSW, sec)
-            msw["_pop"] = f"About {ordinal(100 - pf)} percentile of {_NSW['population'].split(' (')[0]} ({pf:.0f}% faster; n about {_NSW['n']:,}; a 70.3 swim of about {mss(sec * 21.12)} at this pace). Rough: pool moving pace against open-water race times."
-        annot("swim", f"Top half of 70.3 men ({mss(_NSW['breakpoints'][3][0]) if _NSW else '1:50'} /100 yd) by Eagleman; the swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)",
-              f"{(sec - (_NSW['breakpoints'][3][0] if _NSW else 110)):+.0f} s vs the top-half line · {mss(199 - sec)} per 100 yd inside the cutoff pace", SWIM_TIERS, tier_of(sec, SWIM_TIERS),
-              ("Bands are 70.3 swim percentiles (" + _NSW['source'].split(':')[0] + "), converted to pace per 100 yd over 2,112 yd; the bottom band is the Eagleman cutoff. " if _NSW else "Coaching convention, not research. ") + "One swim on record, 25 yd pool, moving time")
+        if NSW:
+            if msw is not None:
+                pf = pct_from_front(NSW, sec)
+                msw["_pop"] = f"About {ordinal(100 - pf)} percentile of {NSW['population'].split(' (')[0]} ({pf:.0f}% faster; n about {NSW['n']:,}; a 70.3 swim of about {mss(sec * 21.12)} at this pace). Rough: pool moving pace against open-water race times."
+            half = fit_ladder.value_at(NSW, 50)[0]
+            st = fit_ladder.tiers(NSW, 1, lambda v: f"{mss(v)} /100 yd", floor=SWIM_CUTOFF[1])
+            rk, after = ladder("swim", NSW, sec, st, 1.0, extra=(SWIM_CUTOFF,))
+            word = "women" if NSW.get("sex") == "female" else "men"
+            annot("swim", f"Top half of 70.3 {word} ({mss(half)} /100 yd) by Eagleman; the swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)",
+                  f"{sec - half:+.0f} s vs the top-half line · {mss(199 - sec)} per 100 yd inside the cutoff pace", st + [SWIM_CUTOFF], rk,
+                  "Bands are 70.3 swim percentiles (" + NSW['source'].split(':')[0] + ", normal approximation from the published mean and SD; the top 1% and 0.5% from a log-normal tail, Estimated), converted to pace per 100 yd over 2,112 yd; the bottom band is the Eagleman cutoff. Pool moving pace against open-water race times, so rough. One swim on record, 25 yd pool, moving time")
+            after()
+        else:
+            annot("swim", "Eagleman swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)", f"{mss(199 - sec)} per 100 yd inside the cutoff pace", SWIM_COACH_TIERS, tier_of(sec, SWIM_COACH_TIERS),
+                  "Coaching convention, not research." + NO_NORM, scale="coach")
         if msw is not None:
             msw.pop("_pop", None)
     # FTP, W/kg, 5K from benchmark results
@@ -543,12 +602,22 @@ def build(today, rows_so_far):
         if secs:
             ag = AG_5K_STD_SEC / secs * 100
             m5 = next((r for r in out if r.get("kind") == "marker" and r["key"] == "5k"), None)
-            if m5 is not None and _N5K:
-                pf = pct_from_front(_N5K, secs / 60)
-                m5["_pop"] = f"About {ordinal(100 - pf)} percentile of {_N5K['population']} ({pf:.0f}% faster than you; n about {_N5K['n']:,}). Age-graded about {ag:.0f}% (WMA): half the speed of the age-adjusted world standard."
-            annot("5k", "Nov 28 baseline sets the Dec 19 goal; sub-20 (top 5% of men 30–39, about 65% age-graded) is the long-term goal",
-                  f"{secs - 1200:+.0f} s vs 20:00 · {secs - _N5K['breakpoints'][2][0] * 60:+.0f} s vs top 25% ({mss(_N5K['breakpoints'][2][0] * 60)})" if _N5K else f"{secs - 1200:+.0f} s vs 20:00", AG_TIERS, tier_of(secs / 60, AG_TIERS),
-                  (f"Bands are finisher percentiles: {_N5K['source']} ({_N5K['url']}). " if _N5K else "") + f"WMA age-grade as a second reference: open 5K standard {mss(AG_5K_OPEN_SEC)} × age factor {AG_FACTOR_35} at 35 = {mss(AG_5K_STD_SEC)}. " + (f"Garmin best efforts from {len(efforts5)} runs since {_d(efforts5[0][0]).strftime('%b %Y')}; a best effort inside a training run is a floor on race fitness, not a race." if efforts5 else "One result on record (Oct 2024, Reported)."))
+            ev5 = f"Garmin best efforts from {len(efforts5)} runs since {_d(efforts5[0][0]).strftime('%b %Y')}; a best effort inside a training run is a floor on race fitness, not a race." if efforts5 else "One result on record (Oct 2024, Reported)."
+            wma5 = f"WMA age-grade as a second reference: open 5K standard {mss(AG_5K_OPEN_SEC)} × age factor {AG_FACTOR_35} at 35 = {mss(AG_5K_STD_SEC)}. "
+            if N5K:
+                if m5 is not None:
+                    pf = pct_from_front(N5K, secs / 60)
+                    m5["_pop"] = f"About {ordinal(100 - pf)} percentile of {N5K['population']} ({pf:.0f}% faster than you; n about {N5K['n']:,}). Age-graded about {ag:.0f}% (WMA): half the speed of the age-adjusted world standard."
+                ft = fit_ladder.tiers(N5K, 2, lambda v: mss(v * 60))
+                rk, after = ladder("5k", N5K, secs / 60, ft, 1 / 60)
+                nb = next(((l, hi) for l, lo, hi, _n in reversed(ft) if hi is not None and hi <= secs / 60), None)  # the next band up (faster)
+                sub20 = fit_ladder.percentile(N5K, 20.0)
+                annot("5k", f"Nov 28 baseline sets the Dec 19 goal; sub-20 (about the {ordinal(sub20)} percentile of {N5K.get('short', N5K['population'])}) is the long-term goal",
+                      f"{secs - 1200:+.0f} s vs 20:00" + (f" · {secs - nb[1] * 60:+.0f} s to {nb[0]} ({mss(nb[1] * 60)})" if nb else ""), ft, rk,
+                      f"Bands are finisher percentiles for your age group and sex: {N5K['source']} ({N5K['url']}); the top 1% and 0.5% and the bottom 10% and 20% come from a log-normal tail (Estimated). " + wma5 + ev5)
+                after()
+            else:
+                annot("5k", "Nov 28 baseline sets the Dec 19 goal; sub-20 is the long-term goal", f"{secs - 1200:+.0f} s vs 20:00", AG_WMA_TIERS, tier_of(secs / 60, AG_WMA_TIERS), wma5 + ev5 + NO_NORM, scale="research")
             if m5 is not None:
                 m5.pop("_pop", None)
     rsf = sorted(res.get("ftp", []), key=lambda r: r.get("date"))
@@ -557,7 +626,21 @@ def build(today, rows_so_far):
         dd, v = min(wt, key=lambda q: abs((_d(q[0]) - _d(rsf[-1]["date"])).days))
         if abs((_d(dd) - _d(rsf[-1]["date"])).days) <= 35:
             kg_test, kg_date = v, dd
-    if rsf and kg_test:
+    if rsf and kg_test and NWKG:  # the athlete's percentile ladder on the W/kg distribution, in watts at the test weight (the athlete chose all six tiles, Nov 8, 2026)
+        def _w(x):
+            return round(x * kg_test)
+        wt_ = fit_ladder.tiers(NWKG, 2, lambda v: f"{v:.2f} W/kg")
+        ftp_tiers = [(l, None if lo is None else _w(lo), None if hi is None else _w(hi), f"{n} ({'under ' + str(_w(hi)) if lo is None else str(_w(lo)) + '+' if hi is None else str(_w(lo)) + '–' + str(_w(hi))} W at {kg_test:.1f} kg)")
+                     for l, lo, hi, n in wt_]
+        fv = _f(rsf[-1].get("value"))
+        rk = f"{tier_of(fv, ftp_tiers)} ({ordinal(fit_ladder.percentile(NWKG, fv / kg_test))} percentile, {NWKG.get('short') or NWKG['population']})"
+        nb = next(((l, lo) for l, lo, _hi, _n in ftp_tiers if lo is not None and lo > fv), None)
+        annot("ftp", "Nov 16 20-min test sets the baseline; no watt target until then", (f"{nb[1] - fv:+.0f} W to {nb[0]} ({nb[1]} W at your test weight)" if nb else "in the top band"), ftp_tiers, rk,
+              f"Estimated and weak: the only W/kg distribution in the library is {NWKG['population']}, both sexes and 20-min power, so it reads harder than a fair age-group comparison; a men's and women's sample by age is queued. Converted to watts at your weight on the test day ({kg_test:.1f} kg, weigh-in {_d(kg_date).strftime('%b %-d')}); fixed until the next test. Rests on a ramp FTP the athlete believes is high.")
+        m_ = next((x for x in out if x.get("kind") == "marker" and x["key"] == "ftp"), None)
+        if m_ is not None:  # sub-levels never finer than 1 W
+            m_["splits"] = ",".join(str(x) for x in fit_ladder.splits(NWKG, ftp_tiers, 1.0))
+    elif rsf and kg_test:
         def _w(x):
             return round(x * kg_test)
         ftp_tiers = []
@@ -567,7 +650,7 @@ def build(today, rows_so_far):
             ftp_tiers.append((l, None if lo is None else _w(lo), None if hi is None else _w(hi), f"{watts} at {kg_test:.1f} kg, your weight at the {_d(rsf[-1]['date']).strftime('%b %-d, %Y')} test ({wkg})"))
         fv = _f(rsf[-1].get("value"))
         annot("ftp", "Nov 16 20-min test sets the baseline; no watt target until then", f"{fv - _w(2.4):+.0f} W vs {_w(2.4)} W (the Fair band at your test weight)", ftp_tiers, tier_of(fv, ftp_tiers),
-              f"Coggan power profile bands converted to watts at your weight on the test day ({kg_test:.1f} kg, weigh-in {_d(kg_date).strftime('%b %-d')}); fixed until the next test. Competitive-cyclist reference, not age-group. Rests on a ramp FTP the athlete believes is high.")
+              f"Coggan power profile bands converted to watts at your weight on the test day ({kg_test:.1f} kg, weigh-in {_d(kg_date).strftime('%b %-d')}); fixed until the next test. Competitive-cyclist reference, not age-group. Rests on a ramp FTP the athlete believes is high." + NO_NORM, scale="coach")
     # Pace at 150 bpm and power at 130 bpm are computed on the page (calc 'fitness'); these rows carry their tiers and targets only
     for key, label, unit, tiers, target, src in (
             ("run", "Run pace at 150 bpm", "/mi", RUN150_TIERS, "Stay inside Forecast pace (10:00–11:30/mi) through the base; under 10:00 by Eagleman (coach guide)",
@@ -575,22 +658,34 @@ def build(today, rows_so_far):
             ("bike", "Bike power at 130 bpm", "W", BIKE130_TIERS, "Inside 100–130 W at 130 bpm by Eagleman (coach guide); the Nov 16 test refines these bands",
              "Zwift rides only, trainer power (calibration unknown), 28-day average of power scaled to 130 bpm. The population bands assume this easy-HR power held for 56 flat miles through a power model: a floor, not a race prediction. Estimated.")):
         marker("calc", 0, key, label, "", unit, "", "", "", "", "Estimated", "line")
-        pop = RUN150_POP if key == "run" else BIKE130_POP
-        annot(key, target, "", pop, "", src)  # research bands here; block goal lines come from coach/levels.json, built on the page
-        out[-1]["pop_norm"] = "hm703_run_pace" if key == "run" else "hm703_bike_w"
-    for nr in (RUN150_POP_NORM, BIKE130_POP_NORM):
+        nr = NRUN if key == "run" else NBIKE
+        if nr:  # the athlete's percentile ladder (Nov 8, 2026); block goal lines come from coach/levels.json, built on the page, and the page reads the level
+            pt_ = fit_ladder.tiers(nr, 3 if key == "run" else 0, (lambda v: f"{mss(v * 60)}/mi") if key == "run" else (lambda v: f"{v:.0f} W"))
+            annot(key, target, "", pt_, "", src)
+            m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == key)
+            m_["splits"] = ",".join(str(x) for x in fit_ladder.splits(nr, pt_, 1 / 60 if key == "run" else 1.0))
+            m_["pop_norm"] = nr["key"]
+        else:
+            annot(key, target, "", RUN150_TIERS if key == "run" else BIKE130_TIERS, "", src + NO_NORM, scale="coach")
+    for nr in (NRUN, NBIKE):
         if nr:
             out.append(dict(nr))
     wk = next((r for r in out if r.get("kind") == "marker" and r["key"] == "wkg"), None)
     if wk and wk.get("value") not in ("—", "", None):
         v = float(wk["value"])
-        nw = next((r for r in norm_rows() if r["key"] == "wkg"), None)
-        if nw:
-            pf = pct_from_front(nw, v)
-            wk["_pop"] = f"About {ordinal(100 - pf)} percentile of {nw['population']}: weak reference (mixed sexes, one event, 20-min power); a men-only sample is queued. Coggan bands are a coaching scale built on rider data, not a journal study."
-        annot("wkg", "Set from the Nov 16 test; Eagleman needs about 2.0 W/kg held for 56 mi flat, so the floor is already there (Estimated)",
-              f"{v - 2.4:+.2f} vs 2.4 (next band)", WKG_TIERS, tier_of(v, WKG_TIERS),
-              "Coggan power profile (FTP W/kg, men): the reference group is competitive road cyclists from novice to world class, not age-group triathletes, so the labels run hard. Coaching convention. Rests on a ramp FTP the athlete believes is high.")
+        tgt_w = "Set from the Nov 16 test; Eagleman needs about 2.0 W/kg held for 56 mi flat, so the floor is already there (Estimated)"
+        if NWKG:  # the athlete's percentile ladder (chose all six tiles, Nov 8, 2026) on the one W/kg distribution in the library, Estimated and weak
+            pf = pct_from_front(NWKG, v)
+            wk["_pop"] = f"About {ordinal(100 - pf)} percentile of {NWKG['population']}: weak reference (mixed sexes, one event, 20-min power); a men's and women's sample by age is queued."
+            wt2 = fit_ladder.tiers(NWKG, 2, lambda x: f"{x:.2f} W/kg")
+            rk, after = ladder("wkg", NWKG, v, wt2, 0.01)
+            nb = next(((l, lo) for l, lo, _hi, _n in wt2 if lo is not None and lo > v), None)
+            annot("wkg", tgt_w, (f"{nb[1] - v:+.2f} to {nb[0]} ({nb[1]:.2f})" if nb else "in the top band"), wt2, rk,
+                  f"Estimated and weak: {NWKG['population']}, both sexes, 20-min power not FTP, riders may have been cruising; the edges past the published 0.8% to 95% come from a normal fit. Reads harder than a fair age-group comparison. Rests on a ramp FTP the athlete believes is high.")
+            after()
+        else:
+            annot("wkg", tgt_w, f"{v - 2.4:+.2f} vs 2.4 (next band)", WKG_TIERS, tier_of(v, WKG_TIERS),
+                  "Coggan power profile (FTP W/kg, men): the reference group is competitive road cyclists from novice to world class, not age-group triathletes, so the labels run hard. Coaching convention. Rests on a ramp FTP the athlete believes is high." + NO_NORM, scale="coach")
         wk.pop("_pop", None)
 
     # Consistency: training days per Mon-Sun week (any run, ride, swim, hike, strength; walks and sauna left out)
@@ -638,20 +733,9 @@ def build(today, rows_so_far):
         if (_f(a.get("duration_min")) or 0) >= 45:
             pt("trail", a["local_start"][:10], round(_f(a["duration_min"]) / 60, 2), f"{'Trail run' if 'trail' in a['type'] else 'Run'} {hm(_f(a['duration_min']))} · {round(_f(a.get('ascent_ft')) or 0):,} ft")
     win = [a for a in runs if T - timedelta(days=28) < _d(a["local_start"]) <= T]
-    up_ft, up_h, up_n = 0.0, 0.0, 0
-    for a in runs:
-        if not (T - timedelta(days=56) < _d(a["local_start"]) <= T):
-            continue
-        p = f"data/activities/{a['activity_id']}.json"
-        if not os.path.exists(p):
-            continue
-        for l in ((json.load(open(p)).get("splits") or {}).get("lapDTOs")) or []:
-            dist, gain = l.get("distance") or 0, l.get("elevationGain") or 0
-            mv = l.get("movingDuration") or l.get("duration") or 0
-            if dist >= 400 and mv > 0 and gain / dist >= CLIMB_GRADE:
-                up_ft += gain * 3.281; up_h += mv / 3600; up_n += 1
-    vam = round(up_ft / up_h) if up_h and up_n >= 2 else None
-    climb = f"climbing {vam:,} ft/h on {up_n} uphill laps, 8 wk" if vam else "climbing: no uphill laps in 8 wk"
+    hilly = lambda a: (_f(a.get("ascent_ft")) or 0) >= HILLY_FT_MI * (_f(a.get("distance_mi")) or 99)
+    n_hilly = sum(1 for a in runs if T - timedelta(days=56) < _d(a["local_start"]) <= T and hilly(a))
+    climb = f"{n_hilly} hilly run{'' if n_hilly == 1 else 's'}, 8 wk"
     if win:
         lng = max(win, key=lambda a: _f(a["duration_min"]))
         mins = _f(lng["duration_min"])
@@ -659,13 +743,80 @@ def build(today, rows_so_far):
                (f"plan {hm(lr_plan)} in {lr_src} · " if lr_plan else "") + climb,
                "good" if lr_plan and mins >= lr_plan else "ok",
                "Time on feet decides whether a trail ultra is finishable; climbing speed decides how long it takes. Built toward the ultra-thread plan: about 1:45 in Base, 2:45 in Build, 3:30 by Mar 6 for the spring 50K, then the Grindstone build.",
-               f"Longest run (road or trail, elapsed time) in the last 28 days, against the current block's planned long run (coach/plan.json long_run_min). Climbing speed: total climb over moving time on uphill Garmin laps (at least {CLIMB_GRADE * 100:.0f}% average grade, 400 m or longer) of every run in the last 56 days; heart rate and effort are not controlled, so read the trend over similar trail days. Measured, Calculated.",
+               f"Longest run (road or trail, elapsed time) in the last 28 days, against the current block's planned long run (coach/plan.json long_run_min). The second line counts hilly runs ({HILLY_FT_MI} ft of climb per mile or more) in 8 weeks; climbing speed has its own tile, Climbing at 150 bpm. Measured, Calculated.",
                "Measured", "dots")
         annot("trail", (f"{hm(lr_plan)} by the end of {lr_src}" if lr_plan else "Set at the next block brief") + "; about 3:30 by Mar 6 (spring 50K)",
               f"{mins - lr_plan:+.0f} min vs the {hm(lr_plan)} plan" if lr_plan else "", TRAIL_TIERS, tier_of(mins / 60, TRAIL_TIERS),
               "Coach guide for ultra readiness by longest training run, not research: there is no published norm for time on feet. The ultra thread's steps (within about 10% of the prior 30 days' longest) are in CURRENT-STATE.")
     else:
         marker("fitness", 9, "trail", "Trail", "—", "", ("plan " + hm(lr_plan) + " · " if lr_plan else "") + "no run in 4 weeks", "", "", "", "Measured", "dots")
+
+    # Trail pace and climbing at 150 bpm (the athlete, Nov 8, 2026): from the 5 s streams of hilly runs (trail_effort.py), 28-day averages
+    # on the chart and the tile, each run's own value in the point's note; footing from the after-session form (Reported)
+    foot = {str(r.get("activity_id")): FOOTING.get(r.get("footing") or "", "") for r in feel}
+    tr = trail_effort.per_run(acts, summ)
+    for key, label, field, unit, tiers, why, how in (
+            ("trailgap", "Trail pace at 150 bpm", "pace", "/mi", TRAILGAP_TIERS,
+             "Your easy trail pace with every climb turned into flat distance: the trail twin of run pace at 150 bpm, and the pace Grindstone asks for hour after hour.",
+             "Hilly runs only, from the 5 s detail. Each minute's distance becomes flat-equivalent distance by the energy cost of running on its grade (Minetti 2002); the first 10 minutes, steep descents (over 10% down), hiking (cadence under 130 steps/min) and stops are left out, then pace is scaled to 150 bpm: pace × (HR − RHR) ÷ (150 − RHR). 28-day average; one run moves it a lot, so read it over several. Estimated."),
+            *((k, "Climbing at 150 bpm", k, "ft/h", CLIMB_TIERS[k],
+               "How fast you gain height at easy effort, by grade: the climbing twin of trail pace at 150 bpm, and what sets your time on long climbs.",
+               f"Climbs of {lo:g}%{f' to {hi:g}%' if hi else ' or more'}, 3 minutes or longer, from the 5 s detail of hilly runs and hikes. The first minute of each climb is left out of heart rate because it lags, then vertical feet per hour is scaled to 150 bpm climb by climb: rate × (150 − RHR) ÷ (HR − RHR), only for climbs averaging 125 to 180 bpm. Running and power hiking both count; the share hiked comes from cadence (under 130 steps/min). 28-day average; one run moves it a lot, so read it over several. Estimated.")
+              for k, lo, hi, _nm in trail_effort.BANDS)):
+        runs_ = [r for r in tr if r[field]]
+        avg = trail_effort.rolling([(r["date"], r[field]["value"]) for r in runs_])
+        for r, (d, v, n) in zip(runs_, avg):
+            x = r[field]
+            own = (f"this run {mss(x['value'] * 60)}/mi (raw {mss(x['raw'] * 60)}, HR {x['hr']}, {x['min']} min kept)" if field == "pace"
+                   else f"this run {x['value']:,} ft/h ({x['climbs']} climb{'' if x['climbs'] == 1 else 's'}, {x['vert_ft']:,} ft, HR {x['hr']}, {x['hiked_pct']}% hiked)")
+            ft_ = f" · footing {foot[r['id']]}" if foot.get(r["id"]) else ""
+            pt(key, d, round(v, 3) if field == "pace" else round(v), f"{r['name']} · {own}{ft_} · 28-day avg of {n}")
+        recent = [(r, a_) for r, a_ in zip(runs_, avg) if _d(r["date"]) > T - timedelta(days=28)]
+        if runs_:  # the tile reads the latest point, as its level does on the page; an old one says how old
+            r, (d, v, n) = runs_[-1], avg[-1]
+            stale = "" if recent else f"last hilly run {_d(d).strftime('%b %-d')} · none in 28 days · "
+            recent = recent or [(r, avg[-1])]
+            if field == "pace":
+                fs = [foot[x["id"]] for x, _ in recent if foot.get(x["id"])]
+                fl = " · footing: " + ", ".join(f"{fs.count(f)} {f}" for f in FOOTING.values() if f in fs) if fs else ""
+                val, sub = mss(v * 60), stale + f"grade adjusted · {n} trail run{'' if n == 1 else 's'}{'' if stale else ', 28 days'}{fl}"
+            else:
+                hk = round(sum(x[field]["hiked_pct"] for x, _ in recent) / len(recent))
+                val, sub = f"{round(v):,}", stale + f"on {BAND_WORDS[key]} grades · {n} hilly run{'' if n == 1 else 's'}{'' if stale else ', 28 days'} · {hk}% hiked"
+            marker("fitness" if key in ("trailgap", "climb150") else "pair", 9, key, label, val, unit, sub, "", why, how, "Estimated", "dots")
+            rk = tier_of(v, tiers)
+            if field == "pace":
+                nb = next(((l, hi) for l, lo, hi, _n in reversed(tiers) if hi is not None and hi <= v), None)
+                gap = f"{mss((v - nb[1]) * 60)} to {nb[0]}" if nb else "in the top band"
+                target = "Comfortable (under 13:00) by the spring 50K; Strong (under 11:30) by Grindstone (coach guide, draft)"
+            else:
+                nb = next(((l, lo) for l, lo, hi, _n in tiers if lo is not None and lo > v), None)
+                gap = f"{nb[1] - v:,.0f} ft/h to {nb[0]}" if nb else "in the top band"
+                target = "Strong by the spring 50K; Mountain on 10 to 20% by Grindstone (coach guide, draft)"
+            annot(key, target, gap, tiers, rk, "Coach guide; no population norm exists for this at a set heart rate. Draft for review.", scale="coach")
+        else:
+            marker("fitness" if key in ("trailgap", "climb150") else "pair", 9, key, label, "—", "",
+                   ("no trail detail yet: it comes with the next hilly run or hike" if key == "trailgap" else f"on {BAND_WORDS[key]} grades · no climb yet"), "", why, how, "Estimated", "dots")
+            annot(key, "", "", tiers, "", "Coach guide; no population norm exists for this at a set heart rate. Draft for review.", scale="coach")
+
+    # Climbing tile (option A, the athlete Nov 8, 2026): 10 to 20% leads; Run and Steep are paired rows behind a three-way switch,
+    # and the tile's second line names them with their levels
+    cm = {x["key"]: x for x in out if x.get("kind") == "marker" and x["key"] in ("climbrun", "climb150", "climbsteep")}
+    if "climb150" in cm:
+        lead = cm["climb150"]
+        lead.update(pair="climbrun,climbsteep", seg_legend="Grade")
+        for k, _lo, _hi, nm in trail_effort.BANDS:
+            if k in cm:
+                cm[k].update(sport_label=nm, seg={"climbrun": 1, "climb150": 2, "climbsteep": 3}[k])
+        def lvl(k):
+            m_ = cm.get(k)
+            if not m_ or m_["value"] in ("—", ""):
+                return f"{BAND_WORDS[k]}: none yet"
+            if m_["sub"].startswith("last hilly run"):
+                return f"{BAND_WORDS[k]}: none in 28 days"
+            v = float(m_["value"].replace(",", ""))
+            return f"{BAND_WORDS[k]}: {m_['value']}, {sublevel(v, CLIMB_TIERS[k])}"
+        lead["sub"] = lead["sub"] + " · " + lvl("climbrun") + " · " + lvl("climbsteep")
 
     # Strength progression (the athlete, Nov 1, 2026): main lifts' estimated 1-rep max against their own baseline (best of the first
     # 2 logged sessions), averaged over the lifts; per-lift detail stays on the Lifts tab.
@@ -716,24 +867,76 @@ def build(today, rows_so_far):
                "Logged on the Lifts tab. Calculated.", "", "line")
 
     # ---------------- Health and longevity ----------------
-    # VO2max vs age norms
+    # VO2max vs age and sex norms (vo2_norms.py: FRIEND 2022 by sex, age band and test mode; the group comes from the profile)
+    G = vo2_norms.group(T)
+    gl = G["label"] if G else ""
+    run_pts, bike_pts = vo2_norms.points("treadmill", G), vo2_norms.points("cycle", G)
+    NO_GROUP = "No levels yet: add \"sex\" and \"birth_year\" to coach/athlete/profile.json so the norms match your age and sex."
     vr = sorted([r for r in vo2 if r.get("vo2max_run") not in (None, "")], key=lambda r: r["date"])
-    for r in vo2:
-        if r.get("vo2max_run") not in (None, ""):
-            pt("vo2", r["date"], r["vo2max_run"], "running")
+    vb = sorted([r for r in vo2 if r.get("vo2max_bike") not in (None, "")], key=lambda r: r["date"])
+    for r in vr:
+        pt("vo2", r["date"], r["vo2max_run"], "running")
     if vr:
-        v = float(vr[-1]["vo2max_run"]); pc = percentile_vo2(v)
-        nxt_band = next(((p, b) for p, b in FRIEND_M30 if b > v), None)
+        v = float(vr[-1]["vo2max_run"]); pc = vo2_norms.percentile(v, run_pts)
+        nxt_band = next(((p, b) for p, b in run_pts if b > v), None); p60 = vo2_norms.at(run_pts, 60)
         marker("health", 1, "vo2", "Cardio fitness (VO2max)", f"{v:.1f}", "",
-               (f"About the {pc}th percentile" if isinstance(pc, int) else f"{pc} percentile") + " for men 30–39" + (f" · {nxt_band[0]}th is {nxt_band[1]}" if nxt_band else ""),
-               "good" if isinstance(pc, int) and pc >= 50 else "ok",
+               ((f"About the {ordinal(pc)} percentile" if isinstance(pc, int) else f"{pc} percentile") + f" for {gl}" + (f" · {ordinal(nxt_band[0])} is {nxt_band[1]}" if nxt_band else "")) if G else "Norms need your age and sex",
+               ("good" if isinstance(pc, int) and pc >= 50 or pc == "over 90th" else "ok") if G else "",
                "The single strongest fitness predictor of a long life: in large cohorts each step up in cardiorespiratory fitness cut all-cause mortality, with no upper limit (Mandsager 2018, Kokkinos 2022).",
-               "Garmin's running VO2max estimate (it can differ from a lab test by several points, so the trend matters more than the exact percentile) against the FRIEND registry 2022 norms for men 30–39 (lab treadmill tests). Estimated.",
+               f"Garmin's running VO2max estimate (it can differ from a lab test by several points, so the trend matters more than the exact percentile) against the FRIEND registry 2022 norms for {gl or 'your age and sex'} (lab treadmill tests). Estimated.",
                "Estimated", "line")
-        annot("vo2", "Hold the 60th percentile or better (43.4); the lowest-risk plateau in Kokkinos 2022 is about 49 (14 METs)",
-              f"{v - 43.4:+.1f} vs 43.4 (60th)" + (f" · {nxt_band[1] - v:.1f} to the {nxt_band[0]}th ({nxt_band[1]})" if nxt_band else "") + f" · {49 - v:.1f} to 49",
-              VO2_TIERS, tier_of(v, VO2_TIERS) + (f" ({pc}th percentile, men 30–39)" if isinstance(pc, int) else ""),
-              "FRIEND registry 2022 norms, men 30–39 (lab treadmill tests of US adults; LO-03 for the mortality dose). Garmin's estimate can sit several points off a lab value. Estimated.")
+        if G:
+            annot("vo2", f"Hold the 60th percentile or better ({p60}); the lowest-risk plateau in Kokkinos 2022 is about 49 (14 METs)",
+                  f"{v - p60:+.1f} vs {p60} (60th)" + (f" · {nxt_band[1] - v:.1f} to the {ordinal(nxt_band[0])} ({nxt_band[1]})" if nxt_band else "") + (f" · {49 - v:.1f} to 49" if v < 49 else ""),
+                  vo2_norms.health_tiers(run_pts, gl), tier_of(v, vo2_norms.health_tiers(run_pts, gl)) + (f" ({ordinal(pc)} percentile, {gl})" if isinstance(pc, int) else ""),
+                  f"FRIEND registry 2022 norms, {gl}, {G['how']} (lab treadmill tests of US adults; LO-03 for the mortality dose). Garmin's estimate can sit several points off a lab value. Estimated.")
+        else:
+            annot("vo2", "", NO_GROUP)
+        # the same running number climbs the Fitness ladder (aerobic, below); progress and kudos come from there only, so Today does not say it twice
+        next(r for r in out if r.get("kind") == "marker" and r["key"] == "vo2")["quiet"] = True
+
+    # Aerobic engine on the Fitness tab (the athlete, Nov 8, 2026, option B): VO2max per sport, each on its own ladder (run on treadmill norms,
+    # bike on cycle norms) that keeps going past the Health target. The tile leads with the sport that has more readings in the last
+    # 90 days (run on a tie); a Run / Bike switch in the detail shows the other (row field pair). One sport only: no switch.
+    def sport_marker(key, section, rows, col, mode, pts, sport, word):
+        v = float(rows[-1][col]); d0 = _d(rows[-1]["date"]); pc = vo2_norms.percentile(v, pts)
+        for r in rows:
+            pt(key, r["date"], r[col], word)
+        tiers = vo2_norms.fitness_tiers(pts, mode, gl)
+        lvl = tier_of(v, tiers) if tiers else ""
+        marker(section, 11, key, "Aerobic engine (VO2max)" if section == "fitness" else f"{sport} VO2max", f"{v:.1f}" if v != int(v) or mode == "treadmill" else f"{v:.0f}", "",
+               f"{sport}, {d0.strftime('%b %-d')}", "",
+               "How big the aerobic engine is, per sport. Health reads the running number only up to the longevity target; here the ladder keeps going, because a bigger engine still makes every race easier.",
+               f"Garmin's {word} VO2max estimate against the FRIEND registry 2022 {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms for {gl or 'your age and sex'}"
+               + (" (this watch may report whole numbers only, so the line moves in steps; trainer power calibration can push it high)" if mode == "cycle" else "")
+               + ". Read a sport only against its own norms: the same person scores lower on a bike than on a treadmill. Estimated.",
+               "Estimated", "line")
+        if tiers:
+            nb = next(((l, lo) for l, lo, _hi, _n in tiers if lo is not None and lo > v), None)  # the next band up
+            annot(key, "", (f"{nb[1] - v:.1f} to {nb[0]} ({nb[1]})" if nb else "in the top band"), tiers,
+                  lvl + (f" ({ordinal(pc)} percentile, {gl}, {vo2_norms.MODE_WORD[mode]})" if isinstance(pc, int) else ""),
+                  f"FRIEND registry 2022 {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms, {gl}, {G['how']} (lab tests, RER 1.0 or more). Garmin's estimate can sit several points off a lab value. Estimated.")
+        else:
+            annot(key, "", NO_GROUP)
+        m = next(r for r in out if r.get("kind") == "marker" and r["key"] == key)
+        if tiers:  # more, smaller steps in the upper bands; never finer than the watch reports (whole numbers on some cycling estimates)
+            whole = all(float(r[col]) == int(float(r[col])) for r in rows)
+            m["splits"] = ",".join(str(x) for x in vo2_norms.fitness_splits(tiers, 1.0 if whole else 0.1))
+        m["sport_label"], m["chart_title"] = sport, f"{sport} VO2max, {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms"
+        return m, v, lvl
+
+    recent = lambda rows: sum(1 for r in rows if _d(r["date"]) > T - timedelta(days=90))
+    sports = [s for s in (("run", vr, "vo2max_run", "treadmill", run_pts, "Run", "running"), ("bike", vb, "vo2max_bike", "cycle", bike_pts, "Bike", "cycling")) if s[1]]
+    sports.sort(key=lambda s: -recent(s[1]))  # stable: run first on a tie
+    if sports:
+        lead, other = sports[0], (sports[1] if len(sports) > 1 else None)
+        am, _, _ = sport_marker("aerobic", "fitness", lead[1], lead[2], lead[3], lead[4], lead[5], lead[6])
+        if other:
+            okey = "vo2" + other[0]
+            om, ov, olvl = sport_marker(okey, "pair", other[1], other[2], other[3], other[4], other[5], other[6])
+            am["pair"] = okey
+            am["sub"] += f" · {other[5]} {om['value']}" + (f", {olvl.lower()} on {vo2_norms.MODE_WORD[other[3]].replace(' tests', '')} norms" if olvl else "")
+
     # Resting HR
     rhr = sorted((_d(r["date"]), _f(r.get("resting_hr"))) for r in summ if _f(r.get("resting_hr")))
     for i, (d, v) in enumerate(rhr):
@@ -921,12 +1124,14 @@ def build(today, rows_so_far):
 
     # Kudos (the athlete, Oct 23): a milestone first crossed in the last 7 days, per marker with a series; the page and the check-in announce them.
     # Same sub-tier logic as the page: each finite band cut into `split` equal steps, numbered toward the better edge; weekly counts use the 4-week average of full weeks.
-    ROMAN = ["I", "II", "III", "IV", "V", "VI"]
-    for m in [r for r in out if r.get("kind") == "marker" and r.get("tiers")]:
+    ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+    for m in [r for r in out if r.get("kind") == "marker" and r.get("tiers") and not r.get("quiet")]:
         tiers = [t.split("|") for t in m["tiers"].split(";")]
-        better, n = m.get("better", 1), max(1, m.get("split", 2))
+        better, n0 = m.get("better", 1), max(1, m.get("split", 2))
+        per = [int(x) for x in str(m.get("splits") or "").split(",") if x.strip()]  # per-band sub-levels (finer near the top)
         subs = []
-        for l, lo, hi, _n, _b in tiers:
+        for ti, (l, lo, hi, _n, _b) in enumerate(tiers):
+            n = max(1, per[ti]) if ti < len(per) else n0
             lo = None if lo == "" else float(lo); hi = None if hi == "" else float(hi)
             if lo is None or hi is None or n == 1:
                 subs.append((l, lo, hi)); continue

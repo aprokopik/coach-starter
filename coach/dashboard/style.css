@@ -331,6 +331,8 @@
 .ck .ft-keyi { display: inline-flex; align-items: center; gap: 6px; }
 .ck .ft-sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: var(--sp, var(--ck-fg-3)); }
 .ck .ft-grp { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--ck-s2); margin: var(--ck-s2) 0 0; padding: 0 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); }
+.ck .ft-sport { margin: 0 0 var(--ck-s2, 8px); }
+.ck .ft-basis { margin: 0 0 var(--ck-s1, 4px); }
 .ck .ft-grp-race { font-size: var(--ck-t2); line-height: var(--ck-l2); font-weight: var(--ck-w-med); color: var(--ck-fg-2); }
 /* the sport stripe is a 3 px top band painted as a background layer, so it holds in dark where --ck-shadow-1 is none */
 .ck .ck-tile.ft-tile { gap: 6px; padding-top: calc(var(--ck-s3) + 2px); background-image: linear-gradient(var(--sp, var(--ck-line)), var(--sp, var(--ck-line))); background-size: 100% 3px; background-repeat: no-repeat; background-position: top; }
@@ -364,9 +366,26 @@
 .ck .ck-grid.ft-vstats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ck .ck-tile.ft-stat { padding: var(--ck-s2); background: var(--ck-surface-2); box-shadow: none; }
 .ck .ft-stat .ck-big { font-size: var(--ck-t4); line-height: var(--ck-l4); overflow-wrap: anywhere; }
 .ck .ft-zhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--ck-s3); } .ck .ft-zin { font-size: var(--ck-t3); line-height: var(--ck-l3); }
-.ck .ft-zbars { display: grid; gap: var(--ck-s3); min-width: 0; } .ck .ck-zone.ft-zone, .ck .ck-zone-axis.ft-zaxis { grid-template-columns: 5.6em minmax(0, 1fr) 5.4em; }
-.ck .ft-zn .ck-sub, .ck .ft-zv .ck-sub { display: block; white-space: nowrap; } .ck .ft-zone.is-top .ft-zn b { font-weight: var(--ck-w-bold); }
-.ck .ft-ztop { margin-left: 4px; font-size: var(--ck-t1); } .ck .ft-zv { display: grid; justify-items: end; }
+.ck .ft-zbars { min-width: 0; }
+/* zone columns (Nov 8, 2026): Z1 to Z5 left to right, ramp colour per zone, dashed mark for the period before */
+.ck .ft-zleg { display: flex; flex-wrap: wrap; gap: 2px var(--ck-s4); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ft-zleg > span { display: inline-flex; align-items: center; gap: 6px; }
+.ck .ft-zsw { width: 12px; height: 12px; border-radius: 3px; background: var(--ck-seq-3); }
+.ck .ft-ztick { width: 14px; border-top: 2px dashed var(--ck-fg); }
+.ck .ft-zcols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: var(--ck-s1); margin-top: var(--ck-s3); }
+.ck .ft-zcol { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: var(--ck-tap); padding: 0; border: 0; border-radius: var(--ck-r1); background: none; color: inherit; font: inherit; cursor: pointer; text-align: center; }
+.ck .ft-zcol:focus-visible { outline: var(--ck-focus-w) solid var(--ck-focus); outline-offset: var(--ck-focus-off); }
+.ck .ft-zcol[aria-pressed="true"] { background: var(--ck-surface-2); }
+.ck .ft-zpct { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); margin-bottom: var(--ck-s1); }
+.ck .ft-zwell { position: relative; display: flex; align-items: flex-end; justify-content: center; height: 120px; border-bottom: 1px solid var(--ck-edge); }
+.ck .ft-zbar { display: block; width: 72%; min-height: 2px; border-radius: 4px 4px 0 0; }
+.ck .ft-zprev { position: absolute; left: 6%; right: 6%; height: 0; border-top: 2px dashed var(--ck-fg); }
+.ck .ft-zlab { display: grid; padding: var(--ck-s1) 0; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .ft-zlab b { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); }
+.ck .ft-zlab .ck-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ck-fg-2); }
+.ck .ft-zsum { min-height: var(--ck-l2); }
+.ck .ft-zdet { margin-top: var(--ck-s2); } .ck .ft-zdet summary { cursor: pointer; color: var(--ck-fg); min-height: var(--ck-tap); line-height: var(--ck-tap); }
+@media (prefers-reduced-motion: no-preference) { .ck .ft-zbar { transition: height var(--ck-dur-2, .2s) var(--ck-ease, ease); } }
 /* the block card (Fitness #b-card; Season #r-block draws the same parts) */
 .ck .ck-tile.bk { gap: var(--ck-s2); } .ck .bk-body { display: grid; gap: var(--ck-s2); min-width: 0; }
 .ck .bk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--ck-s2); } .ck .bk-title { display: grid; gap: 2px; min-width: 0; }

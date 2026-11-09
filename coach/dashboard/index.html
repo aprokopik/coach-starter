@@ -320,6 +320,7 @@
               <fieldset class="ck-choices ck-choices--row" data-key="vs_plan" data-opts="-|=|+" data-labels="Easier|As planned|Harder" data-label="Versus the plan"></fieldset>
               <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="0|1|3|6" data-labels="None|Niggle|Hurts|Stop" data-label="Pain during or after"></fieldset>
               <fieldset class="ck-choices ci-wrap" data-sites="pain_site" data-key="pain_site" data-multi="1" data-label="Where" data-opts="inside ankle|behind knee|calf|hamstring|knee|hip|back|shoulder|other" hidden></fieldset>
+              <fieldset class="ck-choices ci-wrap" id="fs-footq" data-key="footing" data-opts="smooth|roots|technical|mud" data-labels="Smooth|Some roots and rocks|Technical|Mud or snow" data-label="Footing" data-hint="mostly" data-rule="forms.js footVis: the footing question shows only after hilly runs and hikes (60 ft of climb per mile or more)" hidden></fieldset>
               <fieldset class="ck-choices ci-wrap" id="fs-fuelq" data-key="fuel" data-opts="nothing|water only|under 30 g carb/h|30 to 60 g/h|over 60 g/h" data-label="Fuel (90 min or longer)" data-rule="forms.js fuelVis: the fuel question shows from 90 min; index.html: the carb bands 30 and 60 g/h" hidden></fieldset>
               <details class="ci-note"><summary class="ci-sum"><svg class="ck-i ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>Add a note</summary><input class="ck-input" type="text" id="fs-note" maxlength="300" placeholder="Products, GI, how it felt" aria-label="Session note"></details>
               <button type="button" class="ck-btn ck-btn--primary ci-done" id="fs-done" hidden>Done</button>
@@ -523,8 +524,8 @@
           <p class="ck-note" id="z-delta"></p>
           <p class="ck-sub" id="z-range" data-source="coach" data-where="kind=hrz" data-derived="window"></p>
           <div class="ft-zbars" id="z-bars" data-source="coach"></div>
-          <p class="ck-note" id="z-sum" data-source="coach" data-where="kind=hrz" data-derived="zone-share"></p>
-          <p class="ck-note" id="z-note" data-rule="app.js renderZones: zone note copy; the guardrail figures come from the zone rows"></p>
+          <p class="ck-note ft-zsum" id="z-sum" aria-live="polite"></p>
+          <div class="ck-note" id="z-note" data-rule="app.js renderZones: zone note copy; the guardrail figures come from the zone rows"></div>
         </div>
       </article>
     </div>

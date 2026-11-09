@@ -197,6 +197,11 @@ def section_freshness(today, data):
                      "Last night's sleep is missing: the watch has probably not synced to Garmin Connect yet (opening the Connect app syncs it). Lowers confidence, never readiness.")
     if age_h is not None and age_h > 6:
         flags.append(f"{'Apple Health send' if apple else 'Garmin pull'} is {age_h:.1f} h old.")
+    # Trail detail (scripts/streams.py, Nov 8, 2026): a hilly run whose 5 s stream failed to land is flagged the same day
+    bad = sorted(aid for aid, a in (st.get("activities") or {}).items()
+                 if isinstance(a, dict) and a.get("stream") and a["stream"] not in ("ok", "kept", "skipped"))
+    if bad:
+        flags.append(f"Trail detail did not land for {len(bad)} hilly run{'s' if len(bad) > 1 else ''} ({', '.join(bad)}): the trail pace and descent numbers skip {'them' if len(bad) > 1 else 'it'} until the next pull retries.")
     core = ("hrv_overnight_ms", "resting_hr") if apple else ("hrv_overnight_ms", "resting_hr", "body_battery_high")
     core_missing = [k for k in core if num(t.get(k)) is None]
     return {
