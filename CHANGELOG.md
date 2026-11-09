@@ -2,6 +2,12 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.2.0 (2026-11-09)
+- Package: updates without copy and paste (the kit maker asked for the simplest way for testers to get updates, then chose "Build it, make template public" on the card, Nov 9). The kit's morning check-in clones the kit's home repository (`feedback_repo` in `setup/kit.json`), compares its VERSION, and when a newer kit is out ends the check-in with one line naming what changed and "Reply yes to install it"; said the first morning a version is seen, then only on Sundays (an "Update offered" line in LOG.md). A yes runs UPDATE-PROMPT.md in that same session without asking again. UPDATE-PROMPT clones the public kit directly (attaching it only if a clone is refused). INSTALL and SETUP-PROMPT now open the kit from a link; the collaborator invitation is only a fallback. the kit maker's own coach is unchanged (it has no `setup/kit.json`). Needs coach-starter set to public (the kit maker, in GitHub settings). Testers on kits before 6.2.0 need one last pasted update to get the offer.
+
+## 6.1.2 (2026-11-09)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.1.1 (2026-11-09)
 - Package: every place the coach runs can now reach the athlete's repository (the kit maker chose "Yes, open the PR" on the card, Nov 9, after a tester's coach said it could not reach her repo and her evening answers and a knee note stayed in chat). Root cause: setup only gave Claude Code access; nothing told the tester to add the repository to their Coach project, where chats and scheduled tasks run. INSTALL step 6 and SETUP-PROMPT step G now add it under Project settings, Repositories; onboarding step 8 ends with a reach test (a new chat in the Coach project attaches and clones the repository) and setup is not finished until it passes. RUNBOOK Data step 1 gains a "Not saved yet" rule: when the repo cannot be reached, whatever the athlete reports is kept in a dated block at the end of each reply and written to LOG.md first once access is back.
 

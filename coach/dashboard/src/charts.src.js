@@ -13,6 +13,7 @@
   CKC.stats = {};
   var fDay = d3.utcFormat('%b %-d'), fWd = d3.utcFormat('%a %b %-d'), fMon = d3.utcFormat('%b');
   var P = function (s) { return s instanceof Date ? s : new Date(String(s).slice(0, 10) + 'T00:00:00Z'); };
+  var dayGap = function (a, b) { return Math.round((P(b) - P(a)) / 864e5); };
   var num = function (v) { if (v === null || v === undefined || v === '') return null; var n = +v; return isFinite(n) ? n : null; };
   CKC.num = num; CKC.fDay = fDay;
 
@@ -647,7 +648,7 @@
     var partLabels = [], keyed = [], direct = {};
     if (s.stack && s.directLabels !== false) stack.forEach(function (k) {
       var v = labI >= 0 ? num(rows[labI].parts[k.key]) || 0 : 0;
-      if (v > 0 && y(0) - y(v) >= 12) { direct[k.key] = 1; partLabels.push({ k: k, text: k.label }); }
+      if (s.partKey !== 'all' && v > 0 && y(0) - y(v) >= 12) { direct[k.key] = 1; partLabels.push({ k: k, text: k.label }); }
       else if (rows.some(function (r) { return (num(r.parts && r.parts[k.key]) || 0) > 0; })) keyed.push(k);
     });
     (s.refLabel && rows.some(function (r) { return num(r.ref); })) && partLabels.push({ ref: true, text: s.refLabel });
@@ -661,6 +662,15 @@
     var right = spk ? 2 : gutTexts.length ? Math.min(W * 0.34, Math.max(m.max(partLabels.map(function (p) { return p.text; }), 'ck-c-serlabel'), m.max(gut.map(function (q) { return q.text; }), TH)) + 10) : 4;
     var x = d3.scaleBand(rows.map(function (r) { return r.x; }), [left, W - right]).padding(s.padding !== undefined ? s.padding : 0.28);
     var bw = Math.min(s.barMax || 24, x.bandwidth()), off = (x.bandwidth() - bw) / 2;
+    // x labels on a weekly date axis (rows 7 days apart, no row labels): the full date under every bar when it fits;
+    // otherwise two rows, the day of the month under every bar and the month name under the first bar of each month;
+    // when even the day number is wider than a bar, the month name at each month's first bar. Never a skipped week.
+    var xtier = null;
+    if (!spk && s.xTiers !== false && rows.length > 1 && rows.every(function (r, i) { return !r.label && /^\d{4}-\d{2}-\d{2}$/.test(r.x) && (!i || dayGap(rows[i - 1].x, r.x) === 7); })) {
+      var fullW = d3.max(rows, function (r) { return m(fDay(P(r.x)), ''); });
+      var dw = m('28', '') + 3; xtier = fullW + 6 <= x.step() ? 'full' : dw <= x.step() ? 'day' : dw <= 2 * x.step() ? 'day2' : 'month';
+      if (xtier === 'day' || xtier === 'day2') { H += 14; c.H = H; svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); }
+    }
     c.top = top; c.bottom = bottom;
     var g = mk(svg, 'g', {}), labels = [];
     if (!spk) {
@@ -707,7 +717,26 @@
     var barOb = { rects: bars.map(function (rc) { var bx = +rc.getAttribute('x'), by = +rc.getAttribute('y'); return { x0: bx, x1: bx + +rc.getAttribute('width'), y0: by, y1: by + +rc.getAttribute('height') }; }) };
     drawLabels(g, placeInside(c, labels, barOb), T);
     // x labels: every nth, newest always
-    if (!spk) {
+    if (xtier) {
+      var mon0 = null;
+      // day2: the day under every other bar (the newest always) when one under every bar would touch, on the narrowest phones
+      rows.forEach(function (r, i) {
+        var d = P(r.x), cx = x(r.x) + x.bandwidth() / 2, mo = r.x.slice(0, 7), first = mo !== mon0; mon0 = mo;
+        if (xtier === 'full') { mk(g, 'text', { x: cx, y: H - 4, 'text-anchor': MID, fill: T('chart-tick') }, fDay(d)); return; }
+        if (xtier === 'month') return;
+        if (xtier === 'day' || (rows.length - 1 - i) % 2 === 0) mk(g, 'text', { x: cx, y: H - 18, 'text-anchor': MID, fill: T('chart-tick') }, String(d.getUTCDate()));
+        if (first) mk(g, 'text', { x: cx - m('28', '') / 2, y: H - 4, 'text-anchor': 'start', fill: T('chart-tick') }, fMon(d));
+      });
+      if (xtier === 'month') {
+        // month names at each month's first bar, thinned to every 2nd, 3rd, 6th or 12th month when they would touch;
+        // past 40 weeks the name carries the year
+        var long = rows.length > 40, mf = long ? d3.utcFormat("%b '%y") : fMon, starts = [], seen = {};
+        rows.forEach(function (r) { var mo = r.x.slice(0, 7); if (!seen[mo]) { seen[mo] = 1; starts.push(r); } });
+        var need = d3.max(starts, function (r) { return m(mf(P(r.x)), ''); }) + 8, per = x.step() * 52 / 12;
+        var kk = [1, 2, 3, 6, 12].find(function (k) { return k * per >= need; }) || 12;
+        starts.forEach(function (r) { var mo = P(r.x).getUTCMonth(); if (mo % kk === 0 || kk === 1) mk(g, 'text', { x: x(r.x) + x.bandwidth() / 2, y: H - 4, 'text-anchor': MID, fill: T('chart-tick') }, mf(P(r.x))); });
+      }
+    } else if (!spk) {
       var every = Math.ceil(rows.length / Math.max(1, Math.floor((W - left - right) / (s.xGap || 56)))), xf = s.xfmt || function (v) { return fDay(P(v)); };
       rows.forEach(function (r, i) { if ((rows.length - 1 - i) % every === 0) mk(g, 'text', { x: x(r.x) + x.bandwidth() / 2, y: H - 4, 'text-anchor': MID, fill: T('chart-tick') }, r.label || xf(r.x)); });
     }

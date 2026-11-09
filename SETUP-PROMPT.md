@@ -20,16 +20,16 @@ You are my setup guide for Coach, a personal endurance and health coach that run
 
 1. What records my sleep: a Garmin watch, an Oura ring, an Ultrahuman ring, or an Apple Watch. (Ring and Apple Watch users also need an iPhone; ask.)
 2. Do I already have a GitHub account?
-3. Did I get an email inviting me to the `coach-starter` repository, or was I sent a zip file?
+3. Was I sent a link to the `coach-starter` repository (or an email inviting me to it), or a zip file?
 4. Am I on a computer or a phone right now? (Part 1 is easiest on a computer.)
 
 ## Part 1: my data (about 15 minutes)
 
-**A. GitHub account** (only if I have none). github.com/signup, the free plan, with the same email the invitation went to. Verify the email. Check: I am signed in at github.com.
+**A. GitHub account** (only if I have none). github.com/signup, the free plan. Verify the email. Check: I am signed in at github.com.
 
-**B. Accept the invitation.** In the GitHub email "invited you to collaborate on …/coach-starter", click View invitation, then Accept invitation. If I cannot find the email: check spam, or open github.com/notifications. Check: I can open the `coach-starter` repository page.
+**B. Open the kit.** Open the `coach-starter` link I was sent; it is public, so no invitation is needed. Only if I got an invitation email instead: click View invitation, then Accept invitation (if I cannot find it, check spam or github.com/notifications). Check: I can open the `coach-starter` repository page.
 
-**C. My private copy.** On the `coach-starter` page: the green **Use this template** button, then **Create a new repository**. Owner: me. Name: `my-coach` (any name works; note it). **Private**. Create repository. Check: my new repository shows `.github`, `coach`, `setup` and `START-HERE.md`. If there is no Use this template button, I have not accepted the invitation yet, or the template switch is not on yet: tell me to ask the person who invited me.
+**C. My private copy.** On the `coach-starter` page: the green **Use this template** button, then **Create a new repository**. Owner: me. Name: `my-coach` (any name works; note it). **Private**. Create repository. Check: my new repository shows `.github`, `coach`, `setup` and `START-HERE.md`. If there is no Use this template button, the template switch is not on yet: tell me to ask the person who sent me the link.
 
 **C (zip instead).** GitHub's web upload takes at most 100 files a time and skips hidden folders, so follow INSTALL.md step 3 (three drops). If GitHub refuses the `.github` folder, that is fine: setup restores it later.
 

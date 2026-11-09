@@ -965,6 +965,7 @@
     CKC().bar(box, {
       key: 'week-load', h: 190, rows: table.map((t) => ({ x: t.week, parts: hours ? Object.fromEntries(present.map((k) => [k, t[k]])) : null, v: t.load, ref: hours ? t.plan : null, t })),
       stack: hours ? present.map((k) => ({ key: k, label: NAME[k], tone: SPORT_TONE[k], outline: k === 'hike' })) : null, tone: 'series-2',
+      partKey: 'all',
       floor: hours ? 7.5 : 100, unit: hours ? 'h' : 'RPE x min', vfmt: hours ? f1 : f0, fmt: (v) => String(v), partial: curIn,
       bands: hours ? [{ lo: 5, hi: 7, label: '5 to 7 h budget', marks: { held: 'app.js drawLoad weekly budget' } }] : [],
       refLabel: hours ? 'Planned' : null, selected: state.week, valueLabel: hours ? (v) => `${f1(v)} h` : null,

@@ -8,8 +8,8 @@ Something not working or not clear? Note it: Claude adds it to `setup/SETUP-LOG.
 
 ## Part 1. Your data (GitHub, about 15 minutes)
 
-### 1. Accept the invitation
-You get an email from GitHub inviting you to the `coach-starter` repository. Sign in at github.com (create a free account if you do not have one, with the same email the invitation went to), then click **View invitation** in the email and **Accept invitation**.
+### 1. Open the kit
+Sign in at github.com (create a free account if you do not have one), then open the `coach-starter` link you were sent. It is public, so no invitation is needed. (If you got a GitHub email inviting you to it instead, click **View invitation** and **Accept invitation** first.)
 
 **Check:** you can open the `coach-starter` repository page.
 
