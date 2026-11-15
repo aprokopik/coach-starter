@@ -113,6 +113,8 @@ def figure(rs, today, anchor):
     km = sum(r["km"] for r in now)
     return {"value": f"{mean(now):.1f}", "unit": "mph", "chip": "Flat outdoor miles", "sub": f"{len(now)} ride{'s' if len(now) != 1 else ''}, 28 days",
             "baseline": round(mean(old), 2) if old else None,
+            # each counted ride of the last year, "date mph|...", for the Speed chart on the Bike at 130 bpm tile (the athlete, Nov 15, 2026)
+            "rides": "|".join(f"{r['date'].isoformat()} {r['mph']:.2f}" for r in rs if r["date"] > today - timedelta(days=365)),
             "note": f"{len(now)} ride{'s' if len(now) != 1 else ''} in 4 weeks, {km * 0.621371:.0f} flat miles near {anchor} bpm. Wind and group riding move it; read it over several rides. Estimated."}
 
 

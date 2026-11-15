@@ -244,7 +244,8 @@
       if (sv && !sv.done && sv.qs.length && t.getUTCDate() >= firstSun) mon = sv;
     }
     steps = buildSteps(!(feel && feel.saved_at)); at = 0;
-    if (!steps.length && gone(false)) return; // finished and put away today
+    // Answered in an earlier open: no card (the athlete, Nov 15, 2026: "Morning check still pops up at the top"); the answers stay on the Check-in tab
+    if (!steps.length) return;
     paint(false);
   };
 })();

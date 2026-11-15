@@ -211,7 +211,7 @@
     for (const [k, lab] of [['bike', 'Power'], ['bikespeed', 'Speed']]) { const l = el('label', 'ck-seg-opt'), i = el('input', 'ck-vh-input'); i.type = 'radio'; i.name = 'f-bkseg'; i.checked = (k === 'bikespeed') === sp;
       i.addEventListener('change', () => { ui.open = k === 'bikespeed' ? k : null; CX.state.fit = k === 'bike' ? k : null; rerender(); const f = document.querySelectorAll('#f-bkseg input')[k === 'bike' ? 0 : 1]; if (f) f.focus({ preventScroll: true }); });
       l.append(i, lab); seg.append(l); }
-    if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); pn.prepend(seg); } }
+    if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); const c = el('div', 'chart'); c.id = 'c-bikespeed'; c.style.setProperty('--h', '190px'); c.setAttribute('data-source', 'coach'); pn.prepend(seg, c); const m = metrics().find((x) => x.key === 'bikespeed'); if (m && CX.app.speedChart) CX.app.speedChart(c, m); } }
     else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(seg, n); } else if (c) c.before(seg); }
   };
 

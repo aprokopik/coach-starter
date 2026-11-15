@@ -2029,6 +2029,18 @@
   }
   // the run and bike tiles' chart (calc rows). Every other tile, VO2max and resting HR included when a layout row puts them
   // on this tab, draws through drawMarker, which follows the shared range (inSpan, spanStart).
+  // Bike speed at 130 bpm draws like the power chart (the athlete, Nov 15, 2026: "I also have no data for bike speed at 130 charted"):
+  // each flat outdoor ride and its 28-day average, from the figure's rides (bike_speed.py)
+  function speedChart(box, m) {
+    const all = String(m.rides || '').split('|').map((s) => s.split(' ')).filter((p) => p.length === 2 && N(p[1]) !== null).map(([date, v]) => ({ date, value: N(v) }));
+    if (!all.length) { box.style.removeProperty('--h'); box.replaceChildren(el('p', 'ck-note', 'No ride history yet.')); return; }
+    for (const r of all) { const d = dayN(r.date), w = all.filter((x) => dayN(x.date) > d - 28 && dayN(x.date) <= d); r.avg28 = d3.mean(w, (x) => x.value); }
+    const vals = all.flatMap((r) => [r.value, r.avg28]); let lo = d3.min(vals), hi = d3.max(vals); const pad = (hi - lo) * 0.15 || 0.5; lo = Math.max(0, lo - pad); hi += pad;
+    lineChart(box, all, { key: 'fit-bikespeed', h: 190, today: true, main: 1, head: 0, fmt: f1, unit: 'mph', endUnit: 'mph', title: `Bike speed at ${ANC().bike} bpm, 28-day average`,
+      marks: { source: 'coach', field: 'rides', where: 'kind=cat_metric&key=bikespeed', key: 'date' }, yDomain: [lo, hi], yTicks: d3.ticks(lo, hi, 4), xDomain: [all[0].date, TODAY],
+      series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE.bike, connect: false, width: 2.5 }, { key: 'value', label: 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
+      tipLines: (r) => [{ text: `${f1(r.value)} mph near ${ANC().bike} bpm` }, { tone: SPORT_TONE.bike, text: `28-day average: ${f1(r.avg28)} mph` }] });
+  }
   function drawFitChart(run, bike) {
     const box = $('c-fit'); const lg = $('c-fit-legend'); const note = $('f-note');
     const k = state.fit; const tone = SPORT_TONE[k];
@@ -2489,7 +2501,7 @@
   }
   window.CX.render = render;
   // the helpers season.js (loaded next) reads
-  window.CX.app = { $, CKC, drawMarker, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, spaced, sportGroups, stamp, state, truthy };
+  window.CX.app = { $, CKC, drawMarker, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, spaced, sportGroups, stamp, state, truthy };
   Object.assign(window.CX, { stageInfo, lineChart, legend, inSpan, spanStart, spanName, drawWeight, sportCol, sportTok, sportGroups, seasonTile, blockContext, kind, ck: { icon, badge, neutralChip, mark, ruleSpan, cardState, dsState },
     weekSoFar: (w) => { const d = TN - dayN(w) + 1; return d >= 1 && d < 7 ? { x: w, days: d, of: 7 } : null; } }); // the open week of a per-week bar chart
   // Check-ins due on Today (Phase 6): checkins.js renderStrip writes the due count into #t-ci's data-n, the names into
