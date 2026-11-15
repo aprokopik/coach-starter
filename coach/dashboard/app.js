@@ -1620,20 +1620,21 @@
     const sc = scaleSort(scalesOf(m)); if (sc.length < 2) return null; const tile = scaleTile(m); const st = stateOf.get(tile); const au = st ? st.auto : null;
     const box = el('fieldset', 'ft-scales'); box.id = 'f-scales'; box.append(el('legend', null, 'Your path'));
     const radio = (id, checked, disabled) => { const inp = el('input'); inp.type = 'radio'; inp.name = 'f-scale-' + m.key; inp.value = id; inp.checked = checked; inp.disabled = !!disabled; if (!disabled) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, id); }); return inp; };
-    if (au) { // Automatic first: the stage your history and fitness earn
-      const opt = el('label', 'ft-scale-opt'); const t = el('span'); t.append(el('b', null, 'Automatic'), ` · Stage ${au.cur}, by your fitness`);
-      if (!st.manual) t.append(' ', el('span', 'ft-here', 'You are here')); if (au.graceEnd) t.append(el('span', 'ft-stage-none', ` Held to ${fDay(P(au.graceEnd))}, then back a stage unless a reading earns it again.`));
-      opt.append(radio('auto', !st.manual), t); box.append(opt);
-    }
+    // No separate Automatic row (the athlete, Nov 15, 2026): the scale in use is the one checked. The scale automatic stages pick carries
+    // a "Recommended by your fitness" pill; choosing it goes back to automatic, choosing another holds until you choose again.
     let last = '';
     for (const s of sc) {
       const n = stageNo(s); const locked = au && n > au.unlocked;
       const head = `Stage ${n} · ${s.stage_label || 'Your sport'}${locked ? ' · Locked' : ''}`; if (head !== last) { box.append(el('div', 'ft-stage', head)); last = head; }
       if (locked && head.endsWith('Locked') && !box.querySelector(`[data-lock="${n}"]`)) { const p = el('p', 'ft-stage-none', `Unlocks the first time a reading reaches Top 20% (or the top category) on stage ${n - 1}.`); p.dataset.lock = n; box.append(p); }
-      const opt = el('label', 'ft-scale-opt' + (locked ? ' is-locked' : '')); const here = st && st.manual && s.id === m.compare;
+      const isAuto = !!(au && au.scale && s.id === au.scale.id); const inUse = s.id === m.compare;
+      const opt = el('label', 'ft-scale-opt' + (locked ? ' is-locked' : ''));
       const t = el('span'); const lv = scaleLevel(m, s, v); t.append(el('b', null, s.label), lv ? ` · ${lv}` : '');
-      if (here) t.append(' ', el('span', 'ft-here', 'You are here'));
-      opt.append(radio(s.id, here, locked), t); box.append(opt);
+      const pills = el('span', 'ft-scale-pills');
+      if (isAuto) pills.append(el('span', 'ft-here', 'Recommended by your fitness')); // the athlete, Nov 15, 2026: "recommended", and no "Your pick" pill
+      if (pills.childNodes.length) t.append(pills);
+      if (isAuto && au.graceEnd) t.append(el('span', 'ft-stage-none', ` Held to ${fDay(P(au.graceEnd))}, then back a stage unless a reading earns it again.`));
+      opt.append(radio(isAuto ? 'auto' : s.id, inUse, locked), t); box.append(opt);
     }
     if (!sc.some((s) => Number(s.stage) === 3)) { box.append(el('div', 'ft-stage', 'Stage 3 · Elite'), el('p', 'ft-stage-none', 'Not on file yet. The coach is looking for one.')); }
     return box;
@@ -1921,7 +1922,7 @@
     if (bars.length) for (const x of bars) {
       const xw = 'kind=marker&key=' + x.key; const xr = x.tiers && x.chart ? seriesFor(x) : [];
       const ln = el('span', 'ft-barname'); ln.append(mark(el('b', null, x.sport_label || x.label), 'coach', 'sport_label', xw), x.value && x.value !== '—' ? ((u) => { const v = el('b'); v.append(mark(el('span', null, x.value), 'coach', 'value', xw), u.startsWith('/') ? u : u ? ' ' + u : ''); return v; })(String(x.unit || '').replace('/effort km', '/km')) : el('span', 'ck-sub', 'none yet'));
-      extra.push(ln); if (xr.length) extra.push(levelBadge(levelFor(x, xr[xr.length - 1].value), x.key));
+      extra.push(ln); if (xr.length) extra.push(withStage(levelBadge(levelFor(x, xr[xr.length - 1].value), x.key), stageChip(x))); // each bar shows the stage its own scale is on
     }
     else if (rows.length) { extra.push(withStage(levelBadge(levelFor(m, rows[rows.length - 1].value), m.key), stageChip(m))); const uc = stepChip(m, rows[rows.length - 1].value); if (uc) extra.push(uc); }
     // no Goal chip on a tile (the athlete, Nov 15, 2026: "Do we need goal target in the card if we have it at the top?"): the goal's

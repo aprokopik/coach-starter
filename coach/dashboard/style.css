@@ -1049,6 +1049,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ft-stage { font-size: 0.72em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ck-fg-2, inherit); margin: 6px 0 0; }
 .ck .ft-stage-none { margin: 2px 0 6px; font-size: 0.9em; color: var(--ck-fg-2, inherit); }
 .ck .ft-here { border: 1px solid currentColor; border-radius: 999px; padding: 0 7px; font-size: 0.78em; white-space: nowrap; }
+.ck .ft-scale-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 .ck .ft-stepup { border: 2px solid var(--ck-good, currentColor); border-radius: 8px; padding: var(--ck-s2, 8px) var(--ck-s3, 12px); margin: 0 0 var(--ck-s2, 8px); display: grid; gap: 6px; }
 .ck .ft-stepup p { margin: 0; }
 .ck .ft-stepup-a { display: flex; flex-wrap: wrap; gap: var(--ck-s2, 8px); }

@@ -239,6 +239,49 @@ def easy_general(kind, g, kg=RIDER_KG, hr=None):
             "note": "A model, not measured paces or watts: it assumes a typical adult's heart rate and the standard energy equations. Read it as where your easy effort sits among adults of your age and sex."}
 
 
+# Trail tiles on the general population (the athlete picked option 3 on the Sprint Review page, Nov 15, 2026: "Population model, trail
+# footing" for Climbing and "Road model plus 20% for trail" for Runnable pace and Sustainable trail speed). The same model as Run pace
+# at the run anchor (FRIEND VO2max, a typical adult's share of heart rate reserve), with TRAIL_TERRAIN extra energy cost for dirt and
+# rocks (Pandolf 1977 and Soule 1978 terrain factors: about 1.2 for dirt road and light trail). Climbing uses the ACSM walking
+# equation on CLIMB_GRADE; trail speed per effort km is flat-equivalent pace, as an effort km on the flat is one km. Estimated.
+TRAIL_TERRAIN = 1.2
+CLIMB_GRADE = {"climb": 0.15, "climb150": 0.15, "climbsteep": 0.25}
+
+
+def trail_general(key, g, hr=None):
+    """A norm row for one trail tile (trailgap min/mi, trailspeed min per effort km, climb, climb150, climbsteep ft/h) against
+    adults of the athlete's age band and sex, at hr (the run anchor). None with no group. Pure."""
+    hr = hr or 150
+    pts = vo2_norms.points("treadmill", g) if g else None
+    if not pts:
+        return None
+    age = int(g["band"].split("-")[0]) + 5
+    share = (hr - REST_HR) / max(1, (220 - age) - REST_HR)
+    grade = CLIMB_GRADE.get(key)
+    bp = []
+    for p, vmax in pts:
+        v = share * (vmax - 3.5) + 3.5
+        if grade:
+            s = (v - 3.5) / (TRAIL_TERRAIN * (0.1 + 1.8 * grade))  # m/min along the slope (ACSM walking)
+            val = round(s * grade / (1 + grade * grade) ** 0.5 * 3.28084 * 60)
+        else:
+            pace = 1609.344 / max(60.0, (v - 3.5) / 0.2) * TRAIL_TERRAIN  # min/mi (ACSM running)
+            val = round(pace if key == "trailgap" else pace / 1.609344, 3)
+        bp.append([val, 100 - p])
+    if grade:
+        what, unit, better = f"climbing rate on a {grade * 100:.0f}% trail grade at {hr} bpm", "ft/h", 1
+        how = f"the ACSM walking equation on a {grade * 100:.0f}% grade"
+    else:
+        what, unit, better = (f"trail pace at {hr} bpm", "min/mi", -1) if key == "trailgap" else (f"trail speed per effort km at {hr} bpm", "min/km", -1)
+        how = "the ACSM running equation"
+    return {"kind": "norm", "key": f"gen_{key}", "unit": unit, "better": better, "population": f"{g['label']}, general population (modelled from fitness tests)",
+            "source": (f"Estimated by the coach from {vo2_norms.SOURCE}: VO2max for {g['label']}, turned into the {what} of a typical adult (resting heart rate {REST_HR}, "
+                       f"maximum {220 - age}) with {how} and {round((TRAIL_TERRAIN - 1) * 100)}% extra cost for trail footing (Pandolf 1977, Soule 1978)"),
+            "url": "https://doi.org/10.1016/j.mayocp.2021.08.020", "date": "2026-11", "n": 0, "breakpoints": sorted(bp), "sex": g["sex"], "age_band": g["band"],
+            "tail": "log", "short": f"{g['label']}, general population (modelled)", "estimated": True,
+            "note": "A model, not measured trail runners: it assumes a typical adult's heart rate, the standard energy equations and a 20% trail footing allowance. Read it as where your easy trail effort sits among adults of your age and sex."}
+
+
 FTP_SHARE = 0.75  # FTP as a share of the power at VO2max: the coach's estimate (bike population analysis, Nov 8, 2026; the athlete approved it as built on Nov 12, 2026)
 
 
@@ -885,6 +928,10 @@ def build(today, rows_so_far):
     ANCHOR_GENERAL = {  # what fixes the general population scale on tiles whose baseline is a table or a model
         "swim": f"Cooper's 12-minute swim test categories for your age and sex (Cooper 1982), as pace per 100 yd, {_fix}. Five fitness categories, not percentiles.",
         "run": f"Percentile ladder, edges read from a general population model (Estimated): VO2max norms for your age and sex (FRIEND registry) turned into pace at 150 bpm with the ACSM running equation, assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}. Orange lines = the block goal.",
+        **{k: f"Percentile ladder, edges read from a general population model (Estimated): VO2max norms for your age and sex (FRIEND registry) turned into {w} at 150 bpm with the ACSM {eq}, plus {round((TRAIL_TERRAIN - 1) * 100)}% for trail footing (Pandolf 1977, Soule 1978), assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}."
+           for k, w, eq in (("trailgap", "trail pace", "running equation"), ("trailspeed", "trail speed per effort km", "running equation"),
+                            ("climb", "climbing rate on a 15% grade", "walking equation"), ("climb150", "climbing rate on a 15% grade", "walking equation"),
+                            ("climbsteep", "climbing rate on a 25% grade", "walking equation"))},
         "bike": f"Percentile ladder, edges read from a general population model (Estimated): cycling VO2max norms for your age and sex (FRIEND registry) turned into watts at 130 bpm with the ACSM cycling equation, assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}. Orange lines = the block goal.",
     }
     ANCHOR_SRC = re.compile(r"edges read from .*? for your sex(?: and age band| where published \(not yet\))?, ")
@@ -1440,6 +1487,42 @@ def build(today, rows_so_far):
                                 "each minute counts at its own grade, so a steep pitch inside a long climb is not averaged away; it needs 3 minutes in the run. Heart rate is read 30 s later "
                                 "because it lags the hill, then vertical feet per hour is scaled to 150 bpm minute by minute, only for minutes at 125 to 180 bpm. Running and power hiking "
                                 "both count; the share hiked comes from cadence (under 130 steps/min). 28-day average; one run moves it a lot, so read it over several. Estimated.")
+    COACH_TRAIL = "Coach guide; no population norm exists for this at a set heart rate. Draft for review."
+
+    def trail_scales(key, field, tiers, v, target, gap, rk):
+        """General population first (the default, the athlete picked it Nov 15, 2026), the coach guide as a switchable comparison."""
+        gen = trail_general(key, NG, hr=ANC["run"])
+        if gen is None:
+            annot(key, target, gap, tiers, rk, COACH_TRAIL + NO_NORM, scale="coach")
+            return
+        climb_ = field not in ("pace", "speed")
+        fmt = (lambda x: f"{x:,.0f} ft/h") if climb_ else (lambda x: f"{mss(x * 60)}{'/mi' if field == 'pace' else ' per effort km'}")
+
+        def general():
+            gt = fit_ladder.tiers(gen, 0 if climb_ else 3, fmt)
+            if v is None:
+                annot(key, target, "", gt, "", "Compared with the general population: " + gen["source"] + ". " + gen["note"], scale="coach")
+                return
+            grk, after = ladder(key, gen, v, gt, 1.0 if climb_ else 1 / 60)
+            if climb_:
+                nb = next(((l, lo) for l, lo, _hi, _n in gt if lo is not None and lo > v), None)
+                ggap = f"{nb[1] - v:,.0f} ft/h to {nb[0]}" if nb else "in the top band"
+            else:
+                nb = next(((l, hi) for l, _lo, hi, _n in reversed(gt) if hi is not None and hi <= v), None)
+                ggap = f"{mss((v - nb[1]) * 60)} to {nb[0]}" if nb else "in the top band"
+            annot(key, target, ggap, gt, grk, "Compared with the general population: " + gen["source"] + ". " + gen["note"], scale="coach")
+            after()
+
+        def guide():
+            annot(key, target, gap, tiers, rk, COACH_TRAIL, scale="coach")
+            m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == key)
+            m_.pop("splits", None)
+        guide_label = "Vertical kilometre guide" if climb_ else (f"{race['name']} pacing" if race else "100K cutoff pacing")
+        sc = [("general", "General population", general), ("coach", guide_label, guide)]
+        if CMP.get(key):
+            sc.sort(key=lambda x: x[0] != CMP[key])
+        with_scales(key, sc, lambda fn: fn())
+
     specs = (
         ("trailspeed", "Sustainable trail speed", "speed", "/effort km", speed_tiers, "Overall",
          "How fast you cover trail at easy effort, all of it: running, hiking, climbs and descents. One number for any trail, and it turns into a time for any course.",
@@ -1495,10 +1578,10 @@ def build(today, rows_so_far):
                 nb = next(((l, lo) for l, lo, hi, _n in tiers if lo is not None and lo > v), None)
                 gap = f"{nb[1] - v:,.0f} ft/h to {nb[0]}" if nb else "in the top band"
                 target = "Strong by the spring 50K; Mountain on 10 to 20% by the autumn 100K (coach guide, draft)"
-            annot(key, target, gap, tiers, rk, "Coach guide; no population norm exists for this at a set heart rate. Draft for review.", scale="coach")
+            trail_scales(key, field, tiers, v, target, gap, rk)
         else:
             marker(section, 9, key, label, "—", "", "no trail detail yet: it comes with the next hilly run" if field in ("speed", "pace") else "no climbing yet", "", why, how, "Estimated", "dots")
-            annot(key, "", "", tiers, "", "Coach guide; no population norm exists for this at a set heart rate. Draft for review.", scale="coach")
+            trail_scales(key, field, tiers, None, "", "", "")
         m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == key)
         m_.update(sport_label=bar_name, why_hr=WHY_150)
     # the two tiles: their bars (own row first, then the paired row) and the switch in the opened tile
