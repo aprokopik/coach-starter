@@ -32,9 +32,10 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `pillars.js` | Health tab |
 | `checkins.js` | Check-in tab and the Today check-ins due line |
 | `block.js` | This block card (Fitness) and the Season status panels |
+| `openlog.js` | Open timing: when the page files ran, each dataset arrived and readiness showed, saved to the store as `open_log/<day>` (DASHBOARD.md) |
 | `change.js` | Today changed? on the plan card: reason, Plan B (Min), the store document `day_change` and the replan line |
 
-Load order: calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
+Load order: calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js, openlog.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
 A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering its renderer on `window.CX` and its `dash.calc` definitions at top level. Never grow `app.js` (about 171 KB). When a file nears the cap, split it along a `// ----------` page seam the way `season.js` was split.
 
@@ -47,6 +48,10 @@ A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering
 - Icons come only from the sprite in `index.html`: `<svg class="ck-i" aria-hidden="true"><use href="#cx-..."/></svg>` with the word beside it. A new glyph is a new `<symbol>` drawn to the icon rules (24 px grid, 2 px round stroke, no dashes).
 - Breakpoints: base 360, then `min-width` 480, 640, 900, plus reduced motion. When a part is restyled, replace its old rules rather than layering new ones.
 - `cockpit.css` and `cockpit.js` are built from `src/cockpit/` (`tokens.css`, `motion.css`, `components.css`, `components.js`) by `sh src/build-cockpit.sh`, run from `coach/dashboard`. Never edit them by hand. A part the catalogue lacks gets a spec comment above its rules in `src/cockpit/components.css`. The design rules (principles, token tables, status rule, icon rules) are the Cockpit DESIGN notes from Phase 3 (`phase3/system/DESIGN.md` in the build session's scratchpad, not in the repo).
+
+## Speed (6.76.0)
+
+The phone downloads every page file and dataset on each open, and every tap redraws the open tab. So: a tab or range tap calls `show(p, true, true)` or `renderSoon()` (the tap shows on the next paint, the drawing follows); a save never holds the screen (ask.js `queue`: move on, save behind, say "Not saved" if it fails); chart code never asks the page for a width inside a loop (charts.src.js `measurer` and `widthOf`); helpers that read coach rows use `kind()`, which is grouped once per data arrival. `coach/tests/test_dashboard_speed.py` holds the size budget and `harness/speed.js` the tap budget; raise either only with the athlete's sign off and a changelog line.
 
 ## Charts
 
@@ -75,7 +80,7 @@ Every chart draws through `CKC`: which chart, anatomy, the sentence, marks, phon
 
 1. `python3 -m unittest discover -s coach/tests` is green.
 2. Version: `python3 coach/tools/version.py bump major|minor|patch` (MAJOR a contract, MINOR a change the athlete signed off, PATCH a fix the athlete would not notice; the rule heads `CHANGELOG.md`), fill the new `CHANGELOG.md` entry (area, PR, what changed, the athlete's pick), and `python3 coach/tools/version.py check` passes. Data commits never bump.
-3. `python3 coach/tools/pack_dashboard.py <dir>` writes one JSON document per file and prints each size against the cap. Use `--only name,name` for the changed files.
+3. `python3 coach/tools/pack_dashboard.py <dir>` writes one JSON document per file, made smaller for the phone (scripts minified, comments and indentation dropped; needs node, `--full` packs them as written), and prints each size against the cap. Use `--only name,name` for the changed files. Before packing a page change, run the speed check: `python3 coach/dashboard/harness/build.py --host live --packed --out /tmp/p.html` then `node coach/dashboard/harness/speed.js --page /tmp/p.html`; every figure must sit within `harness/speed-budget.json`.
 4. ArtifactData `get` each changed `files/<name>` for its current version.
 5. One ArtifactData `batch`: an `update` per changed file, `file_path` the packed JSON, pinned to the version you read. A new file is a `set` without a version. Never delete store documents.
 6. Open the live page in light and dark at phone width and check the console. A thread cannot open it, so post the athlete the one minute phone check (`PHONE-CHECK.md`) with the fixed spot named, and keep the change open until the athlete answers.

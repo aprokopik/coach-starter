@@ -1,0 +1,7 @@
+{
+  "_about": "Speed budget for speed.js (ms, CPU slowed 4 times, 390 px, middle of 5 runs). Raise a figure only with the athlete's sign off and a CHANGELOG line saying why.",
+  "open (page work only)": 2000,
+  "* shows": 100,
+  "* drawn": 700,
+  "quick check answer to next question": 150
+}

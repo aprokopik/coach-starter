@@ -48,13 +48,28 @@
     return out.join(' · ') || 'Nothing answered';
   }
 
-  async function saveFeel(patch) {
+  // Saving in the background (6.76.0, speed): a tap moves the card on at once and the save goes out behind it, instead of
+  // waiting a network round trip per answer. Writes go one at a time in tap order, each the whole document as it stands,
+  // so the last one to land always holds every answer. A failed write is tried twice more; if it still fails the card says
+  // so on every question until a later save goes through, and the answers stay on screen to tap again.
+  let chain = Promise.resolve(), unsaved = null, pending = 0;
+  const syncLine = () => { const st = document.querySelector('#t-qc-body .qc-st'); if (st) st.textContent = unsaved ? `Not saved (${unsaved}). Tap an answer again, or tell the coach in chat.` : ''; };
+  const tryWrite = async (fn) => { let e0 = null; for (let i = 0; i < 3; i++) { try { await fn(); return; } catch (e) { e0 = e; await new Promise((r) => setTimeout(r, 800 * (i + 1))); } } throw e0; };
+  function queue(fn, after) {
+    pending += 1;
+    chain = chain.then(() => tryWrite(fn)).then(() => { unsaved = null; if (after) after(); }, (e) => { unsaved = (e && e.code) || 'error'; })
+      .finally(() => { pending -= 1; syncLine(); });
+    return chain;
+  }
+  CX.askPending = () => pending; // the harness waits on this before reading the store
+  function saveFeel(patch) {
     const body = { date: A().TODAY, scale: 5, sleep_q: null, energy: null, legs: null, stress: null, pain: null, pain_site: '', note: '', ...(feel || {}), ...patch, saved_at: new Date().toISOString() };
     for (const k of ['sleep_q', 'energy', 'legs', 'stress', 'pain']) body[k] = blank(body[k]) ? null : Number(body[k]);
-    await db.doc('feel_daily/' + A().TODAY).set(body);
-    feel = body;
-    if (CX.reloadMorning) CX.reloadMorning(); // the Check-in tab form shows the same answers
-    if (CX.onMorningSaved) CX.onMorningSaved(); // the due list and Today's check-ins line drop the morning check-in
+    feel = body; // on screen at once
+    return queue(() => db.doc('feel_daily/' + A().TODAY).set(feel), () => {
+      if (CX.reloadMorning) CX.reloadMorning(); // the Check-in tab form shows the same answers
+      if (CX.onMorningSaved) CX.onMorningSaved(); // the due list and Today's check-ins line drop the morning check-in
+    });
   }
 
   function buildSteps(withFeel) {
@@ -62,7 +77,7 @@
     if (lift && (!lift.answer || open)) s.push({
       id: 'lift', q: 'Lifted yesterday?', sub: `${lift.name}, ${A().fWd(A().P(lift.Y))}. Nothing logged yet.`, cols: 2,
       opts: [['yes', 'I lifted'], ['no', 'Skipped it']], cur: () => lift.answer,
-      save: async (v) => { await db.doc('lift_tap/' + A().TODAY).set({ for_date: lift.Y, answer: v, saved_at: new Date().toISOString() }); lift.answer = v; },
+      save: (v) => { lift.answer = v; const doc = { for_date: lift.Y, answer: v, saved_at: new Date().toISOString() }; return queue(() => db.doc('lift_tap/' + A().TODAY).set(doc)); },
     });
     if (withFeel) {
       for (const f of FEEL) s.push({
@@ -112,7 +127,8 @@
       const dn = el('button', 'ck-btn ck-btn--primary', 'Done'); dn.type = 'button';
       dn.addEventListener('click', () => { gone(true); card.hidden = true; const t = $('t-hero'); if (t) { t.setAttribute('tabindex', '-1'); t.focus(); } });
       const bar = el('div', 'qc-end'); bar.append(dn, ch);
-      body.append(p, bar); if (focus) dn.focus(); return;
+      const ns = el('p', 'qc-st'); ns.setAttribute('aria-live', 'polite'); // a save still failing after the last answer shows here too
+      body.append(p, bar, ns); syncLine(); if (focus) dn.focus(); return;
     }
     const s = steps[at];
     if (s.id.startsWith('m-')) h.textContent = 'Monthly check'; // the heading follows the question being asked
@@ -121,7 +137,7 @@
     const q = el('p', 'qc-q', s.q); q.id = 't-qc-q';
     body.append(q, el('p', 'qc-sub', s.sub));
     const st = el('p', 'qc-st'); st.setAttribute('aria-live', 'polite');
-    const fail = (e) => { st.textContent = `Not saved (${e && e.code ? e.code : 'error'}). Tell the coach in chat instead.`; };
+    if (unsaved) st.textContent = `Not saved (${unsaved}). Tap an answer again, or tell the coach in chat.`;
     const next = () => { if (s.last) { s.last(); mon = null; monthSaved = true; } at += 1; where = false; paint(true); };
     if (s.kind === 'chips' || s.kind === 'inputs') {
       if (s.kind === 'chips') {
@@ -158,10 +174,9 @@
     for (const [v, label] of s.opts) {
       const b = el('button', 'qc-tile' + (cur === v ? ' sel' : '')); b.type = 'button'; b.setAttribute('aria-pressed', String(cur === v));
       if (s.num) b.append(el('b', null, v)); b.append(el('span', null, label));
-      b.addEventListener('click', async () => {
-        for (const x of row.querySelectorAll('button')) x.disabled = true; st.textContent = 'Saving…';
-        try { await s.save(v); st.textContent = ''; if (s.more && s.more(v)) { where = true; paint(); const c = $('t-qc-body').querySelector('.qc-chip'); if (c) c.focus(); } else next(); }
-        catch (e) { fail(e); for (const x of row.querySelectorAll('button')) x.disabled = false; }
+      b.addEventListener('click', () => { // moves on at once; the save goes out behind it (queue above)
+        s.save(v);
+        if (s.more && s.more(v)) { where = true; paint(); const c = $('t-qc-body').querySelector('.qc-chip'); if (c) c.focus(); } else next();
       });
       row.append(b);
     }
@@ -174,7 +189,7 @@
         const c = el('button', 'qc-chip' + (on.has(site) ? ' sel' : ''), site); c.type = 'button'; c.setAttribute('aria-pressed', String(on.has(site)));
         c.addEventListener('click', async () => {
           on.has(site) ? on.delete(site) : on.add(site); c.classList.toggle('sel', on.has(site)); c.setAttribute('aria-pressed', String(on.has(site)));
-          try { await saveFeel({ pain_site: SITES.filter((x) => on.has(x)).join(';') }); st.textContent = ''; } catch (e) { fail(e); }
+          saveFeel({ pain_site: SITES.filter((x) => on.has(x)).join(';') });
         });
         chips.append(c);
       }
@@ -187,7 +202,7 @@
     if (s.id === 'pain' && (where || (cur && cur !== '0'))) go = ['Next', next];
     else if (at === first && yest && !(feel && feel.saved_at)) go = ['Same as yesterday', async () => {
       const y = {}; for (const k of ['sleep_q', 'energy', 'legs', 'stress', 'pain', 'pain_site']) y[k] = yest[k];
-      try { await saveFeel(y); at = steps.length; paint(true); } catch (e) { fail(e); }
+      saveFeel(y); at = steps.length; paint(true);
     }];
     else go = ['Skip', next];
     const g = el('button', 'qc-link', go[0]); g.type = 'button'; g.addEventListener('click', go[1]); foot.append(g);

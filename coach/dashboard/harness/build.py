@@ -6,7 +6,8 @@
 3. Writes one full document: host colours (host.css, plus host-live.css with --host live) + d3 v7 + the inlined datasets
    + the mock runtime (dash.js) + the page inside <div id="dash-root"> + a boot script.
 
-Usage: python3 build.py [--repo <checkout>] [--host live] [--variant <name>] [--no-done] [--out <file.html>]
+Usage: python3 build.py [--repo <checkout>] [--host live] [--variant <name>] [--no-done] [--packed] [--out <file.html>]
+  --packed   builds from the smaller packed text the phone gets (pack_dashboard.py), not the repo files as written.
   --repo     defaults to the checkout this folder sits in (two levels up from coach/dashboard/harness).
   --out      defaults to index.html in this folder; a relative path is taken from the current directory.
   --host live  appends host-live.css (the live host token values, read Nov 4, 2026) after the stand-in host.css.
@@ -112,7 +113,7 @@ def main():
     if not os.path.exists(d3):
         sys.exit("d3 is missing. Install it once, from " + HERE + ":\n  npm install --no-save d3@7 playwright")
     page_path = os.path.join(HERE, "page.html")
-    subprocess.run([sys.executable, "coach/tools/pack_dashboard.py", "--assemble", page_path], cwd=REPO, check=True)
+    subprocess.run([sys.executable, "coach/tools/pack_dashboard.py", "--assemble", page_path] + (["--packed"] if "--packed" in sys.argv else []), cwd=REPO, check=True)
     frag = read(page_path)
 
     # each inlined script in its own scope (assemble emits exactly "<script>\n" + file + "\n</script>")

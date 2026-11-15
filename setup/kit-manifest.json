@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.75.0",
+ "version": "6.76.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -60,10 +60,13 @@
   "coach/dashboard/harness/run-all.sh",
   "coach/dashboard/harness/shoot-dark.js",
   "coach/dashboard/harness/shoot.js",
+  "coach/dashboard/harness/speed-budget.json",
+  "coach/dashboard/harness/speed.js",
   "coach/dashboard/harness/sweep.js",
   "coach/dashboard/index.html",
   "coach/dashboard/lifts.js",
   "coach/dashboard/metrics.js",
+  "coach/dashboard/openlog.js",
   "coach/dashboard/pillars.js",
   "coach/dashboard/plan.js",
   "coach/dashboard/records.js",

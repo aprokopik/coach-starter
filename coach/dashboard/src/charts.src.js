@@ -47,10 +47,39 @@
     var f = function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
     return 0.2126 * f(p[0]) + 0.7152 * f(p[1]) + 0.0722 * f(p[2]);
   }
-  // Text widths at the rendered size: a probe inside the drawing, with the class the label will carry
+  // Text widths at the rendered size: a probe inside the drawing, with the class the label will carry.
+  // Speed (6.76.0): asking the page for a text width makes it lay out everything drawn so far, once per label, which
+  // made a chart with many labels slow (a tap on Fitness 1y or all). Now the probe reads each class's font once,
+  // widths come from a canvas (no page layout) and repeat strings from a memo. Chart text uses tabular numbers,
+  // which a canvas cannot draw, so each class also measures one string of the ten digits on the probe and every
+  // digit counts that tabular width. Letter spacing or capitals keep the probe measure for that class.
+  var ctx2d = null, DIG = /[0-9]/g;
   function measurer(svg) {
-    var t = mk(svg, 'text', { x: -999, y: -999, 'aria-hidden': 'true' });
-    var f = function (s, cls) { t.setAttribute('class', cls || ''); t.textContent = String(s); return t.getComputedTextLength(); };
+    var t = mk(svg, 'text', { x: -999, y: -999, 'aria-hidden': 'true' }), fonts = {}, memo = {};
+    if (ctx2d === null) { try { ctx2d = document.createElement('canvas').getContext('2d') || false; } catch (e) { ctx2d = false; } }
+    var probe = function (s, cls) { t.setAttribute('class', cls); t.textContent = s; return t.getComputedTextLength(); };
+    var fontOf = function (cls) {
+      if (cls in fonts) return fonts[cls];
+      t.setAttribute('class', cls); var cs = getComputedStyle(t), ls = cs.letterSpacing;
+      var plain = ctx2d && (!ls || ls === 'normal' || parseFloat(ls) === 0) && (!cs.textTransform || cs.textTransform === 'none');
+      if (!plain) return (fonts[cls] = null);
+      var o = { font: [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(' '), tab: /tabular-nums/.test(cs.fontVariantNumeric || '') };
+      ctx2d.font = o.font; o.zero = ctx2d.measureText('0').width;
+      if (o.tab) o.dig = probe('0123456789', cls) / 10;
+      return (fonts[cls] = o);
+    };
+    var f = function (s, cls) {
+      cls = cls || ''; s = String(s); var k = cls + '\u0001' + s; if (k in memo) return memo[k];
+      var o = fontOf(cls), w;
+      if (!o) w = probe(s, cls);
+      else {
+        ctx2d.font = o.font;
+        if (o.tab) { var nd = (s.match(DIG) || []).length; w = ctx2d.measureText(nd ? s.replace(DIG, '0') : s).width + nd * (o.dig - o.zero); }
+        else w = ctx2d.measureText(s).width;
+      }
+      return (memo[k] = w);
+    };
+    f.probe = function (s, cls) { return probe(String(s), cls || ''); };
     f.max = function (arr, cls) { var w = 0; for (var i = 0; i < arr.length; i++) w = Math.max(w, f(arr[i], cls)); return w; };
     f.done = function () { t.remove(); };
     return f;
@@ -101,11 +130,15 @@
   // ---------- the frame every chart shares ----------
   // content width: the box minus its padding, so the drawing grid equals the rendered pixels (text stays 11 px)
   function inner(host) { if (!host.clientWidth) return 0; var cs = getComputedStyle(host), w = host.getBoundingClientRect().width - (parseFloat(cs.borderLeftWidth) || 0) - (parseFloat(cs.borderRightWidth) || 0); return Math.round((w - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)) * 100) / 100; }
+  // Speed (6.76.0): reading a chart box's width makes the page lay out everything the tab just rebuilt, once per chart.
+  // A ResizeObserver keeps each drawn box's inner width up to date after every layout, so a redraw reads it from memory.
+  var wMemo = new WeakMap(), wObs = window.ResizeObserver ? new ResizeObserver(function (es) { es.forEach(function (e) { wMemo.set(e.target, Math.round(e.contentRect.width * 100) / 100); }); }) : null;
+  function widthOf(host) { var w = wMemo.get(host); if (w) return w; w = inner(host); if (wObs && w) { wMemo.set(host, w); wObs.observe(host); } return w; }
   function frame(host, s, type, redraw) {
     var t0 = performance.now();
     host.classList.add('ck', 'ck-chart'); host.classList.toggle('ck-chart--in', !s.standalone);
     Array.prototype.slice.call(host.children).forEach(function (c) { if (/(^|\s)(ck-chart-svg|ck-chart-cap|ck-chart-key|ck-tip|ck-note|tip|fail)(\s|$)/.test(c.getAttribute('class') || '') || c.tagName.toLowerCase() === 'svg' || (c.matches && c.matches('p.note'))) c.remove(); });
-    var W = Math.max(s.minW || 200, inner(host) || s.fallbackW || 300);
+    var W = Math.max(s.minW || 200, widthOf(host) || s.fallbackW || 300);
     // narrow: {h}: under the 480 px breakpoint the chart takes this height (level charts; CHARTS.md 5)
     var nar = !!(s.narrow && !s.spark && !mq('(min-width: 480px)')), H = nar ? s.narrow.h : s.h || 160;
     var svg = mk(null, 'svg', { 'class': 'ck-chart-svg' + (s.spark ? ' ck-spark' : ''), width: '100%', height: H, viewBox: '0 0 ' + W + ' ' + H, role: 'img', tabindex: s.interactive === false ? null : 0, focusable: 'false' });

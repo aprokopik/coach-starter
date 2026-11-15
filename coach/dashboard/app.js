@@ -33,7 +33,12 @@
 
   const ds = (id) => dash.data(id);
   const rowsOk = (id) => { const d = dash.data(id); return d.status === 'ok' && Array.isArray(d.data) ? d.data : null; };
-  const kind = (k) => (rowsOk('coach') || []).filter((r) => r.kind === k);
+  // Speed (6.76.0): the coach rows are grouped by kind once per data arrival (keyed on the rows array), not scanned on every call.
+  // Each call still hands back its own array, so a caller that sorts or trims it changes nothing for the next one.
+  const kindIx = new WeakMap();
+  const kind = (k) => { const rows = rowsOk('coach'); if (!rows) return []; let ix = kindIx.get(rows);
+    if (!ix) { ix = new Map(); for (const r of rows) { const a = ix.get(r.kind); if (a) a.push(r); else ix.set(r.kind, [r]); } kindIx.set(rows, ix); }
+    return (ix.get(k) || []).slice(); };
   // the athlete's own easy heart rates the markers are read at (coach.json hr_anchor row, coach/tools/hr_anchor.py; the athlete, Nov 14, 2026)
   const ANC = () => { const a = kind('hr_anchor')[0] || {}; const n = (v) => (v === '' || v == null || isNaN(Number(v)) ? null : Number(v)); return { run: n(a.run) || 150, bike: n(a.bike) || 130, grun: n(a.guard_run) || 150, gbike: n(a.guard_bike) || 135 }; };
   const fail = (box) => { if (window.CKC) window.CKC.clear(box); box.replaceChildren(el('div', 'fail', 'Failed to load')); box.classList.remove('dash-skeleton'); };
@@ -56,7 +61,11 @@
   // The sticky bar's height (Phase 6): the range row on Fitness and Health docks under it, and scroll margins clear both
   { const bar = $('cx-bar'), root = $('cx'); if (bar && root && window.ResizeObserver) new ResizeObserver(() => root.style.setProperty('--cx-bar-h', bar.offsetHeight + 'px')).observe(bar); }
   { const bar = document.querySelector('.cx-tabs'); if (bar) { const edge = () => bar.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2); bar.addEventListener('scroll', edge, { passive: true }); window.addEventListener('resize', edge); edge(); } }
-  function show(page, link) {
+  // Speed (6.76.0): a tap on the tab strip or a range answers on the next paint and draws right after it, so the phone shows
+  // the tab or the range picked at once instead of after the whole tab is drawn. Several taps before that draw make one draw.
+  let drawSoon = false;
+  const renderSoon = () => { if (drawSoon) return; drawSoon = true; requestAnimationFrame(() => setTimeout(() => { drawSoon = false; render(); }, 0)); };
+  function show(page, link, soon) {
     if (!PAGES.includes(page)) page = 'today';
     const changed = state.page !== page;
     state.page = page;
@@ -65,16 +74,15 @@
       const t = $('tab-' + p); t.setAttribute('aria-selected', String(p === page)); t.tabIndex = p === page ? 0 : -1;
     }
     if (link) dash.setLink(page);
-    keepTabInView(page);
-    if (changed) { const top = $('cx-top').getBoundingClientRect().top; if (top < 0) $('cx-top').scrollIntoView(); }
-    render();
+    const place = () => { keepTabInView(page); if (changed) { const top = $('cx-top').getBoundingClientRect().top; if (top < 0) $('cx-top').scrollIntoView(); } };
+    if (soon) { requestAnimationFrame(() => setTimeout(place, 0)); renderSoon(); } else { place(); render(); } // both read the layout, so a tap leaves them until after the paint
   }
   PAGES.forEach((p, i) => {
     const t = $('tab-' + p);
-    t.addEventListener('click', () => show(p, true));
+    t.addEventListener('click', () => show(p, true, true));
     t.addEventListener('keydown', (e) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-      const n = PAGES[(i + (e.key === 'ArrowRight' ? 1 : PAGES.length - 1)) % PAGES.length]; show(n, true); $('tab-' + n).focus();
+      const n = PAGES[(i + (e.key === 'ArrowRight' ? 1 : PAGES.length - 1)) % PAGES.length]; show(n, true, true); $('tab-' + n).focus();
     });
   });
   window.CX.show = show;
@@ -103,7 +111,7 @@
   }
   function setSpan(v) {
     state.span = v; try { localStorage.setItem('cx-span', state.span); } catch (e) { /* per-viewer convenience only */ }
-    syncSpan(); if (state.page === 'trends') renderTrends(); else if (state.page === 'goals') renderGoals();
+    syncSpan(); if (state.page === 'trends' || state.page === 'goals') renderSoon();
   }
   for (const inp of document.querySelectorAll('#f-span input, #g-span input')) inp.addEventListener('change', () => { if (inp.checked) setSpan(inp.value); });
   // x-axis ticks: months under ~10 months, then every 2, 3, 6 or 12 months with the year, at most one label per ~46 px
@@ -1633,7 +1641,8 @@
   // metric_compare/<tile> (saved_at) or this device's cx-scales2 {id, at}, which only bridges until the store answers.
   const STAGE_GRACE = 28; // days; the athlete's pick on the grace card (Nov 14, 2026)
   const STEP_UP = /^Top (20|10|5|1|0\.5)%/;
-  const scalesOf = (m) => { if (!m || !m.scales) return []; try { const v = typeof m.scales === 'string' ? JSON.parse(m.scales) : m.scales; return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+  const scalesMemo = new WeakMap(); // Speed (6.76.0): a marker's scales text is read once per row, not on every draw
+  const scalesOf = (m) => { if (!m || !m.scales) return []; if (scalesMemo.has(m)) return scalesMemo.get(m); let out = []; try { const v = typeof m.scales === 'string' ? JSON.parse(m.scales) : m.scales; out = Array.isArray(v) ? v : []; } catch (e) { out = []; } scalesMemo.set(m, out); return out; };
   const scaleTile = (m) => { const o = kind('marker').find((x) => String(x.pair || '').split(',').map((k) => k.trim()).includes(m.key)); return o ? o.key : m.key; };
   const scaleSort = (sc) => sc.slice().sort((x, y) => (Number(x.stage) || 2) - (Number(y.stage) || 2) || (y.stage_label === 'Your race') - (x.stage_label === 'Your race'));
   const stageNo = (s) => Number(s.stage) || 2;
