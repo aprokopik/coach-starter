@@ -1085,7 +1085,7 @@
   // marked element the caller builds; the meter names the week it reads.
   // A Week totals ring (game look pass, the athlete's pick 2, Nov 14, 2026): a small ring that fills toward the plan with the figure
   // inside, the label and "of N" under it. The ring track is the role=img meter (CKC.meter sentence and marks); the figure is
-  // a sibling over it, so it stays readable text. A tile's longer subline goes to one shared line under the row (wkNote).
+  // a sibling over it, so it stays readable text. Each ring is a tab over the chart below (wkTab).
   function wkTile(label, fig, unit, sub, frac, wk, tone) {
     const t = el('div', 'wk-rcell'); t.dataset.tone = tone || 'accent';
     const ring = el('span', 'wk-ring'); const tr = el('span', 'wk-ring-t');
@@ -1098,12 +1098,6 @@
     if (unit) { const u = el('span', 'wk-ru'); u.append(...[].concat(unit)); t.append(u); }
     if (sub && !(Array.isArray(sub) && !sub.length)) t.wkSub = sub;
     return t;
-  }
-  // the subline of each ring as one line under the row: "Key sessions: 4 of 6 sessions overall · Effort load: ..."
-  function wkNote(cells) {
-    const p = el('p', 'ck-sub wk-rnote'); let n = 0;
-    for (const c of cells) { if (!c.wkSub) continue; if (n++) p.append(' · '); p.append(c.querySelector('.wk-rl').textContent + ': ', ...[].concat(c.wkSub)); }
-    return n ? p : null;
   }
   const dv = (txt, d, wk, src) => mark(el('span', null, txt), src || 'week_view', null, wk ? 'week=' + wk : null, d);
   // Key sessions (the athlete, Nov 3, 2026; rules coach/engine/KEY-SESSIONS.md): the three things that must happen each week for
@@ -1273,7 +1267,6 @@
     const wk = state.week;
     set('w-title', weekTitle(wk)); set('w-range', weekRange(wk));
     $('w-prev').disabled = false; $('w-next').disabled = dayN(wk) >= dayN(monday(TODAY)) + 21; // three weeks ahead (the athlete, Nov 15, 2026: "Tentative plan made up to 3 weeks advance")
-    for (const inp of document.querySelectorAll('#w-mode input')) inp.checked = inp.value === state.mode;
     const meta = kind('week').find((w) => w.week_start === wk);
     const ww = 'kind=week&week_start=' + wk;
     const wf = $('w-focus'); wf.replaceChildren(); wf.hidden = !meta;
@@ -1315,19 +1308,44 @@
       wkTile('Hours done', dv(f1(doneMin / 60), 'done-hours', wm), planMin ? ['of ', dv(f1(planMin / 60), 'plan-hours', wm), ' h'] : 'h', planMin ? '' : 'No plan for this week', planMin ? doneMin / planMin : null, wm, 'accent'),
       kIn.length ? wkTile('Key sessions', dv(String(kDone), 'key-done', wm), ['of ', dv(String(kIn.length), 'key-n', wm)], [dv(String(doneN), 'sessions-done', wm), ' of ', dv(String(plan.length), 'sessions-planned', wm), ' sessions overall'], kDone / kIn.length, wm, 'good')
         : wkTile('Sessions done', dv(String(doneN), 'sessions-done', wm), plan.length ? ['of ', dv(String(plan.length), 'sessions-planned', wm)] : '', doneRows.length > doneN ? ['+', dv(String(doneRows.length - doneN), 'sessions-unplanned', wm), ' not in the plan'] : '', plan.length ? doneN / plan.length : null, wm, 'good'),
-      (() => { // Effort load with a basis (the athlete, Nov 15, 2026: "there is no basis for effort ... What is it?"): the ring fills
-        // against your usual week, the median of the 8 weeks before with any rated session, and the line under the row says
-        // what the number counts with two anchors (an easy hour about 180, a hard hour about 420)
-        const prior = (rowsOk('weekly') || []).filter((x) => x.week < wk && N(x.rated) > 0 && N(x.load) > 0).slice(-8).map((x) => N(x.load)).sort((a, b) => a - b);
-        const usual = prior.length >= 3 ? prior[Math.floor(prior.length / 2)] : null;
-        const fig = wl && wl.rated ? mark(el('span', null, String(wl.load)), 'weekly', 'load', lw) : mark(el('span', null, '—'), 'weekly', null, null, 'none');
-        const unit = usual ? ['of ~', mark(el('span', null, String(Math.round(usual))), 'weekly', null, null, 'usual-load-8wk-median'), ' usual'] : 'effort × min';
-        const sub = wl && wl.rated ? ['effort 1 to 10 × minutes, from ', mark(el('span', null, String(wl.rated)), 'weekly', 'rated', lw), ` rated session${wl.rated > 1 ? 's' : ''}${N(wl.rated) < doneN ? ` of ${doneN} done, so it reads low until the rest are rated` : ''}; an easy hour is about `, ruleSpan('180', 'effort 3 × 60 min'), ', a hard hour about ', ruleSpan('420', 'effort 7 × 60 min')] : 'Rate sessions on Today';
-        return wkTile('Effort load', fig, unit, sub, usual && wl && wl.rated ? N(wl.load) / usual : null, wm, 'fg-3');
+      (() => { // Effort mix (the athlete, Nov 15, 2026, picked "Easy, steady, hard minutes" over a bare effort load number): the week's
+        // rated minutes in the words of "How hard was it?", Easy (Very easy, Easy), Steady and Hard (Hard, Very hard); calc weekly
+        // holds the sums. Then (the athlete on the options page: "my concern is trying to push to fill this up to have completion";
+        // "always a full ring but partitioned by wedge of effort easy/steady/hard using the colors in the bar chart. there should
+        // be a target ratio or mix for the week depending on the plan"): the ring is always closed, split by the rated minutes
+        // with no grey to fill, and its centre is the easy share. A thin outer line is the week's planned mix: the plan's own
+        // minutes summed by each planned session's intensity, as RULES.md 4 "Planned effort mix" says (the athlete picked "Add it as
+        // proposed", Nov 15, 2026); PLAN_EFFORT mirrors that line and test_effort_mix.py holds the two together.
+        const ez = wl ? N(wl.easy_min) || 0 : 0, sd = wl ? N(wl.steady_min) || 0 : 0, hd = wl ? N(wl.hard_min) || 0 : 0;
+        const rated = ez + sd + hd, pc = (x, t) => Math.round(x / t * 100);
+        const INT = PLAN_EFFORT;
+        const tg = { e: 0, s: 0, h: 0 }; let guess = false;
+        for (const r of plan) { const m = N(r.minutes) || 0; if (!m) continue; const k = INT[String(r.intensity || '').toLowerCase()]; if (!k) guess = true; tg[k || 'e'] += m; }
+        const tAll = tg.e + tg.s + tg.h;
+        const wedges = (a, b, c) => { const T = a + b + c, gap = [a, b, c].filter((x) => x > 0).length > 1 ? 1.2 : 0; let at = 0; const st = [];
+          for (const [x, col] of [[a, 'var(--ck-seq-1)'], [b, 'var(--ck-seq-3)'], [c, 'var(--ck-seq-5)']]) { if (!(x > 0)) continue; const e = at + x / T * 100; st.push(`${col} ${at + (at ? gap / 2 : 0)}% ${e - gap / 2}%`, `transparent ${e - gap / 2}% ${e}%`); at = e; }
+          return `conic-gradient(${st.join(', ')})`; };
+        const t = el('div', 'wk-rcell wk-mix'); t.dataset.tone = 'fg-3';
+        const ring = el('span', 'wk-ring wk-ring--mix'), tr = el('span', 'wk-ring-t');
+        if (rated > 0) { tr.style.background = wedges(ez, sd, hd);
+          tr.setAttribute('role', 'img'); tr.setAttribute('aria-label', `Effort mix of rated minutes: easy ${pc(ez, rated)}%, steady ${pc(sd, rated)}%, hard ${pc(hd, rated)}%` + (tAll ? `; planned ${pc(tg.e, tAll)}, ${pc(tg.s, tAll)}, ${pc(tg.h, tAll)}` : '')); }
+        else { tr.classList.add('wk-ring-t--none'); tr.setAttribute('aria-hidden', 'true'); }
+        ring.append(tr);
+        if (tAll) { const o = el('span', 'wk-ring-o'); o.style.background = wedges(tg.e, tg.s, tg.h); o.setAttribute('aria-hidden', 'true'); ring.append(o); }
+        const v = el('span', 'wk-ring-v'); v.append(rated ? mark(el('span', null, pc(ez, rated) + '%'), 'weekly', null, lw, 'easy_min of rated minutes') : mark(el('span', null, '—'), 'weekly', null, null, 'none'));
+        ring.append(v);
+        const cap = el('span', 'wk-ru');
+        if (!rated) cap.append('nothing rated yet');
+        else { cap.append('easy'); if (tAll) cap.append(' · plan ', mark(el('span', null, pc(tg.e, tAll) + '%'), 'week_view', null, wm ? 'week=' + wm : null, 'planned easy minutes of planned minutes'), guess ? ' estimated' : ''); }
+        t.append(ring, el('span', 'wk-rl', 'Effort mix'), cap);
+        return t;
       })(),
       wkTile('Strength', dv(String(strDone), 'strength-done', wm), ['of ', strOf], '', strDone / Math.max(2, strPlan), wm, 'strength'),
     ];
-    tiles.replaceChildren(...cells); { const nt = wkNote(cells); if (nt) tiles.append(nt); }
+    // The rings are tabs over the chart below (the athlete, Nov 15, 2026: "when the rings above are selected, to look like a tab that
+    // flowed down to the chart. There was too much text between it, and there's already a key at the bottom of the graph"):
+    // each ring picks what the chart shows; the line of notes under the row and the Hours / Effort mix switch are gone.
+    tiles.replaceChildren(...cells.map((c, i) => wkTab(c, WK_MODES[i])));
 
     days.replaceChildren();
     const list = $('w-list');
@@ -1368,10 +1386,27 @@
       days.append(de);
     }
   }
+  // RULES.md 4 "Planned effort mix": a planned session's intensity counts toward easy (e), steady (s) or hard (h) minutes
+  const PLAN_EFFORT = { easy: 'e', long: 'e', recovery: 'e', steady: 's', quality: 'h', race: 'h', test: 'h' };
+  // Week totals rings as tabs (6.81.0): the order of the four rings; state.mode is the one selected
+  const WK_MODES = ['hours', 'key', 'load', 'strength'];
+  const WK_TITLE = { hours: 'Hours by week', key: 'Key sessions by week', load: 'Effort mix by week', strength: 'Strength sessions by week' };
+  function wkTab(cell, mode) {
+    const b = el('button', cell.className + ' wk-tab'); b.type = 'button'; b.dataset.tone = cell.dataset.tone; b.append(...cell.childNodes);
+    b.id = 'w-tab-' + mode; b.dataset.mode = mode; b.setAttribute('role', 'tab'); b.setAttribute('aria-controls', 'w-load');
+    const on = state.mode === mode; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+    b.addEventListener('click', () => pickTab(mode));
+    b.addEventListener('keydown', (e) => { const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (!d) return; e.preventDefault();
+      const m = WK_MODES[(WK_MODES.indexOf(mode) + d + WK_MODES.length) % WK_MODES.length]; pickTab(m); const n = $('w-tab-' + m); if (n) n.focus(); });
+    return b;
+  }
+  function pickTab(mode) {
+    state.mode = mode;
+    for (const b of document.querySelectorAll('#w-tiles .wk-tab')) { const on = b.dataset.mode === mode; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; }
+    drawLoad();
+  }
   $('w-prev').addEventListener('click', () => { state.week = isoN(dayN(state.week) - 7); renderWeek(); });
   $('w-next').addEventListener('click', () => { state.week = isoN(dayN(state.week) + 7); renderWeek(); });
-  // Hours / Effort load: native radios in a Cockpit segmented control (arrow keys move between them); one state key, state.mode
-  for (const inp of document.querySelectorAll('#w-mode input')) inp.addEventListener('change', () => { if (inp.checked) { state.mode = inp.value; drawLoad(); } });
 
   function drawLoad() {
     const card = $('w-load'), box = $('c-load'); const wk = rowsOk('weekly'); const st = dsState('weekly');
@@ -1382,25 +1417,45 @@
     const weeks = d3.range(11, -1, -1).map((i) => isoN(dayN(last) - 7 * i));
     const by = Object.fromEntries(wk.map((w) => [w.week, w]));
     const plannedBy = {}; for (const r of rowsOk('week_view') || []) if (r.kind === 'plan' && !['rest', 'test'].includes(r.type)) plannedBy[r.week] = (plannedBy[r.week] || 0) + (N(r.minutes) || 0) / 60;
+    { const h = $('w-load-h'); if (h) h.textContent = WK_TITLE[state.mode] || WK_TITLE.hours; }
+    // Key sessions and Strength tabs: done per week against the week's number (3 key sessions; strength at least 2 a week,
+    // the ring's own denominator), counted from the week's rows as the rings count them
+    if (state.mode === 'key' || state.mode === 'strength') {
+      const wv = rowsOk('week_view') || [], isKey = state.mode === 'key', ok = ['done', 'fallback', 'swapped', 'extra'];
+      const cnt = (w) => { if (isKey) { const a = weekAdh(w, wv); return { n: a.kDone, of: a.kN }; }
+        const it = wv.filter((r) => r.week === w); const pl = it.filter((r) => r.kind === 'plan' && r.type === 'strength').length;
+        return { n: it.filter((r) => r.done_disc === 'strength' && ok.includes(r.status)).length, of: Math.max(2, pl) }; };
+      const rows = weeks.map((w) => { const c = cnt(w); return { x: w, parts: { n: c.n }, ref: c.of || null, t: { week: w, ...c } }; });
+      CKC().bar(box, {
+        key: 'week-' + state.mode, h: 190, rows, stack: [{ key: 'n', label: isKey ? 'Key sessions done' : 'Strength sessions done', tone: isKey ? 'good' : 'strength' }],
+        tone: isKey ? 'good' : 'strength', partKey: 'all', floor: 3, unit: '', vfmt: (v) => String(v), fmt: (v) => String(v),
+        refLabel: isKey ? 'Key sessions' : 'Target', selected: state.week, valueLabel: (v) => String(v),
+        title: isKey ? 'Key sessions done by week' : 'Strength sessions done by week', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
+        marks: { source: 'week_view' }, onPick: (r) => { state.week = r.x; renderWeek(); },
+        tip: (r) => ({ head: `Week of ${fDay(P(r.t.week))}`, lines: [{ text: `${r.t.n} of ${r.t.of} done` }] }),
+      });
+      return;
+    }
     const keys = ['bike', 'run', 'swim', 'strength', 'hike', 'other'];
     const hours = state.mode === 'hours';
-    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; o.total = keys.reduce((s, k) => s + o[k], 0); o.plan = plannedBy[w] || null; return o; });
+    const MIX = [['easy', 'Easy', 'seq-1'], ['steady', 'Steady', 'seq-3'], ['hard', 'Hard', 'seq-5']]; // effort mix, Nov 15, 2026
+    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; for (const m of ['easy', 'steady', 'hard']) o[m] = by[w] ? (N(by[w][m + '_min']) || 0) / 60 : 0; o.total = keys.reduce((s, k) => s + o[k], 0); o.plan = plannedBy[w] || null; return o; });
     const present = keys.filter((k) => table.some((t) => t[k] > 0));
     const curIn = hours && weeks.includes(cur) && TN - dayN(cur) + 1 < 7 ? { x: cur, days: TN - dayN(cur) + 1, of: 7 } : null;
     { const lg = $('c-load-legend'); lg.replaceChildren(); lg.hidden = true; } // direct labels replace the legend
     // the budget band is the hours target row (home: coach/athlete/profile.json budget_hours); script-held (CHARTS.md): the 7.5 h / 100 load floors
     const hb = kind('target').find((t) => t.key === 'hours' && t.lo != null && t.hi != null);
     CKC().bar(box, {
-      key: 'week-load', h: 190, rows: table.map((t) => ({ x: t.week, parts: hours ? Object.fromEntries(present.map((k) => [k, t[k]])) : null, v: t.load, ref: hours ? t.plan : null, t })),
-      stack: hours ? present.map((k) => ({ key: k, label: NAME[k], tone: SPORT_TONE[k], outline: k === 'hike' })) : null, tone: 'series-2',
+      key: 'week-load', h: 190, rows: table.map((t) => ({ x: t.week, parts: hours ? Object.fromEntries(present.map((k) => [k, t[k]])) : Object.fromEntries(MIX.map(([k]) => [k, t[k]])), ref: hours ? t.plan : null, t })),
+      stack: hours ? present.map((k) => ({ key: k, label: NAME[k], tone: SPORT_TONE[k], outline: k === 'hike' })) : MIX.map(([key, label, tone]) => ({ key, label, tone })), tone: 'series-2',
       partKey: 'all',
-      floor: hours ? 7.5 : 100, unit: hours ? 'h' : 'effort × min', vfmt: hours ? f1 : f0, fmt: (v) => String(v), partial: curIn,
+      floor: hours ? 7.5 : 2, unit: 'h', vfmt: f1, fmt: (v) => String(v), partial: curIn,
       bands: hours && hb ? [{ lo: N(hb.lo), hi: N(hb.hi), label: `${N(hb.lo)} to ${N(hb.hi)} h budget`, marks: { source: 'coach', where: 'kind=target&key=hours' } }] : [],
-      refLabel: hours ? 'Planned' : null, selected: state.week, valueLabel: hours ? (v) => `${f1(v)} h` : null,
-      title: hours ? 'Training hours by week' : 'Effort load by week', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
+      refLabel: hours ? 'Planned' : null, selected: state.week, valueLabel: (v) => `${f1(v)} h`,
+      title: hours ? 'Training hours by week' : 'Easy, steady and hard hours by week (rated sessions)', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
       marks: { source: 'weekly', key: 'week' },
       onPick: (r) => { state.week = r.x; renderWeek(); },
-      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : [{ text: t.rated ? `${t.load} effort load · ${t.rated} rated` : 'No rated sessions' }] }; },
+      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : t.rated ? MIX.map(([k, lab, tone]) => ({ tone, text: `${lab}: ${f1(t[k])} h` })).concat([{ text: `${t.rated} session${t.rated > 1 ? 's' : ''} rated` }]) : [{ text: 'No rated sessions' }] }; },
     });
   }
 

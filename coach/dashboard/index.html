@@ -426,15 +426,10 @@
         <section class="ck-sect wk-totals" id="w-totals" aria-labelledby="w-totals-h">
           <div class="ck-sect-head"><h2 class="ck-h3" id="w-totals-h">Week totals</h2></div>
           <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
-          <div class="ck-grid wk-tiles" id="w-tiles" data-body hidden data-source="week_view weekly"></div>
+          <div class="ck-grid wk-tiles" id="w-tiles" role="tablist" aria-label="Week totals; pick one to chart it by week" data-body hidden data-source="week_view weekly"></div>
         </section>
-        <article class="ck-tile wk-card" id="w-load" aria-labelledby="w-load-h">
-          <div class="ck-tile-head"><h2 class="ck-h3" id="w-load-h">Load by week</h2></div>
-          <fieldset class="ck-seg wk-mode" id="w-mode">
-            <legend class="ck-vh">Measure</legend>
-            <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="w-mode" value="hours" checked>Hours</label>
-            <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="w-mode" value="load">Effort load</label>
-          </fieldset>
+        <article class="ck-tile wk-card wk-panel" id="w-load" role="tabpanel" aria-labelledby="w-load-h">
+          <div class="ck-tile-head ck-vh"><h2 class="ck-h3" id="w-load-h">Hours by week</h2></div>
           <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel ck-skel--lg" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span></div>
           <div class="wk-body" data-body hidden>
             <div class="chart" id="c-load" style="--h:190px" data-source="weekly week_view"></div>

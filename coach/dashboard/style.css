@@ -1154,10 +1154,25 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .wk-ring > * { grid-area: 1 / 1; }
 .ck .wk-ring-t { border-radius: 50%; background: conic-gradient(var(--tn) var(--p, 0%), var(--ck-line) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
 .ck .wk-ring-t--none { background: var(--ck-line); }
+/* Effort mix: a closed ring of the rated minutes inside a thin outer line of the week's target split (the athlete, Nov 15, 2026) */
+.ck .wk-ring--mix .wk-ring-t { margin: 5px; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+.ck .wk-ring--mix .wk-ring-v { font-size: var(--ck-t1, .8125rem); }
+.ck .wk-ring-o { border-radius: 50%; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); }
 .ck .wk-ring-v { place-self: center; font-size: var(--ck-t3, 1.0625rem); line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); color: var(--ck-fg); }
 .ck .wk-rl { font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
 .ck .wk-ru { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
-.ck .wk-rnote { grid-column: 1 / -1; margin: var(--ck-s1) 0 0; text-align: left; }
+/* The rings are tabs over the chart (the athlete, Nov 15, 2026: "look like a tab that flowed down to the chart"): the selected ring
+   takes the chart card's surface and edge on three sides and opens into it, the others sit on the page; nothing in between */
+.ck .ck-grid.wk-tiles[role=tablist] { gap: 4px; padding: 0; background: none; border: 0; border-radius: 0; position: relative; z-index: 1; }
+.ck .wk-tab { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; min-height: var(--ck-tap); padding: var(--ck-s2) 2px var(--ck-s3);
+  background: none; border: 1px solid transparent; border-bottom: 0; border-radius: var(--ck-r2) var(--ck-r2) 0 0; margin-bottom: -1px; }
+.ck .wk-tab:hover { background: var(--ck-surface-2, var(--ck-surface)); }
+.ck .wk-tab[aria-selected=true] { background: var(--ck-surface); border-color: var(--ck-line); padding-bottom: calc(var(--ck-s3) + 1px); }
+.ck .wk-tab:focus-visible { outline: 2px solid var(--ck-accent); outline-offset: -3px; }
+.ck .wk-totals:has(.wk-tab) + .wk-panel { margin-top: calc(-1 * var(--ck-s3)); }
+.ck .wk-panel { box-shadow: none; }
+/* first or last tab: the card corner under it is square */ .ck .wk-totals:has(#w-tab-hours[aria-selected=true]) + .wk-panel { border-top-left-radius: 0; }
+.ck .wk-totals:has(#w-tab-strength[aria-selected=true]) + .wk-panel { border-top-right-radius: 0; }
 /* This block's goals as step bars (game look pass, the athlete's pick 1, Nov 14, 2026): baseline to target in steps of the sport
    colour, then one gold step from target to Strong; the even-pace tick sits on the target steps */
 .ck .bk-steps { display: flex; gap: 3px; height: 8px; }

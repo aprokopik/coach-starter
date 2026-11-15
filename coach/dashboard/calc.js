@@ -92,7 +92,7 @@
 
   dash.calc('weekly', {
     title: 'Training per week',
-    description: 'Mon–Sun weeks: Garmin hours by discipline (walks and sauna left out), plus strength and not-yet-synced sessions logged on the dashboard, and effort load (RPE × minutes) from rated sessions.',
+    description: 'Mon–Sun weeks: Garmin hours by discipline (walks and sauna left out), plus strength and not-yet-synced sessions logged on the dashboard, and from rated sessions the effort load (RPE × minutes) and the effort mix: minutes rated easy (Very easy, Easy), steady (Steady) and hard (Hard, Very hard).',
     inputs: ['activities', 'coach'],
     fn: (activities, coach) => {
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
@@ -101,7 +101,7 @@
       const mon = (s) => { const n = day(s); return iso(n - ((new Date(n * 86400000).getUTCDay() + 6) % 7)); };
       const disc = (t, nm) => { t = String(t || '').toLowerCase(); if (/sauna/i.test(String(nm || ''))) return 'sauna'; if (/swim/.test(t)) return 'swim'; if (/(cycl|ride|bik|zwift)/.test(t)) return 'bike'; if (/run/.test(t)) return 'run'; if (/strength/.test(t)) return 'strength'; if (/hik/.test(t)) return 'hike'; if (/walk/.test(t)) return 'walk'; return 'other'; };
       const out = {};
-      const wk = (w) => (out[w] = out[w] || { week: w, bike: 0, run: 0, swim: 0, strength: 0, hike: 0, other: 0, total: 0, sessions: 0, load: 0, rated: 0 });
+      const wk = (w) => (out[w] = out[w] || { week: w, bike: 0, run: 0, swim: 0, strength: 0, hike: 0, other: 0, total: 0, sessions: 0, load: 0, rated: 0, easy_min: 0, steady_min: 0, hard_min: 0 });
       const seen = new Set();
       for (const a of activities) {
         const d = String(a.local_start || '').slice(0, 10); const k = disc(a.type, a.name);
@@ -115,12 +115,15 @@
           const h = (val(f.minutes) || 0) / 60; w[f.discipline in w ? f.discipline : 'other'] += h; w.total += h; w.sessions += 1;
         }
         if (val(f.srpe_load) !== null) { w.load += val(f.srpe_load); w.rated += 1; }
+        // effort mix (the athlete, Nov 15, 2026, picked "Easy, steady, hard minutes"): the answer words, never a hidden number.
+        // Words store as 2 3 4 6 8; older 1 to 10 answers fall in the same three groups (up to 3 easy, 4 and 5 steady, 6 up hard)
+        { const e = val(f.rpe), m = val(f.minutes); if (e !== null && m) w[e <= 3 ? 'easy_min' : e < 6 ? 'steady_min' : 'hard_min'] += m; }
       }
       const weeks = Object.keys(out).sort();
       if (!weeks.length) return [];
       for (let n = day(weeks[0]); n <= day(weeks[weeks.length - 1]); n += 7) wk(iso(n));
       const r2 = (x) => Math.round(x * 100) / 100;
-      return Object.values(out).sort((a, b) => (a.week < b.week ? -1 : 1)).map((w) => ({ ...w, bike: r2(w.bike), run: r2(w.run), swim: r2(w.swim), strength: r2(w.strength), hike: r2(w.hike), other: r2(w.other), total: r2(w.total), load: Math.round(w.load) }));
+      return Object.values(out).sort((a, b) => (a.week < b.week ? -1 : 1)).map((w) => ({ ...w, bike: r2(w.bike), run: r2(w.run), swim: r2(w.swim), strength: r2(w.strength), hike: r2(w.hike), other: r2(w.other), total: r2(w.total), load: Math.round(w.load), easy_min: Math.round(w.easy_min), steady_min: Math.round(w.steady_min), hard_min: Math.round(w.hard_min) }));
     },
   });
 
