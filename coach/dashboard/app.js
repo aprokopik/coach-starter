@@ -1649,26 +1649,35 @@
     const calcRow = (k) => kind('marker').find((x) => x.key === k && x.section === 'calc');
     // the run and bike tiles are computed here from the fitness rows: the latest 28-day mean, its change over 8 weeks
     const RULE_28 = 'calc.js fitness: avg28, the mean of the 28 days up to the session';
+    // Bike power goes stale on outdoor riding (Closed loops, the athlete's pick, option 1 of five, Nov 15, 2026): the tile names the last
+    // power ride, and after 14 days with none the level chip reads Out of date, the way an old trail tile says how old it is
+    const BIKE_STALE_DAYS = 14, RULE_STALE = 'app.js renderFitness: Out of date when the last power ride is more than 14 days old (BIKE_STALE_DAYS)';
     const RULE_8W = 'app.js markerSummary: the 28-day mean now against the 28 days ending 8 weeks earlier';
     const tiles = [];
     const sR = markerSummary(run, 'value', TN);
     tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: '/mi', delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['flat run', 'flat runs'], none: 'No flat runs yet', asOf: sR ? sR.asOf : null });
     const sB = markerSummary(bike, 'value', TN);
-    tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No Zwift rides yet', asOf: sB ? sB.asOf : null });
+    tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No Zwift rides yet', asOf: sB ? sB.asOf : null, lastD: bike.length ? Math.max(...bike.map((r) => dayN(r.date))) : null, staleAfter: BIKE_STALE_DAYS });
     { const pn = $('f-expand'); if (pn && pn.parentNode === tilesBox) tilesBox.after(pn); }
     tilesBox.replaceChildren();
     for (const t of tiles) {
       const fw = 'marker=' + t.key; const cr = calcRow(t.key);
       // the label is the calc marker row's own (the 150 and 130 bpm references are calc.js rules, CHARTS.md 10)
       const label = cr && cr.label ? mark(el('span', null, cr.label), 'coach', 'label', 'kind=marker&key=' + t.key) : ruleSpan(t.label, 'calc.js fitness: pace and power at your own easy heart rates (hr_anchor)');
-      const extra = [];
+      const extra = [], stale = t.staleAfter && t.lastD !== null && TN - t.lastD > t.staleAfter;
       { const src = t.key === 'run' ? run : bike; const bc = blockContext(t.key, src.filter((r) => N(r.avg28) !== null).sort((a, c) => (a.date < c.date ? -1 : 1)).map((r) => ({ date: r.date, value: N(r.avg28) })));
-        if (bc && bc.full.length && tiersOf(bc.cm).length) { extra.push(withStage(levelBadge(levelFor(bc.cm, bc.full[bc.full.length - 1].value), t.key), stageChip(bc.cm))); const uc = stepChip(bc.cm, bc.full[bc.full.length - 1].value); if (uc) extra.push(uc); } /* no Goal chip: This block's goals is its one home */ }
+        if (stale) { const b = badge('watch', 'Out of date', 'ft-old'); b.setAttribute('data-rule', RULE_STALE); extra.push(b); }
+        else if (bc && bc.full.length && tiersOf(bc.cm).length) { extra.push(withStage(levelBadge(levelFor(bc.cm, bc.full[bc.full.length - 1].value), t.key), stageChip(bc.cm))); const uc = stepChip(bc.cm, bc.full[bc.full.length - 1].value); if (uc) extra.push(uc); } /* no Goal chip: This block's goals is its one home */ }
       if (t.delta !== null) t.delta = t.rnd(t.delta);
       const subs = [];
       if (t.delta !== null && t.delta !== 0) subs.push([mark(el('b', null, t.dtext(t.delta)), 'fitness', null, fw, 'change-8wk'), ' vs ', ruleSpan('8 wk', RULE_8W), ' earlier']);
       else if (t.delta !== null) subs.push(['Same as ', ruleSpan('8 wk', RULE_8W), ' earlier']);
       subs.push(t.n ? [mark(el('span', null, String(t.n)), 'fitness', null, fw, 'count'), ` ${t.what[t.n === 1 ? 0 : 1]}, `, ruleSpan('28 days', RULE_28), t.asOf < TN - 1 ? [' to ', mark(el('span', null, fDay(P(isoN(t.asOf)))), 'fitness', null, fw, 'date')] : ''].flat() : t.none);
+      if (t.lastD !== undefined && t.lastD !== null) { // the last power ride, always named; its age once it is out of date
+        const ld = mark(el('span', null, fDay(P(isoN(t.lastD)))), 'fitness', null, fw, 'last-date'), ago = TN - t.lastD;
+        if (stale) subs.splice(0, subs.length, ['Last ', t.what[0], ' ', ld, ', ', mark(el('span', null, String(ago)), 'fitness', null, fw, 'days-since-last'), ' days ago']);
+        else subs.push(['Last ', t.what[0], ' ', ld]);
+      }
       tilesBox.append(fitTile(t.key, { sel: state.fit, label, fig: mark(el('span', null, t.value), 'fitness', null, fw, t.key === 'run' ? 'formatted' : 'avg-28d'), unit: el('span', 'ck-unit', t.unit), extra, subs, onPick: ftPick }));
     }
     for (const m of kind('marker').filter((x) => x.section === 'fitness').sort((a, b) => a.order - b.order)) tilesBox.append(markerTile(m, state.fit, ftPick));
