@@ -835,37 +835,71 @@
     $('n-g-v').textContent = (v > 0 ? '+' : v < 0 ? '−' : '') + f1(a);
     const b = $('n-g-b'); b.replaceChildren(s === 'plain' ? neutralChip(word, 'ck-badge--md') : badge(s, word, 'ck-badge--md'));
     $('n-g-s').textContent = v === 0 ? 'at your normal' : `${a < 1 ? 'a little ' : a >= 2 ? 'well ' : ''}${v > 0 ? 'above' : 'below'} your normal`;
-    // Bell curve (the athlete, Nov 15, 2026: "really like the Bell curve ... for when you expand"): your nights spread as a normal
-    // curve from lo to hi; the shaded middle is your usual range (-1 to +1 SD, about 2 in 3 nights), the dot is last night.
-    // 1 unit = 1 px (280 by 150), so the 11 px words stay 11 px.
-    const W = 280, H = 150, x0 = 16, x1 = 264, base = 112, top = 22, NS = 'http://www.w3.org/2000/svg';
-    const X = (u) => x0 + (Math.max(lo, Math.min(hi, u)) - lo) / (hi - lo) * (x1 - x0), Y = (u) => base - (base - top) * Math.exp(-u * u / 2);
+    // Bell curve (the athlete, Nov 15, 2026: "really like the Bell curve ... for when you expand"; then "show plus or minus 1 sigma
+    // and plus or minus 2 sigma" and, on the sigma options page E1nGjsBnsHSDBg1gvqfB7M, a blend of options 1, 2 and 3 with
+    // "the last 3 nights as dots on the graph, more and more faded the farther back"). Drawn from -3 to +3 SD so the 2 SD
+    // edge shows: within 1 SD shaded (about 2 in 3 nights), 1 to 2 SD lighter (about 1 in 7 each side), beyond 2 SD a
+    // faint tint. The dots are calc night_week (night_gauge run for each night, read here, never recomputed): last night
+    // solid, the two nights before it fainter with age. Cut-offs and words unchanged. 1 unit = 1 px (280 by 156).
+    const BL = 3, W = 280, H = 136, x0 = 16, x1 = 264, base = 94, top = 18, NS = 'http://www.w3.org/2000/svg';
+    const X = (u) => x0 + (Math.max(-BL, Math.min(BL, u)) + BL) / (2 * BL) * (x1 - x0), Y = (u) => base - (base - top) * Math.exp(-u * u / 2);
     const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('class', 'td-g-svg td-bell');
-    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', `Bell curve of your nights: most land near your normal, about 2 in 3 inside the shaded middle. Last night sits ${$('n-g-s').textContent}, ${word.toLowerCase()}.`);
+    const wk = (rowsOk('night_week') || []).filter((x) => x.date && N(x.value) !== null).slice(-3);
+    const past = wk.filter((x) => x.date !== r.date).slice(-2);
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', `Bell curve of your nights around your normal, shaded within 1 sigma, 1 to 2 sigma and beyond 2 sigma. Last night sits ${$('n-g-s').textContent}, ${word.toLowerCase()}.${past.length ? ' The nights before it are the fainter dots; the list below reads them.' : ''}`);
     const add = (tag, at, txt) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; svg.append(e); return e; };
     const pts = (from, to) => { const o = []; for (let u = from; u <= to + 1e-9; u += (to - from) / 60) o.push(`${X(u).toFixed(1)} ${Y(u).toFixed(1)}`); return o; };
-    add('path', { d: `M ${X(-USUAL).toFixed(1)} ${base} L ${pts(-USUAL, USUAL).join(' L ')} L ${X(USUAL).toFixed(1)} ${base} Z`, class: 'td-bell-band' });
-    add('path', { d: `M ${pts(lo, hi).join(' L ')}`, class: 'td-bell-line' });
+    const area = (a, b, c) => add('path', { d: `M ${X(a).toFixed(1)} ${base} L ${pts(a, b).join(' L ')} L ${X(b).toFixed(1)} ${base} Z`, class: c });
+    area(-BL, -2, 'td-bell-b3'); area(2, BL, 'td-bell-b3'); area(-2, -USUAL, 'td-bell-b2'); area(USUAL, 2, 'td-bell-b2'); area(-USUAL, USUAL, 'td-bell-band');
+    add('path', { d: `M ${pts(-BL, BL).join(' L ')}`, class: 'td-bell-line' });
     add('line', { x1: x0, y1: base, x2: x1, y2: base, class: 'td-bell-base' });
     add('line', { x1: X(0), y1: top - 4, x2: X(0), y2: base, class: 'td-g-mid' });
+    // The nights sit on the curve (the athlete, Nov 15, 2026: "put these back on the curve"); older nights fainter
+    past.forEach((x, i) => { const pv = N(x.value); add('circle', { cx: X(pv).toFixed(1), cy: Y(pv).toFixed(1), r: 6, class: 'td-g-dot td-bell-past', style: `opacity:${i === past.length - 1 ? 0.5 : 0.25}` }); });
     add('line', { x1: X(v).toFixed(1), y1: Y(v).toFixed(1), x2: X(v).toFixed(1), y2: base, class: 'td-bell-stem', 'data-s': s });
     add('circle', { cx: X(v).toFixed(1), cy: Y(v).toFixed(1), r: 7, class: 'td-g-dot' });
-    add('text', { x: x0, y: base + 18, class: 'td-g-w', 'text-anchor': 'start' }, 'low'); add('text', { x: X(0), y: base + 18, class: 'td-g-w' }, 'normal'); add('text', { x: x1, y: base + 18, class: 'td-g-w', 'text-anchor': 'end' }, 'high');
-    add('text', { x: X(0), y: base + 36, class: 'td-g-w td-bell-cap' }, 'shaded: your usual range, about 2 in 3 nights');
+    for (const [u, t] of [[-2, '−2σ'], [-1, '−1σ'], [0, 'normal'], [1, '+1σ'], [2, '+2σ']]) add('text', { x: X(u).toFixed(1), y: base + 16, class: 'td-g-w' }, t);
+    // No band frequencies on the curve (the athlete, Nov 15, 2026: no "2 in 3" or "1 in 7"); the shading and σ labels carry it.
+    const wdn = (iso) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(iso + 'T00:00:00Z').getUTCDay()];
+    // The key draws the dots themselves (the athlete, Nov 15, 2026: "instead of saying big dot.. faint dot.. use the actual symbol in
+    // the key"): last night's dot, then each night before it at its own fade, named by weekday
+    if (past.length) {
+      const items = [[7, 1, 'last night', ''], ...past.slice().reverse().map((x, i) => [6, i === 0 ? 0.5 : 0.25, wdn(x.date), ' td-bell-past'])];
+      const wd = items.map(([, , t]) => 18 + t.length * 6.3 + 14), tot = wd.reduce((a, b) => a + b, 0) - 14; let at = X(0) - tot / 2 + 7;
+      items.forEach(([rr, op, t, c], i) => { const cx = at; at += wd[i]; add('circle', { cx: cx.toFixed(1), cy: base + 30, r: rr, class: 'td-g-dot' + c, style: `opacity:${op}` }); add('text', { x: (cx + 11).toFixed(1), y: base + 34, class: 'td-g-w td-bell-cap td-bell-key' }, t); });
+    }
+    // Context under the curve (the athlete, Nov 15, 2026: "give you context for where you land today and your previous nights, very
+    // simply, and what it should mean for what you're doing today"). The nights are night_week in plain zone words; the
+    // advice is the coach's own call for today (READY_MEAN of the today row), never decided here (one home: the engine).
+    const zw = (pv) => { const pa = Math.abs(pv); return pa < 1 ? 'normal' : `${pa >= 2 ? '2σ' : '1σ'} ${pv > 0 ? 'above' : 'below'}`; };
+    // As a small table, colour coded like the track's steps (the athlete, Nov 15: "can you make this a table? Or color code"):
+    // within 1σ the usual-range green, 1σ to 2σ the light accent, beyond 2σ the warm tint; the words carry the direction.
+    { const cd = $('n-g-ctx-d'), cn = $('n-g-ctx-n'); cd.replaceChildren(); cn.replaceChildren();
+      wk.forEach((x) => { const pv = N(x.value), pa = Math.abs(pv), th = el('th', null, x.date === r.date ? 'Today' : wdn(x.date)); th.scope = 'col'; cd.append(th);
+        const td = el('td'); td.append(mark(el('span', 'td-nz td-nz-' + (pa < 1 ? 'b1' : pa < 2 ? 'b2' : 'b3'), zw(pv)), 'night_week', null, 'key=' + x.date, 'zone')); cn.append(td); });
+      const td = kind('today')[0], rw = td ? READY_MEAN[String(td.readiness || '').toUpperCase()] : null;
+      $('n-g-ctx-t').textContent = rw || 'Arrives with the morning check-in.';
+      $('n-g-ctx-t').closest('p').hidden = false; }
+    const lst = $('n-g-last'); lst.replaceChildren();
+    for (const x of wk) { const pv = N(x.value), pa = Math.abs(pv), li = el('li', null, (x.date === r.date ? 'Last night' : wdn(x.date)) + ': ');
+      li.append(mark(el('span', null, (pv > 0 ? '+' : pv < 0 ? '−' : '') + f1(pa)), 'night_week', 'value', 'key=' + x.date), ` sigma, ${pa < 1 ? 'within 1 sigma' : pa < 2 ? 'between 1 and 2 sigma ' + (pv > 0 ? 'above' : 'below') : 'beyond 2 sigma ' + (pv > 0 ? 'above' : 'below')}`); lst.append(li); }
     draw.append(svg);
     if (window.CK && window.CK.firstDraw) window.CK.firstDraw(draw, 'night-gauge');
     // the meter line in the call (the same figure and word, marked the same): a bar from lo to hi, the fill from 0 to the
     // value in the status colour, a mark at 0, dashed marks at -1 and +1, and the dot at the value
     $('t-nm-v').textContent = $('n-g-v').textContent;
     $('t-nm-word').replaceChildren(s === 'plain' ? neutralChip(word) : badge(s, word));
-    const at = (u) => Math.max(0, Math.min(1, (u - lo) / (hi - lo))) * 100, bar = $('t-nm-bar'); bar.replaceChildren(); bar.dataset.s = s;
-    // game look round two (option 1, SD bar): the usual band (-1 to +1 SD) is shaded on the track, whole SD steps are labelled
-    // under it, and last night is the dot in its status colour; the scale and the cut-offs are unchanged
-    const band = el('i', 'td-nm-band'); band.style.left = at(-USUAL) + '%'; band.style.width = (at(USUAL) - at(-USUAL)) + '%';
+    // Sigma blend (the athlete, Nov 15, 2026: options 1, 2 and 3 together, sigma options page E1nGjsBnsHSDBg1gvqfB7M): the track
+    // runs -2.5 to +2.5 SD in five joined steps like the level bars (beyond 2 SD, 1 to 2 SD, within 1 SD, 1 to 2 SD, beyond
+    // 2 SD); the step last night sits in is filled, the dot marks the spot, and the 1 and 2 SD edges are labelled under it.
+    const TR = 2.5, at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, bar = $('t-nm-bar'); bar.replaceChildren(); bar.dataset.s = s;
+    for (const [a0, a1, c] of [[-TR, -2, 'b3'], [-2, -USUAL, 'b2'], [-USUAL, USUAL, 'b1'], [USUAL, 2, 'b2'], [2, TR, 'b3']]) {
+      const g = el('i', 'td-nm-seg td-nm-' + c + (v >= a0 && (v < a1 || (a1 === TR && v >= a1)) ? ' on' : '')); g.style.left = at(a0) + '%'; g.style.width = (at(a1) - at(a0)) + '%'; bar.append(g);
+    }
     const mk = (c, u) => { const i = el('i', c); i.style.left = at(u) + '%'; return i; };
-    bar.append(band, mk('td-nm-mid', 0), mk('td-nm-pt', v));
-    for (let u = Math.ceil(lo); u <= Math.floor(hi); u++) { const t = mk('td-nm-tk', u); t.textContent = u === 0 ? 'normal' : ''; /* the athlete, Nov 15: SD figures confuse people who do not know them; the marks stay, the middle one named */ bar.append(t); }
-    $('t-nm-btn').setAttribute('aria-label', `Last night ${$('t-nm-v').textContent} SD, ${word}, on a scale from ${lo} to +${hi} SD; usual range is -${USUAL} to +${USUAL} SD. Show the gauge and all vitals`);
+    bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', v));
+    for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) { const k = mk('td-nm-tk', u); k.textContent = t; bar.append(k); }
+    $('t-nm-btn').setAttribute('aria-label', `Last night ${$('t-nm-v').textContent} SD, ${word}, on a scale from -${TR} to +${TR} sigma; within 1 sigma is usual, 1 to 2 sigma is outside usual, beyond 2 sigma is well outside. Show the gauge and all vitals`);
   }
   // The deck's Watch notice: the six vitals under the rule above (no new rule).
   function renderCall(by) {

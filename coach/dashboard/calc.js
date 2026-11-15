@@ -210,6 +210,36 @@
     },
   });
 
+  // Last 7 nights on the sigma bands (the athlete, Nov 15, 2026, sigma options page, my pick 4 built ahead of his tap): the same
+  // number as night_gauge, run for each of the last 7 nights. Each night's metric is measured against the 28 days before
+  // that night (n >= 14, z rounded to 0.1 as calc.js night does), signed so higher is better, then averaged and rounded to
+  // 0.1, so the last row always equals night_gauge. A night with no metric that has a band gives value null.
+  dash.calc('night_week', {
+    title: 'Last 7 nights vs your normal',
+    description: "Each of the last 7 nights in one number: the mean of that night's SD distances from the 28 days before it for sleep hours, sleep score, HRV and resting HR (flipped), as night_gauge does for last night.",
+    inputs: ['recovery'],
+    fn: (recovery) => {
+      const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
+      const rows = recovery.filter((r) => r.date).sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (!rows.length) return [];
+      const keys = [['sleep_h', 1], ['sleep_score', 1], ['hrv_overnight_ms', 1], ['resting_hr', -1]];
+      const lastDay = dayN(rows[rows.length - 1].date), out = [];
+      for (let k = 6; k >= 0; k--) {
+        const t = lastDay - k, cur = rows.find((r) => dayN(r.date) === t), zs = [];
+        for (const [m, better] of keys) {
+          const v = cur ? val(cur[m]) : null; if (v === null) continue;
+          const base = rows.filter((r) => dayN(r.date) < t && dayN(r.date) >= t - 28).map((r) => val(r[m])).filter((x) => x !== null);
+          const n = base.length; if (n < 14) continue;
+          const mean = base.reduce((a, b) => a + b, 0) / n, sd = Math.sqrt(base.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
+          if (sd) zs.push(Math.round((v - mean) / sd * 10) / 10 * better); // rounded exactly as calc.js night rounds z
+        }
+        const mean = zs.length ? round(zs.reduce((a, b) => a + b, 0) / zs.length, 1) : null;
+        out.push({ key: isoN(t), date: isoN(t), value: mean === 0 ? 0 : mean, used: zs.length, of: keys.length });
+      }
+      return out;
+    },
+  });
+
   dash.calc('recovery_roll', {
     title: 'Recovery with your rolling band',
     description: 'Nightly sleep hours, HRV and resting HR with the mean ± 1 SD of the 28 days before each night, once 14 nights exist.',

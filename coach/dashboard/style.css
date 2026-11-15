@@ -1238,8 +1238,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-bell-band { fill: color-mix(in srgb, var(--ck-good) 22%, transparent); }
 .ck .td-bell-line { fill: none; stroke: var(--ck-fg-2); stroke-width: 2; }
 .ck .td-bell-base { stroke: var(--ck-line); stroke-width: 1; }
-.ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
-.ck .td-bell-cap { fill: var(--ck-fg-2); }
+.ck .td-bell-cap { fill: var(--ck-fg-2); } .ck .td-bell-key { text-anchor: start; }
 .ck .hl-grp { margin: var(--ck-s3) 0 var(--ck-s1); font-size: var(--ck-t2); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
 
 /* Today: This week as a path (Sprint Review g-today-week, pick 1, Nov 15): the days sit on one line like nodes on a path; the
@@ -1267,3 +1266,43 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }
+
+/* Sigma blend (the athlete, Nov 15, 2026: options 1, 2 and 3 together): the Today track as five joined steps, 1 SD in the
+   usual-range green, 1 to 2 SD in a light accent, beyond 2 SD a faint warm tint; the step holding last night is filled
+   stronger. The bell curve takes the same three fills, and the nights before last night are fainter dots. */
+.ck .td-nm-bar { background: none; box-shadow: none; }
+.ck .td-nm-bar > .td-nm-seg { box-sizing: border-box; border: 1px solid var(--ck-surface); border-radius: 3px; }
+.ck .td-nm-bar > .td-nm-b1 { background: color-mix(in srgb, var(--ck-good) 30%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-b2 { background: color-mix(in srgb, var(--ck-accent) 16%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-b3 { background: color-mix(in srgb, var(--ck-watch) 16%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-b1.on { background: color-mix(in srgb, var(--ck-good) 60%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-b2.on { background: color-mix(in srgb, var(--ck-accent) 45%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-b3.on { background: color-mix(in srgb, var(--ck-watch) 45%, var(--ck-surface-2)); }
+.ck .td-bell-b2 { fill: color-mix(in srgb, var(--ck-accent) 14%, transparent); }
+.ck .td-bell-b3 { fill: color-mix(in srgb, var(--ck-watch) 14%, transparent); }
+.ck .td-bell-in { fill: var(--ck-fg); font-weight: var(--ck-w-semi, 600); }
+.ck .td-bell-past { stroke-width: 2; }
+/* The context under the curve: where the last nights landed and the coach's call for today (the athlete, Nov 15, 2026). */
+.ck .td-g-ctx { display: grid; gap: 4px; text-align: left; }
+.ck .td-g-ctx-l { margin: 0; display: grid; grid-template-columns: 7em minmax(0, 1fr); gap: 8px; font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .td-g-ctx-l > b:first-child { color: var(--ck-fg-2); font-weight: var(--ck-w-semi, 600); }
+/* The call word and its meaning on one line (the athlete, Nov 15, 2026). */
+.ck #t-hero .ck-call-main { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 4px; }
+.ck #t-hero .ck-call-main .td-ready-m { display: inline; margin: 0; }
+.ck #t-hero .ck-call-main .td-ready-m[hidden] { display: none; }
+/* Gauge word and sentence on one line, same size (the athlete, Nov 15, 2026: "the text next to typical should be in line with it"). */
+.ck .td-g-line .td-g-sent { font-size: var(--ck-t2); line-height: var(--ck-l2); }
+.ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.ck .td-g-line { align-items: center; } .ck .td-g-line .td-g-sent { line-height: 21px; } /* the athlete, Nov 15: "typical is slightly skewed higher than a little..": the sentence centres on the badge */
+/* Last 3 nights as a table of colour-coded chips, the track's step colours (the athlete, Nov 15, 2026). */
+.ck .td-g-nights { border-collapse: separate; border-spacing: 6px 2px; margin: -2px -6px; table-layout: fixed; width: calc(100% + 12px); }
+.ck .td-g-nights th { font-size: 12px; font-weight: var(--ck-w-semi, 600); color: var(--ck-fg-2); text-align: center; padding: 0; }
+.ck .td-g-nights td { padding: 0; text-align: center; }
+.ck .td-nz { display: block; padding: 3px 4px; border-radius: 6px; font-size: 13px; font-weight: var(--ck-w-semi, 600); color: var(--ck-fg); white-space: nowrap; }
+.ck .td-nz-b1 { background: color-mix(in srgb, var(--ck-good) 30%, var(--ck-surface-2)); }
+.ck .td-nz-b2 { background: color-mix(in srgb, var(--ck-accent) 22%, var(--ck-surface-2)); }
+.ck .td-nz-b3 { background: color-mix(in srgb, var(--ck-watch) 26%, var(--ck-surface-2)); }
+/* The "Typical  a little below your normal" line sits in its own frame (the athlete, Nov 15, 2026: "I meant the typical ... in a
+   frame, not the normal dist") */
+.ck .td-g-line > #n-g-b { display: flex; align-items: center; }
+.ck .td-g-line { width: fit-content; max-width: 100%; box-sizing: border-box; margin-inline: auto; padding: var(--ck-s1) var(--ck-s3); border: 1px solid var(--ck-edge); border-radius: var(--ck-r2); background: var(--ck-surface); }
