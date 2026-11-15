@@ -713,7 +713,7 @@
     const dr = state.sizeRow, dw = dr ? `kind=day&date=${dr.date}&order=${dr.order}` : null;
     const sep = () => { if (line.childNodes.length) line.append(el('span', 'td-dot', ' · ')); };
     if (dr && dr.target_rpe !== undefined && dr.target_rpe !== null && dr.target_rpe !== '') { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, String(dr.target_rpe)), 'coach', 'target_rpe', dw), ' of 10'); sep(); line.append(g); }
-    if (dr && N(dr.hr_cap) !== null) { const g = el('span', 'td-nw', 'HR under '); g.append(mark(el('span', null, String(N(dr.hr_cap))), 'coach', 'hr_cap', dw)); sep(); line.append(g); }
+    if (dr && N(dr.hr_cap) !== null) { const g = el('span', 'td-nw', 'HR about '); g.append(mark(el('span', null, String(N(dr.hr_cap))), 'coach', 'hr_cap', dw)); sep(); line.append(g); }
     // the line under the title: key number, then what the coach says, or the day an older check-in is from
     const sub = $('t-sub'); sub.replaceChildren(); const rf = { nominal: 'minutes', upper: 'upper_minutes', fallback: 'fallback_minutes' }[state.rec || 'nominal'], rv = sp ? N(sp.row[rf]) : null;
     const bits = [state.keyN, state.from, rv !== null ? 'coach says ' + hmin(rv) : ''].filter(Boolean);
@@ -1020,7 +1020,7 @@
   const minSpan = (r, f) => { const v = N(r[f]); return v >= 120 ? mark(el('span', null, `${f1(v / 60)} h`), 'week_view', null, wvWhere(r), 'hours') : mark(el('span', null, `${v} min`), 'week_view', f, wvWhere(r)); };
   // a re-render rebuilds the list, so the control that was pressed gets the focus back (keyboard users keep their place)
   const wkFocus = (sel, pick) => { const t = [...document.querySelectorAll(sel)].find(pick); if (t) t.focus({ preventScroll: true }); };
-  const HR_RULE = 'calc.js week_view: easy-day heart-rate limit from the profile (easy_hr_guardrail)';
+  const HR_RULE = 'calc.js week_view: easy HR target + band (easy_hr_guardrail)';
   const KEY_RULE = 'coach/engine/KEY-SESSIONS.md: three key sessions a week';
   function itemRow(r) {
     const key = itemKey(r), w = wvWhere(r);
@@ -1060,7 +1060,7 @@
       const flag = (...parts) => { const s = el('span', 'wk-flag'), t = el('span'); t.append(...parts); s.append(icon('watch', 'ck-i wk-fg'), t); d.append(s); }; // flex only on the outer span: the sentence stays one item
       if (r.detail) line(plainEl(mark(el('span', null, r.detail), 'week_view', 'detail', w)));
       const fl = String(r.flags || '');
-      if (fl.includes('hr_high')) flag('Heart rate ran above the easy guardrail (', ruleSpan(r.done_disc === 'run' ? `run ~${ANC().grun}` : `bike ~${ANC().gbike}`, HR_RULE), ').');
+      if (fl.includes('hr_high')) flag('Heart rate ran 5+ over the easy target (', ruleSpan(r.done_disc === 'run' ? `run ~${ANC().grun}` : `bike ~${ANC().gbike}`, HR_RULE), ').');
       if (r.intensity === 'easy' && ((r.rpe !== null && r.rpe !== undefined && Number(r.rpe) >= 5) || r.vs_plan === '+')) flag('Rated effort ', rpeSpan(), `${r.vs_plan === '+' ? ', harder than planned' : ''} on an easy day.`);
       if (fl.includes('over')) flag('Longer than Max (', mark(el('span', null, hmin(N(r.upper_minutes))), 'week_view', null, w, 'h:mm'), ').');
       if (fl.includes('short')) flag('Under the fallback (', mark(el('span', null, String(r.fallback_minutes)), 'week_view', 'fallback_minutes', w), ' min).');

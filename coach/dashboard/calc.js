@@ -188,7 +188,7 @@
           if (f) { r.rpe = val(f.rpe); r.vs_plan = f.vs_plan || ''; r.pain = val(f.pain); }
           const flags = [];
           const hrMax = { run: Number(anc.guard_run) || 150, bike: Number(anc.guard_bike) || 135 }[r.done_disc];
-          if (r.intensity === 'easy' && hrMax && m.some((x) => x.hr && x.hr > hrMax)) flags.push('hr_high');
+          if (r.intensity === 'easy' && hrMax && m.some((x) => x.hr && x.hr > hrMax + +(anc.guard_band ?? 5))) flags.push('hr_high');
           if (r.kind === 'plan' && r.upper_minutes && r.done_minutes > r.upper_minutes * 1.1) flags.push('over');
           const floor = r.alt_type ? r.minutes : r.fallback_minutes;
           if (r.kind === 'plan' && r.status === 'done' && floor && r.done_minutes < floor * 0.85) flags.push('short');

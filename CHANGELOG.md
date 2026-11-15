@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.82.0 (2026-11-15)
+- Engine: The easy-day heart rate number is a target, plus or minus 5, not a ceiling (the kit maker, Nov 15, 2026: "I would think 5 over the target heart rate is ok? I did not realize it was a hard ceiling and though it was a target number", then picked "Target, plus or minus 5"). RULES.md 5a Easy-day heart rate target; `profile.json easy_hr_guardrail.band` 5 is its one home (hr_anchor.py carries it as `guard_band`, 5 when a profile names none). A session average up to 5 bpm over the target still counts as an easy day kept easy (outcomes.py, morning_facts.py above_guardrail and the calibration pairs); under it is never a fault. schemas.json `hr_cap` now reads as the target.
+- Dashboard: Today's plan size line reads "HR about 150" (was "HR under 150"); the Week day flag reads "Heart rate ran more than 5 over the easy target" and calc.js week_view flags only past the band; the days on plan breakdown says target instead of cap. Guard: coach/tests/test_easy_hr_target.py.
+
 ## 6.81.5 (2026-11-15)
 - Dashboard fix: a tap on a Fitness tile no longer moves the page (the kit maker, Nov 15, 2026, 4:48 PM: "when i select the card now it pushes me to the bottom of the page and i need to scrol back up", then "The jump scroll seems to happen for all but the top two tiles"). The harness could not reproduce the jump (Chromium keeps the tile in place), so this removes the one step that can move a phone's frame: after the redraw the tapped tile took focus again, and the app's frame may scroll to a focused element. Focus now returns to the redrawn tile only after a keyboard press (click detail 0), so keyboard users keep their place and a finger tap leaves focus alone. Needs the kit maker's phone check. Guard: coach/tests/test_tile_tap_focus.py.
 

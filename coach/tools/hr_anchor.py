@@ -76,12 +76,16 @@ def from_profile(prof, today=None):
     swim = _num(a.get("swim")) or bike  # swimming heart rate runs nearer the bike's than the run's
     base = {"run": run, "climb": run, "bike": bike, "swim": swim}
     win = {k: [base[k] + lo, base[k] + hi] for k, (lo, hi) in WINDOW.items()}
-    guard = {"run": _num(g.get("run")) or run, "bike": _num(g.get("bike")) or bike + 5}
+    # a target, not a ceiling: a session average within `band` bpm either side is on target (the athlete, Nov 15, 2026, RULES.md 5a)
+    band = _num(g.get("band"))
+    guard = {"run": _num(g.get("run")) or run, "bike": _num(g.get("bike")) or bike + 5, "band": band if band is not None else BAND}
     return {"run": run, "bike": bike, "climb": run, "swim": swim, "window": win, "guard": guard, "basis": basis,
             "label": {"run": f"Run pace at {run} bpm", "bike": f"Bike power at {bike} bpm",
                       "trail": f"Trail pace at {run} bpm", "climb": f"Climbing at {run} bpm",
                       "bikespeed": f"Bike speed at {bike} bpm", "swimspeed": f"Swim pace at {swim} bpm"}}
 
+
+BAND = 5  # the easy heart rate target's band when the profile names none (RULES.md 5a, Easy-day heart rate target)
 
 _CUR = None
 
@@ -111,7 +115,7 @@ def row(root=".", today=None):
     """The coach.json row the page reads (kind hr_anchor); nested fields as they are, the page parses them."""
     a = anchors(root, today)
     return {"kind": "hr_anchor", "run": a["run"], "bike": a["bike"], "run_lo": a["window"]["run"][0], "run_hi": a["window"]["run"][1],
-            "bike_lo": a["window"]["bike"][0], "bike_hi": a["window"]["bike"][1], "guard_run": a["guard"]["run"], "guard_bike": a["guard"]["bike"],
+            "bike_lo": a["window"]["bike"][0], "bike_hi": a["window"]["bike"][1], "guard_run": a["guard"]["run"], "guard_bike": a["guard"]["bike"], "guard_band": a["guard"]["band"],
             "basis": a["basis"], "source": "coach/athlete/profile.json (hr_anchor), coach/tools/hr_anchor.py"}
 
 

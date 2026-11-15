@@ -47,6 +47,12 @@ ROOT = os.getcwd()
 
 # ---------- small helpers ----------
 
+
+def _band(prof):
+    """The easy heart rate target's band in bpm (RULES.md 5a): an average within it either side is on target."""
+    b = num((prof.get("easy_hr_guardrail") or {}).get("band"))
+    return b if b is not None else 5
+
 def read_csv(path):
     if not os.path.exists(path):
         return []
@@ -568,7 +574,7 @@ def section_yesterday(today, data, prof, th):
             a["reported"] = {"rpe": num(s.get("rpe")), "vs_plan": s.get("vs_plan"), "pain": num(s.get("pain")), "pain_site": s.get("pain_site"), "fuel": s.get("fuel")} if s else None
             g = prof.get("easy_hr_guardrail", {}).get(a["discipline"])
             a["guardrail"] = g
-            a["above_guardrail"] = bool(g and a.get("avg_hr") and a["avg_hr"] > g)
+            a["above_guardrail"] = bool(g and a.get("avg_hr") and a["avg_hr"] > g + _band(prof))
         matched = []
         used = set()
         for row in rows:
@@ -1049,7 +1055,7 @@ def section_calibration(today, data, prof, th):
         rpe = num(s.get("rpe"))
         hr = num(a.get("avg_hr"))
         pairs.append({"date": s["date"], "discipline": disc, "rpe": rpe, "avg_hr": hr, "guardrail": g,
-                      "agree": (rpe <= 3 and hr is not None and hr <= g) or (rpe >= 4 and hr is not None and hr > g)})
+                      "agree": (rpe <= 3 and hr is not None and hr <= g + _band(prof)) or (rpe >= 4 and hr is not None and hr > g + _band(prof))})
     easy = [p for p in pairs if p["rpe"] <= 3]
     n = len(easy)
     agree = sum(1 for p in easy if p["agree"])

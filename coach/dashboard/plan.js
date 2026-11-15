@@ -35,7 +35,7 @@
   const dows = (list) => list.map((d) => A().fDow(A().P(d))).join(', ');
   // Short reasons (the athlete, Nov 11: no line runs under the label at 360 px). An easy day names the HR when HR broke it,
   // else "ran long"; the full why stays in the coach row.
-  const easyWhy = (why) => { const m = /avg HR (\d+) over (\d+)/.exec(why); return m ? `HR ${m[1]}, cap ${m[2]}` : /RPE/.test(why) ? why.replace('rated ', '').replace(/RPE (\d+)/, 'effort $1 of 10') : 'ran long'; };
+  const easyWhy = (why) => { const m = /avg HR (\d+) over (\d+)/.exec(why); return m ? `HR ${m[1]}, target ${m[2]}` : /RPE/.test(why) ? why.replace('rated ', '').replace(/RPE (\d+)/, 'effort $1 of 10') : 'ran long'; };
   function reasons(row, keyWeek) {
     const out = [];
     if (keyWeek && keyWeek.kN) {

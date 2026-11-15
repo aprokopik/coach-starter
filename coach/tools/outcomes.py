@@ -88,6 +88,7 @@ def easy_kept(start, end, data, prof):
         nominal = mf.num(row.get("minutes"))
         pct = (mins / nominal - 1) * 100 if nominal else None
         g = mf.num(guard.get(row["type"])) if isinstance(guard, dict) else None
+        band = mf.num(guard.get("band")) if isinstance(guard, dict) and mf.num(guard.get("band")) is not None else 5
         hrs = [a["avg_hr"] for a in same if a.get("avg_hr")]
         why = []
         if cls == "over":
@@ -95,7 +96,7 @@ def easy_kept(start, end, data, prof):
         elif pct is not None and pct > EASY_OVERRUN_PCT and not mf.num(row.get("upper_minutes")):
             # with an upper bound the plan already allows the extra minutes; past it, the scorer says "over"
             why.append(f"{pct:.0f}% past the nominal")
-        if g and hrs and max(hrs) > g:
+        if g and hrs and max(hrs) > g + band:
             why.append(f"avg HR {max(hrs):.0f} over {g:.0f}")
         if why:
             broke.append({"date": row["date"], "type": row["type"], "why": ", ".join(why)})

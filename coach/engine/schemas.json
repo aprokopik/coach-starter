@@ -96,7 +96,7 @@
   "kind": "day", "date": "YYYY-MM-DD", "order": 1, "type": "run | bike | swim | strength | walk | race | test | rest",
   "title": "", "minutes": 0, "upper_minutes": null, "fallback_minutes": null, "alt_type": "fallback discipline when different",
   "intensity": "rest | easy | steady | quality | long | race | test", "key": false, "pillar": "1 | 2 | 3 | absent", "detail": "",
-  "target_rpe": "effort target as text, like \"2-3\" (optional; Today's plan size line)", "hr_cap": "heart rate ceiling in bpm, number (optional; Today's plan size line)"
+  "target_rpe": "effort target as text, like \"2-3\" (optional; Today's plan size line)", "hr_cap": "easy-day heart rate target in bpm, number; a session average within the profile band (5) either side is on target (optional; Today's plan size line, RULES.md 5a)"
  },
  "races_json_cutoffs": {
   "limit": "overall time limit as text, with its source",
