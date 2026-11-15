@@ -1027,6 +1027,12 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .mx-detail { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s2) var(--ck-s3); border-left: 2px solid var(--ck-edge); margin-left: var(--ck-s2); min-width: 0; }
 .ck .mx-detail .ck-note, .ck .mx-detail .ck-sub, .ck .mx-ladder .ck-sub { margin: 0; }
 .ck .mx-detail .mx-steps { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; font-size: var(--ck-t3); line-height: var(--ck-l3); }
+.ck .mx-goal { margin: 0; font-weight: 700; font-size: var(--ck-t3, 1.05rem); }
+.ck .mx-reps { display: grid; grid-template-columns: 52px repeat(var(--n), minmax(0, 1fr)); gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.ck .mx-reps-h { text-align: center; font-size: 0.75rem; color: var(--ck-fg-2); }
+.ck .mx-reps-set { font-size: var(--ck-t2); }
+.ck .mx-rep { height: 30px; border-radius: 6px; border: 0; box-shadow: inset 0 0 0 1.5px var(--sp, var(--ck-zone-fill)); background: var(--ck-surface-2); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; }
+.ck .mx-rep.is-on { background: var(--sp, var(--ck-zone-fill)); color: var(--ck-surface); }
 .ck .mx-rungs { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .ck .mx-rung { display: flex; align-items: center; justify-content: space-between; gap: var(--ck-s2); padding: 4px var(--ck-s2); border: 1px solid var(--ck-line); border-radius: var(--ck-r1, 8px); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .mx-rung--me { border: 2px solid var(--ck-fg); color: var(--ck-fg); font-weight: var(--ck-w-bold); }

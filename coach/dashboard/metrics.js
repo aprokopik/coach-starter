@@ -68,7 +68,7 @@
     const b = el('div', 'ck-tile ft-tile mx-wait'); b.dataset.k = m.key; b.id = 'f-' + m.key; b.dataset.sport = CX.sportTok(m.sport);
     const head = el('span', 'ck-tile-head'); head.append(mark(el('span', 'ck-tile-label ft-label', m.name), 'coach', 'name', mw(m))); b.append(head);
     b.append(el('span', 'ck-big ft-fig', '—'));
-    b.append(mark(el('span', 'ck-sub ft-subl', 'No figure yet. It fills in from your next sessions.'), 'coach', 'state', mw(m), 'waiting'));
+    b.append(m.sub ? mark(el('span', 'ck-sub ft-subl', m.sub), 'coach', 'sub', mw(m)) : mark(el('span', 'ck-sub ft-subl', 'No figure yet. It fills in from your next sessions.'), 'coach', 'state', mw(m), 'waiting')); // a figure may say how to start (the push-up test, a key lift not logged yet)
     return b;
   }
   // a simple metric (catalog.py figures): one figure with its chip and note, no level ladder
@@ -111,6 +111,21 @@
   // The ladder of a simple metric, top rung first, with the athlete's rung marked; habits add their 12 weeks.
   function ladderBody(m) {
     const { mark } = CX.ck; const f = document.createDocumentFragment();
+    // a key lift (ladder reps; the athlete picked "Only the reps that count", Nov 15, 2026): the goal sentence, then one numbered box per rep
+    // of the range on each set, filled when done last session; the weight list and Next line are left out
+    if (m.ladder === 'reps' && m.goal) {
+      const lo = Number(m.box_lo), hi = Number(m.box_hi), reps = String(m.box_reps || '').split(',').map(Number);
+      f.append(mark(el('p', 'mx-goal', m.goal), 'coach', 'goal', mw(m)));
+      const g = el('div', 'mx-reps'); g.style.setProperty('--n', String(hi - lo + 1));
+      g.setAttribute('role', 'img'); g.setAttribute('aria-label', reps.map((r, i) => `Set ${i + 1}: ${r} of ${hi} reps`).join('. '));
+      g.append(el('span'));
+      for (let r = lo; r <= hi; r++) g.append(el('span', 'mx-reps-h', String(r)));
+      reps.forEach((done, i) => { g.append(el('span', 'mx-reps-set', `Set ${i + 1}`)); for (let r = lo; r <= hi; r++) g.append(el('b', done >= r ? 'mx-rep is-on' : 'mx-rep', done >= r ? '✓' : '')); });
+      f.append(mark(g, 'coach', 'box_reps', mw(m)));
+      f.append(el('p', 'ck-sub', `Boxes are reps ${lo} to ${hi}, your range. Filled = done last session (${m.box_when}).`));
+      if (m.note) f.append(mark(el('p', 'ck-sub', m.note), 'coach', 'note', mw(m)));
+      return f;
+    }
     const rungs = String(m.rungs || '').split('|').filter(Boolean); const ev = m.event || 'your event';
     if (m.weeks) {
       const on = (String(m.weeks).match(/1/g) || []).length; const wk = el('div', 'mx-weeks'); wk.setAttribute('role', 'img'); wk.setAttribute('aria-label', `${on} of ${String(m.weeks).length} weeks on target, oldest first`);
@@ -129,7 +144,7 @@
     return f;
   }
   function ladderPanel(m) {
-    const p = el('div', 'ft-expand mx-unlock mx-ladder'); p.id = 'mx-ladder'; p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'Levels for ' + m.name);
+    const p = el('div', 'ft-expand mx-unlock mx-ladder'); p.id = 'mx-ladder'; if (m.ladder === 'reps') p.dataset.sport = CX.sportTok(m.sport); // the rep boxes take the tile's sport colour p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'Levels for ' + m.name);
     p.append(el('h3', 'ck-h3', m.name)); const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what, ladderBody(m));
     // a habit that had its own chart keeps it inside the panel (Consistency, the training days per week bars; 6.47.0, back from 6.40.0)
     const A = CX.app || {}; const mk = A.kind ? A.kind('marker').find((x) => x.key === m.key && x.chart) : null;

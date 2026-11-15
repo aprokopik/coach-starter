@@ -330,6 +330,11 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
                 nx = f"{at * nd['need'] - v:.1f} mi longer to {nxt.replace('your event', ev)} (your long session is the limit: {v:g} of {nd['need']:g} mi)"
             out[k] = {**base, "level": cur.replace("your event", ev) if cur else "", "event": ev, "need": nd["need"], "pct": through(L, sh), "next": nx,
                       "note": (f.get("note", "") + f" Usual week {wkv:.1f} mi; {ev} calls for {nd['week']:g}.").strip() if week_share is not None else f.get("note", "")}
+        elif m["ladder"] == "reps":
+            # key lifts (key_lifts.py): the figure brings its own load level, rep steps and load ladder
+            f = fig.get(k) or {}
+            if f.get("level"):
+                out[k] = {**base, **{x: f[x] for x in ("level", "pct", "next", "rungs", "ladder_label", "rule") if x in f}}
         elif m["ladder"] == "guide" and (fig.get(k) or {}).get("scale"):
             # a general population scale the figure brings (bike_speed.scale, swim_speed.scale; the athlete, Nov 14, 2026: "search and
             # research for a basis of scale"): the level comes from it; the own-baseline guide stays for anyone with no age band and sex

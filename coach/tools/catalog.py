@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ladders  # noqa: E402
 import bike_speed  # noqa: E402
 import swim_speed  # noqa: E402
+import key_lifts  # noqa: E402
 import vo2_norms  # noqa: E402
 import hr_anchor  # noqa: E402
 
@@ -339,6 +340,25 @@ def rows(root=".", today=None):
         # wrist heart rate in water is rough: no level from fewer than MIN_SWIMS swims, against any scale
         ss["scale"] = swim_speed.scale(grp, anc["swim"]) if ss["n"] >= swim_speed.MIN_SWIMS else None
         fig["swimspeed"] = ss
+    # Strength (the athlete, Nov 15, 2026): the push-up test ranks against adults of the same age and sex; each key lift's level is its
+    # load and its steps are the reps (key_lifts.py)
+    health = (read_json(os.path.join(root, "coach", "health.json"), {}) or {}).get("rows", [])
+    pu = key_lifts.pushup_figure(health, today, grp)
+    if pu.get("value") and not pu.get("scale"):
+        pu["wait"] = "Add your sex and birth year to your profile to rank it against adults your age"
+    fig["pushup"] = pu
+    try:
+        with open(os.path.join(root, "coach", "strength_log.csv"), newline="", encoding="utf-8") as fh:
+            slog = list(csv.DictReader(fh))
+    except OSError:
+        slog = []
+    srows = (read_json(os.path.join(root, "coach", "strength.json"), {}) or {}).get("rows", [])
+    exlib = (read_json(os.path.join(root, "coach", "exercises.json"), {}) or {}).get("rows", [])
+    for key, _pat, ex in key_lifts.key_lifts(srows, exlib):
+        kf = key_lifts.figure(ex, key_lifts.sessions(slog, ex.get("id")), today)
+        fig[key] = kf or {"name": ex.get("name"), "sub": f"Log {ex.get('name')} on the Lifts tab to start its levels."}
+    for _pat, key in key_lifts.PATTERNS:
+        fig.setdefault(key, {"hide": True})  # no loaded lift of this pattern in the routine: no tile
     lifts = (read_json(os.path.join(root, LIFTS), {}) or {}).get("rows", [])
     lev = ladders.levels(cat, profile, acts, lifts, summ, plan_on_record(root), (read_json(os.path.join(root, RACES), {}) or {}).get("rows", []), today, fig, train_days=manual_training_days(root))
     lad = {l["key"]: l for l in cat.get("ladders", [])}
@@ -348,10 +368,10 @@ def rows(root=".", today=None):
     for n, m in enumerate(cat.get("metrics", []), 1):
         s = st[m["key"]]
         out.append({"kind": "cat_metric", "key": m["key"], "order": n, "category": m["category"], "sport": m["sport"],
-                    "name": hr_anchor.current()["label"].get(m.get("hr"), m["name"]), "what": m["what"], "needs": m.get("needs", []), "missing": s["missing"],
-                    "state": s["state"], "shown": s["shown"], "step": m.get("step", ""), "ladder": m.get("ladder", ""),
+                    "name": (fig.get(m["key"]) or {}).get("name") or hr_anchor.current()["label"].get(m.get("hr"), m["name"]), "what": m["what"], "needs": m.get("needs", []), "missing": s["missing"],
+                    "state": s["state"], "shown": s["shown"] and not (fig.get(m["key"]) or {}).get("hide"), "step": m.get("step", ""), "ladder": m.get("ladder", ""),
                     "ladder_label": (lad.get(m.get("ladder")) or {}).get("label", ""), "rule": (lad.get(m.get("ladder")) or {}).get("rule", ""),
-                    **({**{k: v for k, v in fig.get(m["key"], {}).items() if k not in ("baseline", "weekly", "wait", "num", "scale", "n")}, **lev.get(m["key"], {})} if s["state"] == "ready" else {})})
+                    **({**{k: v for k, v in fig.get(m["key"], {}).items() if k not in ("baseline", "weekly", "wait", "num", "scale", "n", "name", "hide")}, **lev.get(m["key"], {})} if s["state"] == "ready" else {})})
     return out
 
 

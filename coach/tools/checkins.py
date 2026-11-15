@@ -138,7 +138,7 @@ def health_rows(survey, period, ans, saved_at):
         v = num(ans.get(q))
         if v is not None:
             out.append({"kind": "lab", "key": k, "date": day, "value": v, "unit": unit, "note": "from the check-in", "source": src})
-    for k, unit in (("sitrise", "points"), ("balance", "s"), ("grip", "kg")):
+    for k, unit in (("sitrise", "points"), ("balance", "s"), ("grip", "kg"), ("pushup", "push-ups")):  # pushup: the monthly test (6.63.0)
         v = num(ans.get(k))
         if v is not None:
             out.append({"kind": "selftest", "key": k, "date": day, "value": v, "text": f"{v:g} {unit}", "note": "", "source": src})
