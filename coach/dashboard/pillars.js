@@ -253,7 +253,15 @@
     }
     // flagged first (the lab's own flag), then every marker by group behind one disclosure
     const fl = M.filter((m) => m.flagged);
-    if (fl.length) { const ul = el('ul', 'ck-list hl-list'); fl.forEach((m) => ul.append(labRow(m))); body.append(el('p', 'ck-eyebrow', 'Outside the lab’s range'), ul); }
+    // grouped by what they say about your health (the athlete, Nov 15, 2026: "I like grouping them ... Lipids doesn't mean anything to
+    // me"): the heading is the group's impact line from coach/lab_catalog.json (labs.py group_impact), else its name
+    const gHead = (m) => mark(el('span', null, m.group_impact || m.group_name), 'coach', m.group_impact ? 'group_impact' : 'group_name', 'kind=lab_marker&key=' + m.key);
+    if (fl.length) {
+      body.append(el('p', 'ck-eyebrow', 'Outside the lab’s range'));
+      const gs = []; for (const m of fl) { let g = gs.find((x) => x.key === m.group); if (!g) { g = { key: m.group, order: m.group_order, first: m, ms: [] }; gs.push(g); } g.ms.push(m); }
+      gs.sort((a, b) => a.order - b.order);
+      for (const g of gs) { const h = el('p', 'hl-grp'); h.append(gHead(g.first)); const ul = el('ul', 'ck-list hl-list'); g.ms.forEach((m) => ul.append(labRow(m))); body.append(h, ul); }
+    }
     const btn = el('button', 'ck-disc hl-all'); btn.type = 'button'; btn.setAttribute('aria-expanded', String(labOpen.all)); btn.id = 'hl-all';
     btn.append(labOpen.all ? 'Hide all markers' : 'Show all ' + M.length + ' markers', chev());
     btn.addEventListener('click', () => { labOpen.all = !labOpen.all; renderLabs(); const t = $('hl-all'); if (t) t.focus({ preventScroll: true }); });
@@ -261,7 +269,7 @@
     if (labOpen.all) {
       const groups = []; for (const m of M) { let g = groups.find((x) => x.key === m.group); if (!g) { g = { key: m.group, name: m.group_name, order: m.group_order, ms: [] }; groups.push(g); } g.ms.push(m); }
       groups.sort((a, b) => a.order - b.order);
-      for (const g of groups) { const ul = el('ul', 'ck-list hl-list'); g.ms.forEach((m) => ul.append(labRow(m))); body.append(el('p', 'ck-eyebrow', g.name), ul); }
+      for (const g of groups) { const ul = el('ul', 'ck-list hl-list'); g.ms.forEach((m) => ul.append(labRow(m))); const h = el('p', 'ck-eyebrow'); h.append(gHead(g.ms[0])); body.append(h, ul); }
     }
     body.append(el('p', 'ck-note', 'Flags are the lab’s own; the coach does not read results. Retest dates are defaults until a clinician sets one.'));
   }

@@ -1281,6 +1281,7 @@
       cardState(list, 'empty', dayN(wk) + 6 < TN ? 'Nothing was planned or recorded this week.' : ['No day by day plan for this week yet. ', ...when, ...set]); return;
     }
     cardState(list, null);
+    // the day discs from game look round three are gone: the athlete kept the list as it is (Nov 15, 2026)
     for (let i = 0; i < 7; i++) {
       const d = isoN(dayN(wk) + i);
       const its = items.filter((r) => r.date === d).sort((a, b) => a.order - b.order);

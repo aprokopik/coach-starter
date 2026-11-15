@@ -1193,6 +1193,17 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .hp-p:has(.hp-bl > .ck-badge[data-s=act]) { --pst: var(--ck-act); }
 .ck .hp-p > .hp-row { box-shadow: inset 3px 0 0 var(--pst); padding-left: 8px; }
 .ck .hp-p > .hp-row > .hp-pi { width: 26px; height: 26px; color: var(--pst); } /* the athlete, Nov 15: solid set, bare, a little larger */
+/* Lab review markers (round three, my pick 5): the status edge from the Pillars refresh; every row here is outside the lab's range */
+.ck .hl-list > li { box-shadow: inset 3px 0 0 var(--ck-watch); padding-left: 8px; }
+/* Morning check-in answers as one joined step bar (game look round three, my pick 1 pending the athlete): the five answers of a
+   question sit as joined steps like the level bars; the tapped step fills, the steps to its left take a light fill. Order
+   stays worst left, best right (test_survey_order.py). */
+.ck #fm-form .ck-choices--row { gap: 2px; }
+.ck #fm-form .ck-choices--row .ck-choice { border: 0; border-radius: 0; background: var(--ck-surface-2); box-shadow: inset 0 0 0 1px var(--ck-edge); font-size: var(--ck-t2); }
+.ck #fm-form .ck-choices--row .ck-choice:first-of-type { border-radius: var(--ck-r1) 0 0 var(--ck-r1); }
+.ck #fm-form .ck-choices--row .ck-choice:last-of-type { border-radius: 0 var(--ck-r1) var(--ck-r1) 0; }
+.ck #fm-form .ck-choices--row .ck-choice:has(~ .ck-choice input:checked) { background: color-mix(in srgb, var(--ck-accent) 22%, var(--ck-surface-2)); }
+.ck #fm-form .ck-choices--row .ck-choice:has(input:checked) { background: var(--ck-accent); color: var(--ck-on-accent); box-shadow: none; }
 .ck .lx-wk-n { font-size: var(--ck-t2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
 /* Skills: the 7 day change on the step bar (the athlete, Nov 15, 2026) */
 .ck .td-sk-steps .ft-step > .td-sk-gain, .ck .td-sk-steps .ft-step > .td-sk-loss { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
@@ -1209,6 +1220,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-bell-base { stroke: var(--ck-line); stroke-width: 1; }
 .ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .ck .td-bell-cap { fill: var(--ck-fg-2); }
+.ck .hl-grp { margin: var(--ck-s3) 0 var(--ck-s1); font-size: var(--ck-t2); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }

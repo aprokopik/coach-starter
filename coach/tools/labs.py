@@ -99,6 +99,7 @@ def build(today, root=ROOT):
     board = _json(root, "coach/board.json", {})
     gorder = {g["key"]: i for i, g in enumerate(cat.get("groups", []))}
     gname = {g["key"]: g["name"] for g in cat.get("groups", [])}
+    gimpact = {g["key"]: g.get("impact") or g["name"] for g in cat.get("groups", [])}
     overrides = {}
     for r in health.get("rows", []):
         if r.get("kind") == "lab_retest" and r.get("date"):
@@ -131,7 +132,7 @@ def build(today, root=ROOT):
         state = ""
         if due is not None:
             state = "overdue" if due < today else ("soon" if (due - today).days <= SOON_DAYS else "")
-        out.append({"kind": "lab_marker", "key": key, "name": name_of(cur), "group": g, "group_name": gname.get(g, "Other"),
+        out.append({"kind": "lab_marker", "key": key, "name": name_of(cur), "group": g, "group_name": gname.get(g, "Other"), "group_impact": gimpact.get(g, gname.get(g, "Other")),
                     "group_order": gorder.get(g, 99), "value": v, "text": shown(cur), "unit": cur.get("unit", ""), "date": cur["date"],
                     "flag": fl, "flagged": fl in FLAGGED, "panel": cur.get("panel", ""), "source": cur.get("source", ""),
                     "prev_text": shown(prev) if prev else "", "prev_date": prev["date"] if prev else "", "change": change,
