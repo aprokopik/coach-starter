@@ -486,7 +486,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 /* One tile anatomy on every Fitness tile (the athlete, Nov 11, 2026): the title keeps two lines so big numbers line up across a row,
    chips sit at the left, and the bottom note sits on the tile floor so side-by-side tiles end level */
 .ck .ck-tile.ft-tile { display: flex; flex-direction: column; align-items: stretch; }
-.ck .ft-tile .ft-label { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(2 * var(--ck-l2)); }
+.ck .ft-tile .ft-label { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(2 * var(--ck-l2)); }
 .ck .ft-tile .ft-chip, .ck .ft-tile .ft-badge { align-self: flex-start; }
 .ck .ft-tile .ft-subl { margin-top: auto; } .ck .ft-tile .ft-subl ~ .ft-subl { margin-top: 0; }
 .ck .ft-key { display: flex; flex-wrap: wrap; gap: 2px var(--ck-s3); margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
@@ -506,7 +506,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ft-chip--goal { border-color: var(--ck-fg); }
 .ck .ft-lvrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; } /* the stage badge, then the Level chip ("Lvl") on one line (the athlete, Nov 15, 2026: "abv. To lvl and get all on one line"); a tile too narrow wraps */
 .ck .ft-lvrow > .ft-stage { margin: 0; } .ck .ft-lvrow > .ft-chip { margin: 0; max-width: 100%; padding-inline: 5px; }
-.ck .ft-lvrow .mx-stage { margin: 0; } .ck .ft-lvrow .mx-stage-d { box-sizing: border-box; width: 15px; height: 15px; font-size: 10px; margin-left: -4px; } .ck .ft-lvrow .mx-stage-d:first-child { margin-left: 0; }
+.ck .ft-lvrow .mx-stage { margin: 0; } .ck .ft-lvrow .mx-stage-d { box-sizing: border-box; width: 16px; height: 16px; font-size: 11px; margin-left: -4px; } .ck .ft-lvrow .mx-stage-d:first-child { margin-left: 0; }
 .ck .ft-chip--up { border: 2px solid var(--ck-good, currentColor); font-weight: var(--ck-w-bold, 700); }
 .ck .ft-chip-k { font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-3); }
 .ck .ck-zone-track.ft-meter { display: block; } .ck .ft-meter .ck-zone-fill { background: var(--sp, var(--ck-zone-fill)); }
@@ -634,7 +634,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ck-row.hp-row { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
 .ck .hp-l1, .ck .hp-l2 { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ck-s2); min-width: 0; } .ck .hp-l2 { align-items: center; }
 .ck .hp-l1 > .ck-row-t, .ck .hp-l2 > .ck-row-s { flex: 1 1 auto; min-width: 0; }
-.ck .hp-l2 > .ck-row-s { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } /* every pillar row two lines: a long lead metric name ends in an ellipsis beside the Improving pill */
+.ck .hp-l2 > .ck-row-s { overflow-wrap: anywhere; } /* a long lead metric name wraps under itself beside the Improving pill instead of ending in an ellipsis (Nov 15, 2026: "Cardio fitness (VO2max)" was cut at 360 and 390 px); short names keep the row at two lines */
 .ck .ck-row > .hp-pi:first-child { width: var(--ck-i-lg); height: var(--ck-i-lg); margin-top: 0; color: var(--ck-fg-2); }
 .ck .hp-lead { flex: none; font-size: var(--ck-t4); line-height: var(--ck-l4); font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); white-space: nowrap; }
 .ck .hp-bl { display: inline-flex; flex: none; align-items: center; gap: 2px; }
@@ -1087,6 +1087,17 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ft-step > i { position: absolute; inset: 2px auto 2px 2px; max-width: calc(100% - 4px); border-radius: 2px; background: var(--sp, var(--ck-zone-fill)); }
 .ck .ft-step.is-now { box-shadow: inset 0 0 0 2px var(--sp, var(--ck-zone-fill)); }
 .ck .ft-step.is-now > i { inset: 3px auto 3px 3px; max-width: calc(100% - 6px); }
+/* Check-ins layouts (6.55.0; checkins.js layoutTab, review item q-checkins-lists). 3 and 4 move the Surveys section first in the
+   page (before the morning check-in and Rate a session); 4 folds the surveys that are done or not due yet into one line. */
+.ck .ci-more { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .ci-moresum { display: flex; align-items: center; gap: var(--ck-s2); min-height: var(--ck-tap); padding: var(--ck-s2) var(--ck-s3); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); background: var(--ck-surface); color: var(--ck-fg-2); cursor: pointer; list-style: none; }
+.ck .ci-moresum::-webkit-details-marker { display: none; }
+.ck .ci-moresum:focus-visible { outline: var(--ck-focus-w) solid var(--ck-focus); outline-offset: var(--ck-focus-off); }
+.ck .ci-moret { min-width: 0; overflow-wrap: anywhere; }
+.ck .ci-morebody { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .ci-dueline { display: flex; align-items: center; justify-content: space-between; gap: var(--ck-s2); min-height: var(--ck-tap); }
+.ck .ci-dueline .ck-row-main { display: grid; min-width: 0; }
+.ck .ft-fig > .ck-unit { white-space: nowrap; } /* a unit of words ("longest, 4 wk") moves to the next line whole instead of splitting after the number (Nov 15, 2026, 360 px) */
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }

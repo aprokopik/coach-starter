@@ -31,6 +31,8 @@ Tab ids: `today`, `checkins`, `week`, `lifts`, `trends` (Fitness), `goals` (Heal
 
 - Marks: `node marks.js --page <page.html> --width 360 [--json out.json]`. Every data mark against the data; aim for 0 mismatched and 0 unresolved.
 - Keyboard: `node kbwalk.js [page.html] [width]` walks the Today tab.
+- Check-ins layouts: `node cilayouts.js [index.html]` renders the five Check-ins layouts at 360 px (each survey once, Surveys first in 3 and 4, the folded line opens from the keyboard, focus after Start and Go, 44 px targets); exit 1 on a failure.
+- Cut text: `node cliptext.js [index.html]` lists any text clamped or cut with an ellipsis on any tab at 360 and 390 px; exit 1 when anything is cut.
 - `node contrast.js <page.html>`: a spot probe of a few Today and Week texts on the live host colours (build with `--host live`).
 
 ## Sweep

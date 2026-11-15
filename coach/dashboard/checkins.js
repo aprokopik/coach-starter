@@ -359,6 +359,54 @@
   window.CX.renderCiDue = refreshDue;
   const RUN_AT = () => window.CX.runAt();
 
+  // ---------- where the surveys sit (the athlete, Nov 14, 2026: "the surveys are listed twice"; five options, review page item
+  // q-checkins-lists). One number picks the layout: html data-ci-layout, else CI_LAYOUT. 1 keeps both lists (the Due today
+  // rows and the Surveys cards); 2 keeps only the Surveys cards, in place; 3 moves the Surveys cards to the top and drops
+  // Due today; 4 (default, the recommended one) does that with the due surveys first and the rest folded into one line;
+  // 5 keeps the cards in place and turns Due today into one line naming what is due, with a Go button.
+  const CI_LAYOUT = 4;
+  const ciLayout = () => { const v = Number(document.documentElement.dataset.ciLayout); return v >= 1 && v <= 5 ? v : CI_LAYOUT; };
+  let moreOpen = false; // the folded line stays open across re-renders once opened
+  const isDueState = (s, Q) => { const per = periodOf(s.id); if (per.next) return false; const doc = docs.get(docId(s.id)); if (!doc) return true; const qs = questions(s.id, Q); const n = qs.filter((q) => answered(q, doc.answers || {})).length; return !(n === qs.length || doc.finished === true); };
+  // the short status a folded survey shows in the one line: "done Nov 15" or its next period ("Feb 6")
+  function foldWord(s) {
+    const per = periodOf(s.id); const doc = docs.get(docId(s.id));
+    if (doc && doc.saved_at) { const w = el('span'); w.append('done ', mk('span', null, stamp(doc.saved_at), null, null, null, 'store:checkin saved_at')); return w; }
+    if (per.next) return mk('span', null, per.next.charAt(0).toLowerCase() + per.next.slice(1), null, null, null, 'period');
+    return el('span', null, 'not due');
+  }
+  function layoutTab(S, Q, due, host) {
+    const L = ciLayout(); const tab = $('checkins'); if (tab) tab.dataset.ciLayout = String(L);
+    const dc = $('ci-due'); if (dc) dc.hidden = L === 2 || L === 3 || L === 4;
+    // 3 and 4 move the Surveys section itself ahead of the morning check-in, so the reading and tab order match what shows
+    const sv = $('ci-sv'); if (sv && sv.parentNode) { const cols = sv.parentNode; if (L === 3 || L === 4) { if (cols.firstElementChild !== sv) cols.prepend(sv); } else if (cols.lastElementChild !== sv) cols.append(sv); }
+    const lead = $('ci-lead'); const leadText = lead ? lead.textContent : '';
+    if (L === 5) renderDueLine(S, Q);
+    if (L !== 4) { for (const s of S) host.append(surveyCard(s, Q)); if (L !== 1 && L !== 5) host.append(el('p', 'ck-note ci-svnote', leadText)); return; }
+    const dueNow = S.filter((s) => isDueState(s, Q) || (ui[s.id] && ui[s.id].open)); const rest = S.filter((s) => !dueNow.includes(s));
+    for (const s of dueNow) host.append(surveyCard(s, Q));
+    if (!dueNow.length) host.append(el('p', 'ck-note ci-caught', 'No survey is due. Your answers update Health Pillars at the next morning run.'));
+    if (rest.length) {
+      const det = el('details', 'ci-more'); det.open = moreOpen; det.addEventListener('toggle', () => { moreOpen = det.open; });
+      const sum = el('summary', 'ci-moresum'); sum.append(icon('chevron', 'ck-chev'));
+      const t = el('span', 'ci-moret'); t.append(mk('span', null, String(rest.length), null, null, null, 'folded-count'), ' more: ');
+      rest.forEach((s, i) => { if (i) t.append(' · '); t.append(mk('span', null, s.name, 'coach', 'name', SQ(s.id)), ', ', foldWord(s)); });
+      sum.append(t); det.append(sum);
+      const box = el('div', 'ci-morebody'); for (const s of rest) box.append(surveyCard(s, Q)); det.append(box); host.append(det);
+    }
+    if (dueNow.length) host.append(el('p', 'ck-note ci-svnote', 'Every question can be skipped; a skipped answer stays unknown.'));
+  }
+  // option 5: Due today becomes one row, "3 surveys due" with their names, and a Go button that opens the first one
+  function renderDueLine(S, Q) {
+    const list = $('ci-duelist'); if (!list) return; list.replaceChildren();
+    const dueS = S.filter((s) => isDueState(s, Q)); const li = el('li', 'ci-dueline');
+    if (!dueS.length) { li.append(el('span', 'ck-row-t', 'No survey is due')); list.append(li); return; }
+    const main = el('span', 'ck-row-main'); const t = el('span', 'ck-row-t'); t.append(mk('span', null, String(dueS.length), null, null, null, 'due-count'), dueS.length === 1 ? ' survey due' : ' surveys due');
+    const sub = el('span', 'ck-row-s'); dueS.forEach((s, i) => { if (i) sub.append(', '); sub.append(mk('span', null, s.name, 'coach', 'name', SQ(s.id))); });
+    main.append(t, sub); const go = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Go'); go.type = 'button'; go.setAttribute('aria-label', 'Go to ' + dueS[0].name);
+    go.addEventListener('click', () => openSurvey(dueS[0].id, Q)); li.append(main, go); list.append(li);
+  }
+
   function renderTab() {
     const host = $('ci-surveys'); if (!host) return;
     const sv = $('ci-sv'), dc = $('ci-due'), d = dash.data('coach');
@@ -372,7 +420,7 @@
     const due = dueList(); const lead = $('ci-lead');
     if (lead) lead.textContent = due.length ? 'Every question can be skipped; a skipped answer stays unknown.' : 'All caught up. Your answers update Health Pillars at the next morning run.';
     renderDue(S, Q, due);
-    for (const s of S) host.append(surveyCard(s, Q));
+    layoutTab(S, Q, due, host);
     if (focusNext) { const f = $(focusNext); focusNext = null; if (f) f.focus({ preventScroll: false }); }
   }
 
