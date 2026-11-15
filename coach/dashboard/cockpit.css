@@ -206,12 +206,12 @@
 .ck .ck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
 .ck .ck-span-all { grid-column: 1 / -1; }
 .ck .ck-deck { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ck-s2); min-width: 0; }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .ck-deck { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "stale stale" "ci ci" "call call" "session notice" "session race"; grid-template-rows: auto auto auto auto 1fr; }
   .ck .ck-deck > .ck-stale { grid-area: stale; } .ck .ck-deck > .ck-call { grid-area: call; } .ck .ck-deck > .ck-session { grid-area: session; }
   .ck .ck-deck > .ck-notice { grid-area: notice; align-self: start; } .ck .ck-deck > .ck-race { grid-area: race; align-self: start; }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .ck-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ck .ck-deck { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "stale stale stale" "ci ci ci" "call call session" "notice notice race"; grid-template-rows: auto auto auto auto; }
   .ck .ck-deck > .ck-session { align-self: stretch; }
@@ -234,11 +234,11 @@
 }
 .ck .ck-tab:hover { color: var(--ck-fg); }
 .ck .ck-tab[aria-selected=true] { background: var(--ck-fg); color: var(--ck-surface); font-weight: var(--ck-w-bold); }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .ck-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow-x: visible; background: var(--ck-surface); }
   .ck .ck-tab { padding: 0 var(--ck-s1); flex-direction: column; gap: 0; min-height: 52px; font-size: var(--ck-t1); line-height: var(--ck-l1); }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .ck-tab { flex-direction: row; gap: 6px; min-height: var(--ck-tap); font-size: var(--ck-t2); line-height: var(--ck-l2); }
 }
 .ck .ck-tabpanel { min-width: 0; }
@@ -254,7 +254,7 @@
 .ck .ck-tile[data-s=watch] { border-color: var(--ck-watch); box-shadow: inset 0 3px 0 var(--ck-watch); }
 .ck .ck-tile[data-s=act] { border-color: var(--ck-act); box-shadow: inset 0 3px 0 var(--ck-act); }
 .ck .ck-more { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); text-transform: uppercase; letter-spacing: var(--ck-caps); }
-@media (min-width: 480px) { .ck .ck-tile { padding: var(--ck-s3) var(--ck-s4); } }
+@container cx (min-width: 480px) { .ck .ck-tile { padding: var(--ck-s3) var(--ck-s4); } }
 .ck [data-s=good] { --st: var(--ck-good); --st-tint: var(--ck-good-tint); }
 .ck [data-s=watch] { --st: var(--ck-watch); --st-tint: var(--ck-watch-tint); }
 .ck [data-s=act] { --st: var(--ck-act); --st-tint: var(--ck-act-tint); }
@@ -325,7 +325,7 @@
 .ck .ck-vtab .ck-c-status { order: -1; justify-self: start; }
 .ck .ck-vtab tr { grid-template-columns: minmax(0, 1fr); }
 .ck .ck-vtab .ck-c-name { order: -2; }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .ck-tscroll {
     overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--ck-edge) var(--ck-surface-2);
     border: 1px solid var(--ck-line); border-radius: var(--ck-r2); box-shadow: var(--ck-shadow-1);
@@ -365,7 +365,7 @@
 .ck .ck-stale[data-s=act] { background: var(--ck-act-tint); border-color: var(--ck-act); }
 .ck .ck-stale[data-s=act] > .ck-i, .ck .ck-stale[data-s=act] .ck-stale-w { color: var(--ck-act); }
 .ck .ck-stale .ck-btn { grid-column: 2; justify-self: start; }
-@media (min-width: 480px) { .ck .ck-stale { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; } .ck .ck-stale .ck-btn { grid-column: auto; } }
+@container cx (min-width: 480px) { .ck .ck-stale { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; } .ck .ck-stale .ck-btn { grid-column: auto; } }
 .ck .ck-state { display: grid; gap: var(--ck-s2); justify-items: start; padding: var(--ck-s4); background: var(--ck-surface); border: 1px dashed var(--ck-edge); border-radius: var(--ck-r2); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .ck-state-w { display: inline-flex; align-items: center; gap: 6px; font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
 .ck .ck-state[data-state=error] { border-style: solid; border-color: var(--ck-act); border-left-width: 4px; }
@@ -457,7 +457,7 @@
 .ck .ck-tick[aria-pressed=true][data-t=skip] { background: var(--ck-surface); border-color: var(--ck-fg); border-style: dashed; color: var(--ck-fg); font-weight: var(--ck-w-bold); }
 .ck .ck-finish { position: sticky; bottom: 0; z-index: var(--ck-z-2); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s3); background: var(--ck-surface-3); border: 1px solid var(--ck-edge); border-radius: var(--ck-r2); box-shadow: var(--ck-shadow-2); font-size: var(--ck-t2); line-height: var(--ck-l2); }
 .ck .ck-finish-t { font-variant-numeric: var(--ck-num); }
-@media (min-width: 640px) { .ck .ck-lift { grid-template-columns: minmax(10rem, 1fr) auto; align-items: center; } }
+@container cx (min-width: 640px) { .ck .ck-lift { grid-template-columns: minmax(10rem, 1fr) auto; align-items: center; } }
 .ck .ck-list { display: grid; margin: 0; padding: 0; list-style: none; min-width: 0; }
 .ck .ck-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 2px var(--ck-s2); box-sizing: border-box; width: 100%; min-height: var(--ck-tap); margin: 0; padding: var(--ck-s2) 2px; background: none; border: 0; border-top: 1px solid var(--ck-line); border-radius: 0; color: var(--ck-fg); font: inherit; font-size: var(--ck-t3); line-height: var(--ck-l3); text-align: left; }
 .ck .ck-list > .ck-row:first-child, .ck .ck-list > :first-child > .ck-row { border-top: 0; }

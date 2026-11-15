@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.80.0 (2026-11-15)
+- Dashboard: on a computer the dashboard is the phone layout (the kit maker, Nov 15, 2026: "id like for the desktop view of the dashboard to show up like the phone render", then picked "Phone layout, centered" on the options page 5YLjkkz3YzKWRoMaX3bNXj, and then Option 3, the same with a Wide view switch). The page is one 430 px column, centered, and every width rule in style.css and cockpit.css is now a container query on that column instead of the window, so a wide window shows the same cards, order and sizes as the phone. On a window 700 px or wider a Wide view button beside the update time widens the column to the earlier 1100 px layout; the choice stays on that computer. Guard: coach/tests/test_one_layout.py.
+
 ## 6.79.0 (2026-11-15)
 - Engine: the night pattern rule (the kit maker, Nov 15, 2026, picked "Add it as proposed" on the card "Add the night pattern rule to the coach's rules?"). The morning facts now carry night_pattern: the last 3 nights as one SD number each (the same number the dashboard's sigma bands show) and a suggestion for the call. A good night (1 SD or more on the good side) means room to push on a key session if you feel up for it; 2 low nights in a row offer the easier size; 3 low nights, or a 2 SD low night your check-in agrees with, make Yellow (cut 20 to 40 percent). Feel, pain and injury rules still outrank it; one low night alone changes nothing. Home: RULES.md section 5, thresholds in schemas.json, morning run reads it. Guard: coach/tests/test_night_pattern.py.
 

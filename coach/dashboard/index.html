@@ -63,6 +63,9 @@
     <div class="cx-titlerow">
       <h1 id="cx-title">Coach dashboard</h1>
       <span class="cx-asofw"><span class="cap muted" id="cx-asof" data-source="coach"></span><span class="cap cx-fresh-s" id="cx-fresh-s" role="status" aria-live="polite" hidden></span><button type="button" class="cx-fresh" id="cx-fresh" aria-label="Next data update" title="Next data update" hidden><svg class="ck-i" aria-hidden="true"><use href="#cx-refresh"/></svg></button></span>
+      <!-- Wide view (the athlete, Nov 15, 2026, picked Option 3 on the desktop options page): a computer opens on the phone column; this
+           switch widens the column to the earlier 1100 px layout and the choice stays on that computer. Shown only on a wide window. -->
+      <button type="button" class="cx-wide" id="cx-wide" aria-pressed="false" hidden>Wide view</button>
       <!-- Refresh status (fresh.js; the athlete, Nov 12, 2026, "A. Status, runs every 2 h"): "next <time>" for the next scheduled
            update; a tap adds "Need it now? Type pull in chat". A page cannot start a refresh (fresh.js header). -->
     </div>

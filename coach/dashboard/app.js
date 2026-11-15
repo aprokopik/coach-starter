@@ -62,6 +62,13 @@
   }
   // The sticky bar's height (Phase 6): the range row on Fitness and Health docks under it, and scroll margins clear both
   { const bar = $('cx-bar'), root = $('cx'); if (bar && root && window.ResizeObserver) new ResizeObserver(() => root.style.setProperty('--cx-bar-h', bar.offsetHeight + 'px')).observe(bar); }
+  // Wide view switch (the athlete, Nov 15, 2026, Option 3): the page opens as the phone column; on a window wider than the column
+  // the switch widens it to the earlier layout. Per computer, so it lives in this browser's storage (a convenience only).
+  { const b = $('cx-wide'), root = $('cx'); if (b && root) {
+    let on = false; try { on = localStorage.getItem('cx-wide') === '1'; } catch (e) { on = false; }
+    const paint = () => { const can = window.innerWidth >= 700; b.hidden = !can; const w = on && can; root.classList.toggle('cx--wide', w); b.setAttribute('aria-pressed', String(w)); };
+    b.addEventListener('click', () => { on = !on; try { localStorage.setItem('cx-wide', on ? '1' : '0'); } catch (e) { /* per-viewer convenience only */ } paint(); window.dispatchEvent(new Event('resize')); });
+    window.addEventListener('resize', paint); paint(); } }
   { const bar = document.querySelector('.cx-tabs'); if (bar) { const edge = () => bar.classList.toggle('at-end', bar.scrollLeft + bar.clientWidth >= bar.scrollWidth - 2); bar.addEventListener('scroll', edge, { passive: true }); window.addEventListener('resize', edge); edge(); } }
   // Speed (6.76.0): a tap on the tab strip or a range answers on the next paint and draws right after it, so the phone shows
   // the tab or the range picked at once instead of after the whole tab is drawn. Several taps before that draw make one draw.

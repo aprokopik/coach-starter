@@ -1,6 +1,13 @@
 /* Coach dashboard, phone first. Six pages a tab each: Today (decide and log), Week (plan vs done, load), Lifts (Long Life Lifts: log sets, progressive overload), Fitness (performance markers, volume, zones), Health (longevity markers, recovery, weight, feel), Season (blocks and races, race hub). */
 #dash-root { --dash-gutter: clamp(16px, 3vw, 32px); }
-.cx { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-md); max-width: 1100px; margin-inline: auto; }
+/* One layout everywhere (the athlete, Nov 15, 2026, picked "Phone layout, centered"): on a computer the page is the phone column,
+   430 px, centered. The width rules below are container queries on this column (container cx), not the window, so a wide
+   window draws exactly what the phone draws. */
+.cx { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-md); max-width: 430px; margin-inline: auto; container: cx / inline-size; }
+.cx.cx--wide { max-width: 1100px; } /* Wide view switch (Option 3): the same container rules then lay the cards out as before */
+.cx-wide { min-height: 32px; padding: 0 12px; border: 1px solid var(--ck-edge, currentColor); border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.cx-wide[aria-pressed=true] { background: var(--ck-fg, currentColor); color: var(--ck-surface, Canvas); }
+.cx-wide:focus-visible { outline: 2px solid var(--ck-focus, Highlight); outline-offset: 2px; }
 .cx p { margin: 0; }
 .cx [hidden] { display: none !important; }
 .cx a { color: var(--color-fg); text-underline-offset: 2px; }
@@ -118,7 +125,7 @@
 /* ---------- Mobile pass (the athlete, Nov 1, 2026: "mostly mobile"). Phone rules first; desktop keeps the layout above. ---------- */
 /* Tabs: on a phone the seven tabs keep a readable 14px and scroll sideways instead of shrinking to 11px; the open tab is
    scrolled into view (app.js show()) and a fade on the right edge says there is more. */
-@media (max-width: 640px) {
+@container cx (max-width: 640px) {
   .cx-tabs { display: flex; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-padding-inline: 24px;
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); }
   .cx-tabs.at-end { -webkit-mask-image: none; mask-image: none; }
@@ -392,7 +399,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
    and the tile loses its tint and accent edge, so only the banner above it carries emphasis */
 .ck #t-hero.is-stale { background: var(--ck-surface); border-top-color: var(--ck-line); }
 .ck #t-hero.is-stale .td-ready, .ck #t-hero.is-stale .ck-call-glyph, .ck #t-hero.is-stale .ck-action, .ck #t-hero.is-stale .ck-action-w, .ck #t-hero.is-stale .td-nm-v { color: var(--ck-fg-2); }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .ck-deck > .td-ci { grid-area: ci; }
   .ck .ck-deck > .td-watchslot { grid-area: notice; align-self: start; }
   .ck .ck-deck > .ck-session { align-self: start; } /* keeps its height when the Watch slot beside it is tall */
@@ -400,7 +407,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
   .ck #n-table .ck-c-name { min-width: 7em; }
   .ck #n-table .ck-c-bar { min-width: 6rem; }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .td-rest { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ck #n-table .ck-c-name { min-width: 8.5em; }
   .ck #n-table .ck-c-bar { min-width: 9rem; }
@@ -456,10 +463,10 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .wk-tile .ck-big { display: block; }
 .ck .wk-meter { display: block; margin: 2px 0; }
 .ck .ck-seg.wk-mode { max-width: 22rem; }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .ck-grid.wk-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .wk-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ck .ck-grid.wk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -479,7 +486,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
   box-shadow: 0 0 0 100vmax var(--ck-bg), 0 1px 0 100vmax var(--ck-line); clip-path: inset(0 -100vmax -1px); }
 .ck .ft-span > .ck-sub { display: none; }
 .ck .ck-seg.ft-spanseg { flex: 1 1 14rem; max-width: 20rem; }
-@media (min-width: 640px) { .ck .ft-span > .ck-sub { display: inline; white-space: nowrap; } }
+@container cx (min-width: 640px) { .ck .ft-span > .ck-sub { display: inline; white-space: nowrap; } }
 /* tiles: 2 across, an odd last tile in a group spans the row; groups and the key span the grid */
 .ck .ft-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
 .ck .ft-barname { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-top: 6px; font-size: var(--cds-font-size-body, 13px); }
@@ -583,11 +590,11 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .bk-choose .ck-btn { padding: 4px var(--ck-s2); white-space: normal; text-align: center; }
 .ck .bk-ask[hidden] { display: none; } .ck .bk-ask-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ck-s2); }
 .ck .bk-choice, .ck .bk-msg { margin: 0; } .ck .bk-msg:empty { display: none; } .ck .ck-note.bk-choice { color: var(--ck-fg); }
-@media (min-width: 480px) {
+@container cx (min-width: 480px) {
   .ck .bk-sec dl { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 4px var(--ck-s3); }
   .ck .bk-sec dd { margin: 0; }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .ft-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ck .ft-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ck .bk-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -663,11 +670,11 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .hp-vfy { color: var(--ck-fg-2); }
 .ck .hp-wnow { color: var(--ck-fg); }
 /* from 900: rows and text keep a readable measure (about 70 characters); charts and the map keep the full width */
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .ck-row.hp-row, .ck .ck-row.hp-mrow, .ck .ck-disc.hp-wins { max-width: 48rem; }
   .ck .hp-what, .ck .hp-dl, .ck .hp-sect, .ck .hp-hist, .ck .hp-flist, .ck .hp-winl, .ck .hp-pbody > .ck-note, .ck .hp-detail .ck-note, .ck .hp-wins-p > .ck-note, .ck .hp-foot { max-width: 70ch; }
 }
-@media (min-width: 480px) {
+@container cx (min-width: 480px) {
   .ck .hp-pbody { padding-left: calc(var(--ck-i-lg) + var(--ck-s2) + 2px); }
   .ck .hp-dl { grid-template-columns: 5.5rem minmax(0, 1fr); gap: 2px var(--ck-s3); }
   .ck .hp-dl dt { padding-top: 3px; }
@@ -800,15 +807,15 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .sn-pillars { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
 .ck .sn-doc .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
 .ck .sn-split { display: grid; gap: var(--ck-s3); align-items: start; min-width: 0; }
-@media (min-width: 480px) {
+@container cx (min-width: 480px) {
   .ck .sn-facts { grid-template-columns: 6.5rem minmax(0, 1fr); gap: 2px var(--ck-s3); }
   .ck .sn-facts dt { padding-top: 3px; }
 }
-@media (min-width: 640px) {
+@container cx (min-width: 640px) {
   .ck .sn-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ck .sn-tile.sn-wide { grid-column: auto; }
 }
-@media (min-width: 900px) {
+@container cx (min-width: 900px) {
   .ck .sn-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -853,7 +860,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ci-nums { display: grid; gap: var(--ck-s3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
 .ck .ci-inp { display: flex; align-items: center; gap: var(--ck-s2); } .ck .ci-inp .ck-input { max-width: 9rem; } .ck .ci-inp .ck-unit { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .ci-gridrow > legend { font-weight: var(--ck-w-med); } .ck .ci-nav { justify-content: space-between; }
-@media (min-width: 900px) { .ck .ci-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+@container cx (min-width: 900px) { .ck .ci-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
 
 /* ---------- Disclosures (shared, Phase 5 Lifts pass): the old .cx details rules (Lifts was their last own user) are gone;
    these are the parts the Fitness, Season and Health folds still took from them: no browser marker (Safari draws it even
@@ -934,8 +941,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ck-row.lx-rule { grid-template-columns: minmax(0, 1fr); } .ck .ck-row.lx-swap { grid-template-columns: 1.75rem minmax(0, 1fr); }
 .ck .lx-rule.warn .ck-row-t .ck-badge { --st: var(--ck-watch); font-size: var(--ck-t3); line-height: var(--ck-l3); }
 .ck .lx-rulesbody > .ck-list + .ck-list { border-top: 1px solid var(--ck-line); }
-@media (min-width: 480px) { .ck .lx-opts { gap: var(--ck-s2); } }
-@media (min-width: 900px) { .ck .lx-cols { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
+@container cx (min-width: 480px) { .ck .lx-opts { gap: var(--ck-s2); } }
+@container cx (min-width: 900px) { .ck .lx-cols { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
 
 /* ---------- Today check card (#t-qc, ask.js): one question at a time, a 1 to 5 scale of tiles (the athlete, Nov 11) ---------- */
 .ck .td-ask .ck-tile-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ck-s2); }
