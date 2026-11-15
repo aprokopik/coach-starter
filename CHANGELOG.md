@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.81.2 (2026-11-15)
+- Dashboard fix: the "Closest to a new level" card takes you to its tile (the kit maker, Nov 15, 2026, with a phone screenshot of the Fitness Scorecard: "Is this supposed to be a button?"). It is a button: a tap opens that measure's tile with its chart. On the Scorecard the tile opened in place, often several screens below (Aerobic engine about 3,900 px down), and the page neither scrolled nor moved focus, so the tap looked dead. The tap now scrolls the opened tile to the top of the screen and focuses it, on the Scorecard and the Map alike; no other focus change scrolls. Harness `nexttap.js` checks the tile is on screen after the tap; guard coach/tests/test_next_level_tap.py.
+
 ## 6.81.1 (2026-11-15)
 - Dashboard fix: Done on the Morning check-in card lasts the day (the kit maker, Nov 15, 2026, with a phone screenshot at 3:18 PM: "Morning check shows up on each new load, does not save I already selected done in prev session"). Root cause: Done was kept only in browser storage (cx-qc-done), which does not last between opens in the Claude app, the same as the level up seen list before 6.47.0. Done now also saves the day to the store, doc seen/morning-card {day, saved_at}, read with the morning answers on open; page state only, nothing in the morning run reads it. Harness `qcdone.js` (storage throwing, two opens) fails on 6.80.2 and passes; guard coach/tests/test_qc_done_store.py.
 

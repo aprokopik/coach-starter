@@ -32,6 +32,7 @@
   let order = null; // the athlete's own order of the Scorecard groups (store doc metric_order/groups), else the layout's
   let cards = {}; // the athlete's own order of the cards inside each group (store doc metric_order/cards {cards: {group: [metric keys]}}), else the coach's rank
   let focusNext = null;
+  let scrollNext = false; // the next focus also brings its target on screen (the Closest to a new level tap, the athlete Nov 15)
 
   const cats = () => CX.kind('cat_cat').slice().sort((a, b) => Number(a.order) - Number(b.order));
   const inputs = () => new Map(CX.kind('cat_input').map((i) => [i.key, { ...i, steps: arr(i.steps) }]));
@@ -268,7 +269,7 @@
     const b = el('button', 'mx-next'); b.type = 'button'; b.id = 'mx-next';
     const tx = el('span', 'mx-nextt'); tx.append(el('span', 'ck-eyebrow', 'Closest to a new level'), el('b', null, best.m.name), el('span', 'ck-sub', `${best.lv.label} · ${Math.round(best.lv.pct * 100)}% of the way to the next level` + (best.lv.next ? ` · ${best.lv.next}` : '')));
     b.append(tx, CX.ck.icon('chevron', 'ck-chev'));
-    b.addEventListener('click', () => { const k = best.m.key; if (ui.view === 'map') { ui.node = k; focusNext = '#mx-n-' + k; } else if (tiles.has(k) && !best.m.rungs) { CX.state.fit = k; ui.open = null; } else { ui.open = k; CX.state.fit = null; focusNext = '#f-' + k; } rerender(); });
+    b.addEventListener('click', () => { const k = best.m.key; if (ui.view === 'map') { ui.node = k; focusNext = '#mx-n-' + k; } else if (tiles.has(k) && !best.m.rungs) { CX.state.fit = k; ui.open = null; focusNext = '#f-' + k; } else { ui.open = k; CX.state.fit = null; focusNext = '#f-' + k; } scrollNext = true; rerender(); });
     return b;
   }
   function requestBox() {
@@ -382,7 +383,7 @@
   CX.metricTiles = (box, tiles) => {
     const M = metrics(); if (!M.length) return;
     const I = inputs(); const byKey = new Map(M.map((m) => [m.key, m]));
-    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) f.focus({ preventScroll: true }); } };
+    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) { f.focus({ preventScroll: true }); if (scrollNext) f.scrollIntoView({ block: 'start' }); } } scrollNext = false; };
     if (ui.view === 'map') {
       const ex = document.getElementById('f-expand'); if (ex && box.contains(ex)) { ex.hidden = true; box.after(ex); } // the chart panel lives in the box while a tile is open: keep it
       const nb = nextBox(M, tiles); box.replaceChildren(viewBar(), ...(nb ? [nb] : []), mapView(M, I, tiles)); finish(); return;

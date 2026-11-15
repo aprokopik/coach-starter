@@ -36,6 +36,7 @@ Tab ids: `today`, `checkins`, `week`, `lifts`, `trends` (Fitness), `goals` (Heal
 - Level up dismiss: `node lvdismiss.js <page.html>` (build with `--lvx`): "Thanks, coach" closes the screen and Week takes a tap, with a working store and with one that throws; exit 1 on a failure.
 - Level up seen: `node lvseen.js <page.html>` (build with `--lvx`): a win already in the store's seen list never opens the screen, with store reads held 1.5 s; exit 1 when it opens.
 - Live data: `node livedata.js <page.html>`: open, Week and Fitness taps with `window.__liveData` (fresh read-only copies and calcs run on every `dash.data` call, like the live runtime); exit 1 when the open is over 1 s.
+- Closest to a new level: `node nexttap.js <index.html>`: taps the Fitness Scorecard's "Closest to a new level" card and checks the tile it opens is on screen with focus; exit 1 when it is not.
 - Morning card Done: `node qcdone.js <index.html>`: taps Done on the finished Morning check-in card with browser storage throwing, then opens again from that store; exit 1 when the card shows again.
 - `node contrast.js <page.html>`: a spot probe of a few Today and Week texts on the live host colours (build with `--host live`).
 
