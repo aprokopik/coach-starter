@@ -298,7 +298,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-lvx-wave { position: absolute; inset: 17px; border-radius: 50%; border: 2px solid var(--ck-gold-hi); opacity: 0; animation: td-lvx-wave 1.8s ease-out .8s 3; }
 .ck .td-lvx-wave.w2 { animation-delay: 1.4s; }
 .ck .td-lvx-num { position: relative; top: -6px; font-size: 54px; line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); color: var(--ck-gold); background: linear-gradient(110deg, var(--ck-gold) 30%, var(--ck-gold-hi) 50%, var(--ck-gold) 70%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: td-lvx-pop .6s cubic-bezier(.2, 1.5, .4, 1) .45s both, td-lvx-shine 1.6s ease-in-out 1.1s 2; }
-.ck .td-lvx-rings.is-long .td-lvx-num { font-size: 34px; }
+.ck .td-lvx-rings.is-long .td-lvx-num { font-size: 28px; letter-spacing: -.02em; } /* "1-4" fits inside the inner ring (u-level-in-stage test, Nov 15) */
 .ck .td-lvx-cap { position: absolute; bottom: 23px; font-size: 11px; font-weight: var(--ck-w-bold); letter-spacing: .16em; text-transform: uppercase; color: var(--ck-gold); }
 .ck .td-lvx-h { margin: 0; font-size: 26px; line-height: 1.15; font-weight: var(--ck-w-bold); text-wrap: balance; }
 .ck .td-lvx-sk { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 18px; font-weight: var(--ck-w-bold); }
@@ -1204,6 +1204,18 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck #fm-form .ck-choices--row .ck-choice:last-of-type { border-radius: 0 var(--ck-r1) var(--ck-r1) 0; }
 .ck #fm-form .ck-choices--row .ck-choice:has(~ .ck-choice input:checked) { background: color-mix(in srgb, var(--ck-accent) 22%, var(--ck-surface-2)); }
 .ck #fm-form .ck-choices--row .ck-choice:has(input:checked) { background: var(--ck-accent); color: var(--ck-on-accent); box-shadow: none; }
+/* Season Roadmap as a path (game look round four, my pick 1 pending the athlete): finished items fold into one line at the top;
+   the rest hang on a thin line in the left gutter, a dot for a race, a diamond for a test or check, a bar for a block,
+   the current block ringed. The rows, icons and taps are unchanged. */
+.ck .sn-roadl:not(.sn-roadl--done) { position: relative; }
+.ck .sn-roadl:not(.sn-roadl--done) > .sn-rm { position: relative; padding-left: 22px; }
+.ck .sn-roadl:not(.sn-roadl--done) > .sn-rm::after { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--ck-line); }
+.ck .sn-roadl:not(.sn-roadl--done) > .sn-rm::before { content: ""; position: absolute; z-index: 1; left: 2px; top: 16px; width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; background: var(--ck-surface); border: 2px solid var(--ck-fg-2); }
+.ck .sn-roadl > .sn-rm[data-t=race]::before { background: var(--ck-fg-2); }
+.ck .sn-roadl > .sn-rm[data-t=ms]::before { border-radius: 2px; transform: rotate(45deg); width: 9px; height: 9px; left: 2.5px; }
+.ck .sn-roadl > .sn-rm[data-t=block]::before { border-radius: 3px; height: 14px; top: 14px; }
+.ck .sn-roadl > .sn-rm.is-now::before { border-color: var(--ck-fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ck-accent) 35%, transparent); }
+.ck .sn-rmfold > details > summary { min-height: var(--ck-tap); font-size: var(--ck-t2); color: var(--ck-fg-2); }
 .ck .lx-wk-n { font-size: var(--ck-t2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
 /* Skills: the 7 day change on the step bar (the athlete, Nov 15, 2026) */
 .ck .td-sk-steps .ft-step > .td-sk-gain, .ck .td-sk-steps .ft-step > .td-sk-loss { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
@@ -1221,6 +1233,29 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
 .ck .td-bell-cap { fill: var(--ck-fg-2); }
 .ck .hl-grp { margin: var(--ck-s3) 0 var(--ck-s1); font-size: var(--ck-t2); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+
+/* Today: This week as a path (Sprint Review g-today-week, pick 1, Nov 15): the days sit on one line like nodes on a path; the
+   line into a done day fills green; key sessions are diamonds with their number; today glows softly. Same height as before. */
+.ck .td-path { gap: 0; }
+.ck .td-day { position: relative; }
+.ck .td-day + .td-day::before { content: ""; position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: var(--ck-line); }
+.ck .td-day.is-done + .td-day.is-done::before { background: var(--ck-good); }
+.ck .td-node { position: relative; z-index: 1; border-radius: 50%; background: var(--ck-surface); }
+.ck .td-node.is-key { width: 24px; height: 24px; margin: 2px 0; border-radius: 5px; border-width: 2px; transform: rotate(45deg); }
+.ck .td-node > b { font: inherit; }
+.ck .td-node.is-key > b { transform: rotate(-45deg); }
+.ck .td-node.is-done { background: var(--ck-good); }
+.ck .td-node.is-now { box-shadow: 0 0 0 3px var(--ck-surface), 0 0 0 5px var(--ck-watch), 0 0 12px 5px color-mix(in srgb, var(--ck-watch) 35%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .ck .td-node.is-now { transition: box-shadow .3s; } }
+
+/* Level up vs stage up (the athlete, Nov 15, 2026: "delineate between level ups and stage ups"; my pick 2 of 5, built ahead):
+   the same screen in two metals. A level up is silver with no confetti; a stage up (and a block goal) keeps the gold and the
+   confetti, so gold always means a new stage. The silver tokens keep the gold ones' contrast (text 4.5:1, button text 4.5:1). */
+.ck #t-lvup.is-level { --ck-gold: #45576b; --ck-gold-ring: #6f86a0; --ck-gold-hi: #a9bccf; --ck-gold-tint: #e6edf5; --ck-on-gold: #10161d; }
+@media (prefers-color-scheme: dark) { .ck:not([data-mode=light] *):not([data-mode=dark] *) #t-lvup.is-level { --ck-gold: #c5d3e3; --ck-gold-ring: #9db2c9; --ck-gold-hi: #e8f0f8; --ck-gold-tint: #26303b; --ck-on-gold: #10161d; } }
+[data-mode=dark] .ck #t-lvup.is-level { --ck-gold: #c5d3e3; --ck-gold-ring: #9db2c9; --ck-gold-hi: #e8f0f8; --ck-gold-tint: #26303b; --ck-on-gold: #10161d; }
+.ck #t-lvup.is-level .td-lvx-conf { display: none; }
+.ck .td-lvx-rings.no-cap .td-lvx-num { top: 0; } /* level and stage ups: the number alone, centred (the heading names it) */
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }

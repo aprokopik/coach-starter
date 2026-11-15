@@ -472,13 +472,13 @@
     if (!items.length) { road.replaceChildren(); $('r-doc').hidden = true; cardState($('r-road'), 'empty', 'The roadmap fills when the plan has blocks or milestones.'); return; }
     cardState($('r-road'), null); road.replaceChildren();
     for (const it of items) {
-      const li = el('li', 'sn-rm');
+      const li = el('li', 'sn-rm'); li.dataset.t = it._t === 'block' ? 'block' : it._race ? 'race' : 'ms';
       if (it._t === 'block') {
         const bw = 'kind=block&key=' + it.key;
         const past = dayN(it.end) < TN, cur = TN >= dayN(it.start) && TN <= dayN(it.end), open = state.openBlock === it.key;
         if (past) li.classList.add('is-past');
         const btn = el('button', 'ck-row sn-blk'); btn.type = 'button'; btn.id = 'r-blk-' + it.key; btn.setAttribute('aria-expanded', String(open)); if (open) btn.setAttribute('aria-controls', 'r-blkm-' + it.key);
-        if (cur) btn.dataset.key = '1';
+        if (cur) { btn.dataset.key = '1'; li.classList.add('is-now'); }
         const weeks = Math.max(1, Math.round((dayN(it.end) - dayN(it.start) + 1) / 7));
         const main = el('span', 'ck-row-main'); const t = el('span', 'ck-row-t'); t.append(mkSpan(it.label, 'coach', 'label', bw), ': ', mkSpan(it.name, 'coach', 'name', bw));
         const s2 = el('span', 'ck-row-s'); s2.append(mkSpan(fDay(P(it.start)), 'coach', null, bw, 'formatted'), ' – ', mkSpan(fDay(P(it.end)), 'coach', null, bw, 'formatted'), ' · ');
@@ -505,6 +505,17 @@
         li.append(row);
       }
       road.append(li);
+    }
+    // Game look round four (my pick 1 pending the athlete): finished items fold into one line at the top, so the path starts at
+    // today; the rest hang on a thin path (style.css .sn-roadl: races dots, tests diamonds, blocks bars, now ringed)
+    const done = [...road.children].filter((li) => li.classList.contains('is-past'));
+    if (done.length > 1) {
+      const fold = el('li', 'sn-rmfold'); const det = el('details'); const sm = el('summary', 'ck-disc');
+      const names = done.filter((li) => li.dataset.t === 'race').map((li) => li.querySelector('.ck-row-t').textContent);
+      sm.append(el('span', null, `${done.length} done${names.length ? ': ' + names.join(', ') : ''}`), icon('chevron', 'ck-chev'));
+      const ul = el('ul', 'ck-list sn-roadl sn-roadl--done'); ul.append(...done); det.append(sm, ul);
+      det.open = !!state.openBlock && done.some((li) => li.querySelector('#r-blk-' + state.openBlock));
+      fold.append(det); road.prepend(fold);
     }
   }
   Object.assign(window.CX, { renderRaces, renderRaceWeek });

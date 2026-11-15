@@ -197,6 +197,10 @@ def main():
                 for r in j["rows"]:
                     if r.get("kind") == "day" and r.get("date") == "2026-11-02" and r.get("order") == 1: r["key"] = True; r["pillar"] = 1; r["harness_only"] = "keydone variant"
                     if r.get("kind") == "day" and r.get("date") == "2026-11-07" and r.get("order") == 1: r["key"] = False; r["pillar"] = None; r["harness_only"] = "keydone variant"
+            if ds_id == "coach" and variant == "lvinstage":  # Sprint Review u-level-in-stage (Nov 15): one skill moves up one level inside its stage, with no stage change. 20K bike time sits in Bottom third and has never reached Bottom half (edge 47:01, well below Top 20%); a 46:30 20K dated yesterday is the level up (a first crossing, as levelUps needs). Harness only, never real data.
+                import datetime
+                y = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+                j["rows"].append({"kind": "mpt", "key": "t20k", "date": y, "value": 46.5, "extra": "harness only: lvinstage variant", "harness_only": "lvinstage variant"})
             if ds_id == "coach" and variant == "lifttap":  # Today Quick check: yesterday a planned 30 min lift, nothing logged. Harness only.
                 import datetime
                 y = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()

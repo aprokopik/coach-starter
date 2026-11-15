@@ -316,7 +316,7 @@
         const first = rows.find((r) => beyond(r.value, e)); if (!first || dayN(first.date) <= TN - 7 || !beyond(latest, e)) continue;
         const before = rows.filter((r) => r.date < first.date); if (!before.length) continue; // a first reading is a start, not a level up
         const sg = stageOf(m); const lt = (n) => (sg ? `level ${sg.cur}-${n}` : `level ${n}`);
-        out.push({ id: `${m.key}|${t.label}|${first.date}`, key: m.key, label: m.label, lv: i + 1, lvTxt: lt(i + 1), rank: t.label, date: first.date, top: now && now.n === i + 1, next: now && now.next && now.n === i + 1 ? `${deltaFmt(m)(Math.max(now.toNext, 0))} to ${lt(now.n + 1)}` : '' });
+        out.push({ id: `${m.key}|${t.label}|${first.date}`, key: m.key, label: m.label, lv: i + 1, lvTxt: lt(i + 1), rank: t.label, nextName: now && now.next && now.n === i + 1 ? now.next.label : '', date: first.date, top: now && now.n === i + 1, next: now && now.next && now.n === i + 1 ? `${deltaFmt(m)(Math.max(now.toNext, 0))} to ${lt(now.n + 1)}` : '' });
       }
       if (bc && bc.goal && bc.goal.target !== null) { // block goal: first day inside the block at or past Target / Strong, still held
         for (const [lab, e] of [['Target', bc.goal.target], ['Strong', bc.goal.strong]]) { if (e === null) continue; const first = bc.series.find((r) => beyond(r.value, e)); if (first && dayN(first.date) > TN - 7 && beyond(bc.goal.latest, e)) out.push({ id: `${m.key}|goal-${lab}|${first.date}`, key: m.key, label: m.label, goal: `${lab} ${valFmt(m)(e)}`, block: bc.goal.block, date: first.date, top: true }); }
@@ -366,7 +366,7 @@
       const sc = scaleSort(scalesOf(m)); const st = [...new Set(sc.map(stageNo))].sort((a, b) => a - b); if (!st.includes(3)) st.push(3); // the Map shows Elite even before a scale is on file
       nodes = st.map((n) => { const s0 = sc.find((x) => stageNo(x) === n); const who = !s0 ? 'best in sport' : /^General population$/i.test(s0.label || '') ? 'everyone' : String(s0.short || s0.label || '').replace(/^IRONMAN /, '');
         return { n: String(n), name: (s0 && s0.stage_label) || (n === 3 ? 'Elite' : `Stage ${n}`), who, s: n < u.stage ? 'done' : n === u.stage ? 'new' : 'lock' }; });
-    } else { const lad = ladderOf(m); const sg = stageOf(m); const nm = (i) => (sg ? `${sg.cur}-${i + 1}` : String(i + 1));
+    } else { const lad = ladderOf(m); const sg = stageOf(m); const nm = (i) => String(i + 1); /* the level alone (the athlete, Nov 15); the stage is named in the ring */ void sg;
       nodes = [u.lv - 2, u.lv - 1, u.lv].filter((i) => i >= 0 && i < lad.length).map((i) => ({ n: nm(i), name: lad[i].label, who: '', s: i < u.lv - 1 ? 'done' : i === u.lv - 1 ? 'new' : 'lock' })); }
     if (nodes.length < 2) return null;
     const ol = el('ol', 'td-lvp'); ol.setAttribute('aria-label', nodes.map((x) => `${u.stage ? 'Stage ' : 'Level '}${x.n}, ${x.name}${x.who ? ', ' + x.who : ''}, ${x.s === 'done' ? 'reached' : x.s === 'new' ? 'new' : 'next'}`).join('; '));
@@ -380,7 +380,7 @@
       const p = el('p', 'td-lvx-why'); p.append(below ? (ranked ? `Top 20% of ${who}. ` : `Best level on the ${below.label} scale. `) : '', 'Now you climb among ', el('b', null, String(u.scale || '').replace(/^IRONMAN /, '')), '.'); return p;
     }
     if (u.goal) { const p = el('p', 'td-lvx-why'); p.append('You reached ', el('b', null, u.goal), ` in your ${u.block} block.`); return p; }
-    const p = el('p', 'td-lvx-why'); p.append(el('b', null, u.rank), '. ', u.next ? u.next.charAt(0).toUpperCase() + u.next.slice(1) + '.' : 'That is the top level.'); return p;
+    const p = el('p', 'td-lvx-why'); const nx = u.next ? (u.nextName ? u.next.replace(/level \d+-\d+|level \d+/, u.nextName) : u.next.replace(/level \d+-(\d+)/, 'level $1')) : ''; /* the athlete, Nov 15: say level once (the heading) */ p.append(el('b', null, u.rank), '. ', nx ? nx.charAt(0).toUpperCase() + nx.slice(1) + '.' : 'That is the top level.'); return p;
   }
   let lvOpen = null; // the screen showing now: { ids, prev focus }
   function renderKudos() {
@@ -388,14 +388,15 @@
     const seen = new Set(lvSeen()); const groups = lvGroups(levelUps().filter((u) => !seen.has(u.id)));
     if (!groups.length) { box.hidden = true; box.replaceChildren(); if (lvOpen) { document.documentElement.classList.remove('td-lvx-on'); lvOpen = null; } return; }
     const g = groups[0]; if (lvOpen && lvOpen.ids.join() === g.ids.join() && !box.hidden) return; // a re-render keeps the screen as it is
-    const u = g.main; const num = u.stage ? String(u.stage) : u.goal ? '✓' : String(u.lvTxt || '').replace(/^level /, '');
+    const u = g.main; const lvSt = (/^level (\d+)-/.exec(u.lvTxt || '') || [])[1]; // the athlete, Nov 15: no "1-4" on this screen; the level alone, the stage in words
+    const num = u.stage ? String(u.stage) : u.goal ? '✓' : String(u.lv || String(u.lvTxt || '').replace(/^level /, ''));
     const card = el('div', 'td-lvx-card'); card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true'); card.setAttribute('aria-labelledby', 't-lvx-h'); card.setAttribute('aria-describedby', 't-lvx-d');
     mark(card, 'coach', null, null, 'level-up');
-    const rings = el('div', 'td-lvx-rings' + (num.length > 2 ? ' is-long' : '')); rings.setAttribute('aria-hidden', 'true');
-    rings.append(el('span', 'td-lvx-r r3'), el('span', 'td-lvx-r r2'), el('span', 'td-lvx-r r1'), el('span', 'td-lvx-wave'), el('span', 'td-lvx-wave w2'), el('b', 'td-lvx-num', num), el('small', 'td-lvx-cap', u.stage ? 'Stage' : u.goal ? 'Goal' : 'Level'));
+    const rings = el('div', 'td-lvx-rings' + (num.length > 2 ? ' is-long' : '') + (u.goal && !u.stage ? '' : ' no-cap')); rings.setAttribute('aria-hidden', 'true');
+    rings.append(el('span', 'td-lvx-r r3'), el('span', 'td-lvx-r r2'), el('span', 'td-lvx-r r1'), el('span', 'td-lvx-wave'), el('span', 'td-lvx-wave w2'), el('b', 'td-lvx-num', num), ...(u.goal && !u.stage ? [el('small', 'td-lvx-cap', 'Goal')] : [])); // a level up: the number alone (the athlete, Nov 15: "level" said once, in the heading)
     const h = el('h2', 'td-lvx-h', u.stage ? `Stage ${u.stage} unlocked!` : u.goal ? 'Block goal reached!' : 'Level up!'); h.id = 't-lvx-h';
     const sk = el('div', 'td-lvx-sk'); const ic = el('span', 'td-lvx-ic'); ic.append(icon(SKILL_ICON(u.key))); sk.append(ic, el('b', null, u.label));
-    const area = SKILL_AREA[SKILL_ICON(u.key)]; const mean = SKILL_MEAN[u.key]; const sm = (mean || area) ? el('p', 'td-lvx-mean', [mean, area].filter(Boolean).join(' · ')) : null;
+    const area = SKILL_AREA[SKILL_ICON(u.key)]; const mean = SKILL_MEAN[u.key]; const stW = !u.stage && !u.goal && lvSt ? `Stage ${lvSt}` : ''; const sm = (mean || area || stW) ? el('p', 'td-lvx-mean', [mean, area, stW].filter(Boolean).join(' · ')) : null;
     const why = lvWhy(u); why.id = 't-lvx-d'; const path = lvPath(u);
     card.append(rings, h, sk, ...(sm ? [sm] : []), ...(path ? [path] : []), why);
     const ea = earnedOf(u);
@@ -407,6 +408,7 @@
     const conf = el('div', 'td-lvx-conf'); conf.setAttribute('aria-hidden', 'true');
     for (let i = 0; i < 30; i++) { const c = el('i'); c.style.left = `${(i * 37) % 97 + 1}%`; c.style.animationDelay = `${0.5 + ((i * 13) % 10) / 10}s`; c.style.setProperty('--y', `${105 + ((i * 7) % 25)}vh`); c.style.setProperty('--c', ['var(--ck-gold-ring)', 'var(--ck-gold-hi)', 'var(--ck-gold)'][i % 3]); conf.append(c); }
     const prev = lvOpen ? lvOpen.prev : document.activeElement;
+    box.classList.toggle('is-level', !u.stage && !u.goal); // the athlete, Nov 15: silver for a level up, gold (and confetti) only for a stage or a goal
     box.replaceChildren(conf, card); box.hidden = false; document.documentElement.classList.add('td-lvx-on'); lvOpen = { ids: g.ids, prev };
     const done = () => {
       const s = lvSeen(); for (const id of g.ids) if (!s.includes(id)) s.push(id);
@@ -661,7 +663,8 @@
   function hmin(v) { v = Math.round(v); return v >= 60 ? `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}` : `${v} min`; }
   // when to pick each size (6.39.0): plain words from push contract B (coach/engine/TEAM.md), shown before today's check-in
   const PICK_WHEN = [['Min', 'Short on time, tired, or something hurts. Still counts as done.'], ['Plan', 'You feel normal.'], ['Max', 'Energy and legs 4 or better, slept 6.5 h or more, nothing hurts.']];
-  // the week path (direction G): one node a day, Mon to Sun; a key session shows its number (1 to 3), a done session is filled
+  // the week path (direction G; Sprint Review pick 1, Nov 15: nodes on one line, key sessions are diamonds, the line fills as
+  // days are done, today glows softly): one node a day, Mon to Sun; a key session shows its number (1 to 3), a done session is filled
   // (week_view status done, fallback or swapped), today is ringed; the head counts key sessions done
   const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   function renderPath() {
@@ -672,8 +675,8 @@
       const key = rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null));
       const done = wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
       const planned = rs.some((r) => r.type !== 'rest');
-      const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
-      nd.textContent = key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·'; nd.setAttribute('aria-hidden', 'true');
+      const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '') + (done ? ' is-done' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
+      nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
       li.append(nd, el('span', 'td-dow', DOW[i]), el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
       ol.append(li);
       if (key) { keys++; if (done) keysDone++; }
