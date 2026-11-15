@@ -61,7 +61,7 @@
     const need = el('span', 'ck-sub ft-subl'); need.append('Needs ', mark(el('span', null, needWords(m, I)), 'coach', 'missing', mw(m), 'input-labels')); b.append(need);
     b.append(el('span', 'ck-sub ft-subl mx-how', 'How to unlock'));
     b.setAttribute('aria-label', `${m.name}, locked, needs ${needWords(m, I)}. How to unlock`);
-    b.addEventListener('click', () => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = '#f-' + m.key; rerender(); });
+    b.addEventListener('click', (e) => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = e.detail === 0 ? '#f-' + m.key : null; rerender(); });
     return b;
   }
   function waitingTile(m) {
@@ -106,7 +106,7 @@
     if (m.next) b.append(mark(el('span', 'ck-sub ft-subl', m.next), 'coach', 'next', mw(m)));
     if (m.sub) b.append(mark(el('span', 'ck-sub ft-subl', m.sub), 'coach', 'sub', mw(m)));
     b.setAttribute('aria-label', [m.name, `${m.value} ${m.unit || ''}`.trim(), m.level ? 'Level ' + m.level : ''].filter(Boolean).join(', '));
-    b.addEventListener('click', () => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = '#f-' + m.key; rerender(); });
+    b.addEventListener('click', (e) => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = e.detail === 0 ? '#f-' + m.key : null; rerender(); });
     return b;
   }
   // The ladder of a simple metric, top rung first, with the athlete's rung marked; habits add their 12 weeks.

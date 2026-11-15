@@ -1731,10 +1731,11 @@
     b.setAttribute('aria-label', nm.join(', '));
     const ds = Array.from(b.querySelectorAll('.ft-subl')); ds.forEach((d, i) => { d.id = `f-${key}-d${i}`; });
     if (ds.length) b.setAttribute('aria-describedby', ds.map((d) => d.id).join(' '));
-    b.addEventListener('click', () => o.onPick(key));
+    b.addEventListener('click', (e) => o.onPick(key, e));
     return b;
   }
-  const ftPick = (k) => { state.fit = state.fit === k ? null : k; renderFitness(); ftFocus(`#f-tiles .ft-tile[data-k="${k}"]`); };
+  // refocus only after a keyboard press (6.81.5)
+  const ftPick = (k, e) => { state.fit = state.fit === k ? null : k; renderFitness(); if (!e || e.detail === 0) ftFocus(`#f-tiles .ft-tile[data-k="${k}"]`); };
   // Scales (the athlete, Nov 12, 2026): every level reads against a scale; a marker row may carry other scales (field scales, JSON:
   // id, label, stage and the ladder fields). The choice belongs to the tile (a distance switch shares it).
   // Stages follow fitness and history (the athlete, Nov 14, 2026: "If a user has history that shows they had been capable of the top
