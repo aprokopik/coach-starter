@@ -89,6 +89,13 @@ The athlete's normal sleep range and score are in the profile; there is no gener
 
 Numeric tolerance (a mean and SD band) only with at least `bands_min_nights` (14) comparable complete observations, preferably 21 to 28; facts.json `night` says how many exist and refuses a band below the minimum. Even then it is descriptive, not an injury or illness boundary.
 
+**Night pattern** (the athlete, Nov 15, 2026). facts.json `night_pattern` reads the last `night_pattern_nights` (3) nights, each as one number: the average SD distance of sleep, sleep score, HRV and resting HR (flipped) from the 28 nights before it, the same number the dashboard shows. A night is low at `night_pattern_low_sd` (-1) or below. The pattern is a suggestion for the call, applied in this order:
+  - **Yellow**: `night_pattern_yellow_low_nights` (3) low nights in a row, or last night at `night_pattern_well_low_sd` (-2) or below and the morning check-in agrees (energy or legs at 2 or below, or sleep, energy or legs a full point or more below the 14-day mean). Yellow cuts 20 to 40 percent (section 6).
+  - **Easier size**: `night_pattern_easier_low_nights` (2) low nights in a row, or a 2 SD low night the check-in does not confirm (or no check-in yet). Offer the fallback or shorter size as the smart pick; the call can stay Green.
+  - **Room to push**: last night `night_pattern_good_sd` (+1) or more on the good side. Say there is room to push on a key session if the athlete feels up for it; the strong-day bound is on offer if nothing else objects.
+  - **As planned**: anything else, including one low night on its own.
+  The feel, pain, injury and illness rules outrank the pattern, and a partial night gives no pattern. The dashboard shows the coach's call; it never decides it.
+
 ## 6. Injury and illness rules
 - GREEN: normal soreness, stable mechanics, symptoms not worsening during activity, normal next morning: train as planned or progress.
 - YELLOW: focal discomfort, accumulating soreness, mild recovery deterioration, unusual fatigue, or pain rising modestly during training without altering gait: reduce 20 to 40 percent, substitute lower impact, or repeat the prior level.

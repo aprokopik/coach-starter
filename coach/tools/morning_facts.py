@@ -13,6 +13,7 @@ Sections of facts.json (every number carries its label; a missing value is null,
   meta        date, generated_at_utc, pull run_at_utc and age, inputs used
   freshness   is the latest night complete, which night it is, weigh-in date, data flags
   night       latest night's metrics against the athlete's own 28-day band (n, mean, sd, z, position)
+  night_pattern  the last 3 nights as one SD number each and what they suggest (RULES.md 5, night pattern)
   feel        today's and yesterday's answers (on the 1-5 scale), 14-day means, departures, pain streaks
   yesterday   activities yesterday and so far today, matched to week.json rows, completion class, guardrail
   load        7- and 28-day minutes/km/ascent by discipline; sRPE 7-day; longest run in 30 days and the spike cap
@@ -35,6 +36,7 @@ import csv
 import json
 import os
 import re
+import math
 import statistics
 import sys
 from datetime import date, datetime, timedelta, timezone
@@ -312,6 +314,82 @@ def section_night(today, data, th):
     out["hrv_status"] = cur.get("hrv_status") or None
     out["hrv_weekly_ms"] = num(cur.get("hrv_weekly_ms"))
     out["overlap_note"] = "HRV, sleep score and Body Battery overlap; they are one signal read three ways, not three confirmations."
+    return out
+
+
+NIGHT_GAUGE = (("sleep_h", 1), ("sleep_score", 1), ("hrv_overnight_ms", 1), ("resting_hr", -1))
+
+
+def night_value(rows, by_date, night, th):
+    """One number for a night: the average of sleep, sleep score, HRV and resting HR (flipped, lower is better) as SD from
+    the athlete's own 28 nights before it. Same method as the dashboard's night_gauge and night_week (calc.js)."""
+    nd = d(night)
+    window = [row for row in rows if nd - timedelta(days=th["bands_window_days"]) <= d(row["date"]) < nd]
+    cur = by_date.get(night) or {}
+    zs = []
+    for col, better in NIGHT_GAUGE:
+        m, sd, n = mean_sd([num(row.get(col)) for row in window])
+        v = num(cur.get(col))
+        if v is None or n < th["bands_min_nights"] or not sd:
+            continue
+        zs.append(math.floor((v - m) / sd * 10 + 0.5) / 10 * better)  # JS Math.round, as calc.js
+    mv = None
+    if zs:
+        x = sum(zs) / len(zs)
+        mv = math.copysign(math.floor(round(abs(x) * 10, 9) + 0.5), x) / 10 + 0.0  # calc.js round(): half away from zero
+    return {"date": night, "value": mv, "used": len(zs), "of": len(NIGHT_GAUGE)}
+
+
+def night_zone(v):
+    if v is None:
+        return None
+    a = abs(v)
+    return "normal" if a < 1 else ("1 SD " if a < 2 else "2 SD ") + ("above" if v > 0 else "below")
+
+
+def section_night_pattern(today, data, th, night, feel):
+    """RULES.md 5, night pattern (the athlete, Nov 15, 2026, "Add it as proposed"): the last 3 nights on the sigma scale and what
+    they suggest for today. A suggestion for the coach's call, never the call; the feel, pain and injury rules outrank it."""
+    if not night or not night.get("night"):
+        return {"nights": [], "suggest": None, "note": "no complete night on file"}
+    rows = data["summary"]
+    by_date = {row["date"]: row for row in rows}
+    nd = d(night["night"])
+    k = th["night_pattern_nights"]
+    nights = [night_value(rows, by_date, iso(nd - timedelta(days=i)), th) for i in range(k - 1, -1, -1)]
+    for x in nights:
+        x["zone"] = night_zone(x["value"])
+    out = {"nights": nights, "last_night": nights[-1]["date"], "suggest": None, "check_in_agrees": None,
+           "provenance": "Calculated from Measured nights"}
+    partial = any(((m or {}).get("band_note") or "").startswith("partial night") for m in (night.get("metrics") or {}).values())
+    last = nights[-1]["value"]
+    if partial or last is None:
+        out["note"] = "last night is partial or has no band: no pattern read"
+        return out
+    low = th["night_pattern_low_sd"]
+    run = 0
+    for x in reversed(nights):
+        if x["value"] is None or x["value"] > low:
+            break
+        run += 1
+    t = feel.get("today")
+    dep = feel.get("today_departure") or {}
+    agrees = None
+    if t:
+        agrees = bool(feel.get("energy_or_legs_at_or_below_2") or any(v <= -th["feel_departure_points"] for v in dep.values()))
+    out["check_in_agrees"] = agrees
+    out["low_run"] = run
+    if run >= th["night_pattern_yellow_low_nights"]:
+        out["suggest"], out["why"] = "yellow", f"{run} low nights in a row"
+    elif last <= th["night_pattern_well_low_sd"] and agrees:
+        out["suggest"], out["why"] = "yellow", "last night 2 SD below and the check-in agrees"
+    elif run >= th["night_pattern_easier_low_nights"] or last <= th["night_pattern_well_low_sd"]:
+        out["suggest"] = "easier_size"
+        out["why"] = f"{run} low nights in a row" if run >= th["night_pattern_easier_low_nights"] else ("last night 2 SD below; no check-in yet" if agrees is None else "last night 2 SD below; the check-in does not agree")
+    elif last >= th["night_pattern_good_sd"] and run == 0:
+        out["suggest"], out["why"] = "room_to_push", "last night 1 SD or more on the good side"
+    else:
+        out["suggest"], out["why"] = "as_planned", "last night within the usual range or one low night"
     return out
 
 
@@ -1207,6 +1285,12 @@ def build_flags(f, th):
         flags.append({"rule": "5a", "text": "Energy or legs at 2 or below: fallback."})
     if fe.get("two_mornings_low"):
         flags.append({"rule": "5a", "text": "Two mornings in a row a full point or more below the 14-day mean: back off."})
+    np_ = f.get("night_pattern") or {}
+    NP = {"yellow": "Night pattern ({why}): Yellow, cut 20 to 40 percent (RULES 5 night pattern, 6).",
+          "easier_size": "Night pattern ({why}): offer the easier size as the smart pick; the call can stay Green.",
+          "room_to_push": "Night pattern ({why}): room to push on a key session if the athlete feels up for it; the strong-day bound is on offer if nothing else objects."}
+    if np_.get("suggest") in NP:
+        flags.append({"rule": "5 night pattern", "text": NP[np_["suggest"]].format(why=np_.get("why"))})
     if fe.get("stress_at_or_above_4"):
         flags.append({"rule": "5a", "text": "Stress 4 or above: trim the optional layer and protect sleep."})
     if fe.get("energy_and_legs_at_or_above_4"):
@@ -1325,6 +1409,7 @@ def build(today):
     f["night"] = section_night(today, data, th)
     mark_partial(f["night"], f["freshness"])
     f["feel"] = section_feel(today, data, th)
+    f["night_pattern"] = section_night_pattern(today, data, th, f["night"], f["feel"])
     f["yesterday"] = section_yesterday(today, data, prof, th)
     f["load"] = section_load(today, data, th)
     f["week"] = section_week(today, data, prof)
