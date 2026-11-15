@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.80.1 (2026-11-15)
+- Dashboard: Today's Morning check-in card missed the kit maker's round three pick 1 (Sprint Review audit, Nov 15: "I think you missed some of the comments"): its answers now join into one step bar like the Check-in tab form, worst left, best right, the tapped step filled and the steps to its left lightly filled, no digits. The card is called Morning check-in on Today too (it said Morning check). Guard: coach/tests/test_today_checkin_bar.py.
+
 ## 6.80.0 (2026-11-15)
 - Dashboard: on a computer the dashboard is the phone layout (the kit maker, Nov 15, 2026: "id like for the desktop view of the dashboard to show up like the phone render", then picked "Phone layout, centered" on the options page 5YLjkkz3YzKWRoMaX3bNXj, and then Option 3, the same with a Wide view switch). The page is one 430 px column, centered, and every width rule in style.css and cockpit.css is now a container query on that column instead of the window, so a wide window shows the same cards, order and sizes as the phone. On a window 700 px or wider a Wide view button beside the update time widens the column to the earlier 1100 px layout; the choice stays on that computer. Guard: coach/tests/test_one_layout.py.
 

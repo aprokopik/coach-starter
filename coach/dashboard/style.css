@@ -1313,3 +1313,10 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
    frame, not the normal dist") */
 .ck .td-g-line > #n-g-b { display: flex; align-items: center; }
 .ck .td-g-line { width: fit-content; max-width: 100%; box-sizing: border-box; margin-inline: auto; padding: var(--ck-s1) var(--ck-s3); border: 1px solid var(--ck-edge); border-radius: var(--ck-r2); background: var(--ck-surface); }
+/* Today's Morning check-in card: the same joined step bar as the Check-in tab form (the athlete, Nov 15, 2026, Sprint Review). */
+.ck .qc-bar { gap: 2px; }
+.ck .qc-bar .qc-tile { min-height: 48px; border: 0; border-radius: 0; background: var(--ck-surface-2); box-shadow: inset 0 0 0 1px var(--ck-edge); }
+.ck .qc-bar .qc-tile:first-child { border-radius: var(--ck-r1) 0 0 var(--ck-r1); }
+.ck .qc-bar .qc-tile:last-child { border-radius: 0 var(--ck-r1) var(--ck-r1) 0; }
+.ck .qc-bar .qc-tile.pre { background: color-mix(in srgb, var(--ck-accent) 22%, var(--ck-surface-2)); }
+.ck .qc-bar .qc-tile.sel { background: var(--ck-accent); color: var(--ck-on-accent); box-shadow: none; }

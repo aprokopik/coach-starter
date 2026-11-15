@@ -81,7 +81,7 @@
     });
     if (withFeel) {
       for (const f of FEEL) s.push({
-        id: f.k, q: f.q, sub: f.sub, cols: 5, opts: scale(f.k), num: scale(f.k).every(([v], i) => v === String(i + 1)), // digits only when they read 1 to 5 left to right
+        id: f.k, q: f.q, sub: f.sub, cols: 5, opts: scale(f.k),
         cur: () => (feel && !blank(feel[f.k]) ? String(feel[f.k]) : null), save: (v) => saveFeel({ [f.k]: v }),
       });
       s.push({
@@ -117,7 +117,7 @@
     const { $, el, icon } = A();
     const card = $('t-qc'), body = $('t-qc-body'), n = $('t-qc-n'), h = $('t-qc-h');
     body.replaceChildren(); card.hidden = false;
-    h.textContent = steps.some((x) => FEEL.some((f) => f.k === x.id) || x.id === 'pain') || feel ? 'Morning check' : steps.some((x) => x.id.startsWith('m-')) ? 'Monthly check' : 'Quick check';
+    h.textContent = steps.some((x) => FEEL.some((f) => f.k === x.id) || x.id === 'pain') || feel ? 'Morning check-in' : steps.some((x) => x.id.startsWith('m-')) ? 'Monthly check' : 'Quick check';
     if (at >= steps.length) { // all answered: one line and Change
       n.textContent = feel && feel.saved_at ? 'Saved ' + A().stamp(feel.saved_at) : '';
       const p = el('p', 'qc-sum'); p.append(icon('check'), ' ', summary());
@@ -169,17 +169,20 @@
       if (focus) { const f = body.querySelector('.qc-chip, .qc-in'); if (f) f.focus(); }
       return;
     }
-    const row = el('div', 'qc-tiles'); row.style.setProperty('--n', s.cols); row.setAttribute('role', 'group'); row.setAttribute('aria-labelledby', 't-qc-q');
-    const cur = s.cur();
-    for (const [v, label] of s.opts) {
-      const b = el('button', 'qc-tile' + (cur === v ? ' sel' : '')); b.type = 'button'; b.setAttribute('aria-pressed', String(cur === v));
-      if (s.num) b.append(el('b', null, v)); b.append(el('span', null, label));
+    // Same look as the Check-in tab's form (the athlete, Nov 15, 2026, Sprint Review: the Today card missed the round three pick 1):
+    // the answers join into one step bar, worst left, best right; the tapped step fills and the steps to its left take a light fill.
+    // No digits on the steps, as on the form; the words carry the answer.
+    const row = el('div', 'qc-tiles qc-bar'); row.style.setProperty('--n', s.cols); row.setAttribute('role', 'group'); row.setAttribute('aria-labelledby', 't-qc-q');
+    const cur = s.cur(), ci = s.opts.findIndex(([v]) => v === cur);
+    s.opts.forEach(([v, label], i) => {
+      const b = el('button', 'qc-tile' + (cur === v ? ' sel' : ci > i ? ' pre' : '')); b.type = 'button'; b.setAttribute('aria-pressed', String(cur === v));
+      b.append(el('span', null, label));
       b.addEventListener('click', () => { // moves on at once; the save goes out behind it (queue above)
         s.save(v);
         if (s.more && s.more(v)) { where = true; paint(); const c = $('t-qc-body').querySelector('.qc-chip'); if (c) c.focus(); } else next();
       });
       row.append(b);
-    }
+    });
     body.append(row);
     if (s.id === 'pain' && (where || (cur && cur !== '0'))) { // Where? for any pain but None; chips save as they toggle
       const wh = el('p', 'qc-sub qc-where', 'Where?'); wh.id = 't-qc-where';
