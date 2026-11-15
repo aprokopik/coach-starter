@@ -231,6 +231,8 @@
   }
   const morningLate = () => new Date().getHours() >= 12;
 
+  // the time a survey takes, from its when line ("Sunday, about 40 s" gives "40 s"); '' when it names none
+  const timeOf = (w) => { const m = /about ([0-9]+ ?(?:s|sec|min|h))\b/.exec(String(w || '')); return m ? m[1] : ''; };
   // ---------- one survey card ----------
   let focusNext = null; // after a re-render, where focus goes (the question heading, or the card's open button)
   function surveyCard(s, Q) {
@@ -248,6 +250,14 @@
     if (!u.open) {
       const b = el('button', 'ck-btn ck-btn--secondary ci-open', done ? 'Review or change' : doc ? 'Continue' : 'Start'); b.type = 'button'; b.id = `ci-${sid}-go`;
       b.addEventListener('click', () => { u.open = true; if (done) u.step = 0; focusNext = `ci-${sid}-qh`; renderTab(); });
+      if (ciLayout() === 4) { // short row (game look pass, the athlete's pick 1, Nov 14, 2026): name and time, what it fills in, a small Start
+        card.classList.add('ci-card--row'); card.replaceChildren();
+        const main = el('div', 'ci-rowmain'); const t = el('div', 'ci-rowt'); t.append(h);
+        const tm = timeOf(s.when); if (tm) t.append(mk('span', 'ci-time', tm, 'coach', null, sw, 'time-from-when'));
+        main.append(t); const f = el('p', 'ck-sub ci-fills'); f.append('fills ', mk('span', null, s.feeds, 'coach', 'feeds', sw)); main.append(f);
+        if (doc && !done) main.append(bwrap); main.append(st);
+        b.classList.add('ck-btn--sm'); card.append(main, b); return card;
+      }
       card.append(b); return card;
     }
     const step = Math.max(0, Math.min(u.step, qs.length - 1)); const q = qs[step];

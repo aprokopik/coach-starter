@@ -118,9 +118,21 @@
       const kw = `kind=brief_kpi&block_key=${b.block_key}&key=${k.key}`;
       const row = el('li', 'bk-kpi'); row.dataset.sport = CX.sportTok ? CX.sportTok(k.sport) : 'fg-3';
       const top = el('div', 'bk-row'); const tt = el('b', 'bk-kpi-t'); tt.append(f(String(k.rank), 'rank', kw), '. ', f(k.label, 'label', kw)); top.append(tt, f(k.p_now_text || '', 'p_now_text', kw));
-      const bar = el('span', 'ck-zone-track bk-bar'); const fill = el('i', 'ck-zone-fill'); const pct = Math.max(0, Math.min(1, N(k.p_pct) || 0)); fill.style.width = Math.round(pct * 100) + '%'; bar.append(fill);
-      const exp = N(k.p_expected); if (cur && exp !== null && exp > 0 && exp < 1) { const m = el('span', 'bk-exp'); m.style.left = Math.round(exp * 100) + '%'; m.title = 'Where you would be if progress were even through the block'; bar.append(m); }
-      if (window.CKC) window.CKC.describe(bar, `${k.label}: ${Math.round(pct * 100)}% of the block goal${cur && exp !== null && exp > 0 && exp < 1 ? `; even pace would be ${Math.round(exp * 100)}%` : ''}.`, { source: 'coach', where: kw, derived: 'block-progress' });
+      // Game look pass (the athlete's pick 1, Nov 14, 2026): the goal is a step bar from the block's baseline to its target, the same
+      // parts as the level bars (lifts: one step per session), plus one gold step from target to Strong when the brief sets a
+      // Strong; past the target the gold step fills. The even-pace tick stays on the target steps.
+      const pct = Math.max(0, Math.min(1, N(k.p_pct) || 0));
+      const nS = k.key === 'lifts' ? Math.max(1, Math.min(16, N(k.count_target) || 12)) : 4;
+      const tg = N(k.p_target), sg = N(k.p_strong), nw = N(k.p_now);
+      const hasStrong = tg !== null && sg !== null && sg !== tg;
+      const sf = hasStrong && nw !== null ? Math.max(0, Math.min(1, (nw - tg) / (sg - tg))) : 0;
+      const bar = el('span', 'bk-steps'); bar.style.setProperty('--n', String(nS));
+      const tp = el('span', 'bk-tsteps');
+      for (let i = 0; i < nS; i++) { const c = el('i'); c.style.setProperty('--f', Math.round(Math.max(0, Math.min(1, pct * nS - i)) * 100) + '%'); tp.append(c); }
+      bar.append(tp);
+      if (hasStrong) { const g = el('i', 'bk-strong'); g.style.setProperty('--f', Math.round(sf * 100) + '%'); if (sf >= 1) g.classList.add('is-full'); bar.append(g); }
+      const exp = N(k.p_expected); if (cur && exp !== null && exp > 0 && exp < 1) { const m = el('span', 'bk-exp'); m.style.left = Math.round(exp * 100) + '%'; m.title = 'Where you would be if progress were even through the block'; tp.append(m); }
+      if (window.CKC) window.CKC.describe(bar, `${k.label}: ${Math.round(pct * 100)}% of the way to the target${hasStrong ? (sf > 0 ? `, ${Math.round(sf * 100)}% of the way from target to Strong` : ', Strong not reached') : ''}${cur && exp !== null && exp > 0 && exp < 1 ? `; even pace would be ${Math.round(exp * 100)}%` : ''}.`, { source: 'coach', where: kw, derived: 'block-progress' });
       const goal = k.key === 'lifts' ? [' goal ', f(String(k.count_target), 'count_target', kw), ' sessions'] : [f((k.goal || '').split(';')[0], null, kw, 'goal-first-clause')];
       const foot = el('div', 'bk-row'); const g = el('span', 'ck-sub bk-goal'); g.append(...goal); foot.append(g);
       if (k.p_state && ck.badge) { const ps = P_ST[k.p_state] || 'unknown', pw = k.p_state.charAt(0).toUpperCase() + k.p_state.slice(1);

@@ -111,11 +111,12 @@
       grid.append(line);
     }
     // plain reading (6.47.0): the key under the grid, so a first reader needs no disclosure to read the colours; a missed
-    // segment is also striped, so the cell never reads by colour alone (WCAG 1.4.1)
+    // segment is an outlined empty step and one to come is dotted, so the cell never reads by colour alone (WCAG 1.4.1;
+    // game look pass, the athlete's pick 1, Nov 14, 2026: no red stripes)
     const key = el('p', 'pl-key'); key.setAttribute('aria-hidden', 'true');
     for (const [c, w] of [['on', 'Done'], ['miss', 'Missed'], ['', 'To come']]) { const k = el('span', 'pl-k'); k.append(el('i', c || null), w); key.append(k); }
     if (TAP) key.append(el('span', 'pl-k pl-k-tap', 'Tap a cell for why'));
     body.append(grid, key, why);
-    const r = $('t-adh-rule'); r.replaceChildren('Each segment is one planned item: green done, red missed, grey still to come. ' + (TAP ? 'Tap a cell for the reason. ' : '') + 'Key sessions: the session at any size (Min, Plan or Max) or a swap; a key rest day counts when you rest. Days on plan: rest, or the session at Min, Plan or Max, scored against the plan that stood at the end of the day. Easy days kept easy: not longer than Max, average heart rate at or under the easy limit (150 running, 135 riding). Lifts done: every lift on the watch, the Lifts tab, the session form or the morning tap, planned or not, out of 2 a week (more when the plan has more); lifts still to do this week are grey. ', ruleSpan('Weeks run Monday to Sunday', OUT_RULE), '.');
+    const r = $('t-adh-rule'); r.replaceChildren('Each step is one planned item: filled done, outlined missed, dotted still to come. ' + (TAP ? 'Tap a cell for the reason. ' : '') + 'Key sessions: the session at any size (Min, Plan or Max) or a swap; a key rest day counts when you rest. Days on plan: rest, or the session at Min, Plan or Max, scored against the plan that stood at the end of the day. Easy days kept easy: not longer than Max, average heart rate at or under the easy limit (150 running, 135 riding). Lifts done: every lift on the watch, the Lifts tab, the session form or the morning tap, planned or not, out of 2 a week (more when the plan has more); lifts still to do this week are grey. ', ruleSpan('Weeks run Monday to Sunday', OUT_RULE), '.');
   };
 })();

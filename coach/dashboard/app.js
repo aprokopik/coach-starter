@@ -246,16 +246,24 @@
     if (dLv === 0 && dp === 0) return null;
     const item = el('div', 'td-sk'); mark(item, 'coach', null, m.key && kind('mpt').some((q) => q.key === m.key) ? 'kind=mpt&key=' + m.key : null, 'progress');
     const r1 = el('div', 'td-sk-r1'); const ic = el('span', 'td-sk-ic'); ic.append(icon(SKILL_ICON(m.key)));
-    const nm = el('span', 'td-sk-nm'); nm.append(el('b', null, m.label), el('span', 'ck-sub', `${b.band.label}${stageOf(m) ? ' · ' + stageOf(m).label : ''} · ${vf(last.value)}`));
-    const sg = stageOf(m); const lvTxt = (n) => (sg ? `level ${sg.cur}-${n}` : `level ${n}`); // World-level (the athlete, Nov 14, 2026): stage-level, "1-7"
-    const lv = el('span', 'td-sk-lv'); lv.append(el('small', null, sg ? `Stage ${sg.cur} · Level` : 'Level'), sg ? `${sg.cur}-${b.n}` : String(b.n)); lv.setAttribute('aria-label', `${sg ? `Stage ${sg.cur} of 3, ${sg.label}, ` : ''}level ${b.n} of ${b.max}`);
-    r1.append(ic, nm, lv); item.append(r1);
-    // XP bar toward the next LV; the green sliver is this week's gain when the level held
-    const bar = el('div', 'td-sk-xp'); const fill = el('i'); fill.style.width = `${Math.round(b.pct * 100)}%`;
-    if (dp !== null && dp > 0) { const g = el('i', 'gain'); g.style.width = `${Math.round(b.pct * 100)}%`; fill.style.width = `${Math.round(a.pct * 100)}%`; bar.append(g); }
-    bar.append(fill);
-    CKC().describe(bar, `${m.label}: level ${b.n} of ${b.max}, ${b.band.label}, ${Math.round(b.pct * 100)}% of the way to level ${b.n + 1 <= b.max ? b.n + 1 : b.n}.`, { derived: 'meter' });
-    item.append(bar);
+    const nm = el('span', 'td-sk-nm'); nm.append(el('b', null, m.label), el('span', 'ck-sub', `${stageOf(m) ? stageOf(m).label + ' · ' : ''}${vf(last.value)}`)); // the level name is in the chip beside it
+    // Game look pass (the athlete, Nov 14, 2026, pick 2 "blend of current and option 1"): the row keeps the icon, name and value line, and
+    // the right side and the bar are the Fitness tile's own parts: the stage discs beside the level name chip, and the step bar
+    // inside the level (levelBadge, stageChip, withStage), so one skill reads the same on Today and on Fitness
+    const lvTxt = (n) => { const t = ladderOf(m)[n - 1]; return t && /^(Top|Bottom) /.test(t.label) ? t.label : 'the next level'; }; // a rank reads as a place ("Bottom 20%"); other ladder names ("At the reference") read oddly after "to"
+    const parts = withStage(levelBadge(levelFor(m, last.value), m.key), stageChip(m));
+    const lv = el('span', 'td-sk-lv'); const steps = parts.querySelector ? parts.querySelector('.ft-steps, .ft-meter') : null; if (steps) steps.remove();
+    lv.append(parts); nm.append(lv); r1.append(ic, nm); item.append(r1); // under the name, so a long skill name keeps one line
+    if (steps) { steps.classList.add('td-sk-steps'); item.append(steps);
+      // the part gained (filled green) or lost (outlined) since the start of the 7 days, drawn on the same steps when both readings
+      // sit in the same level; a level change says so in the tag instead
+      const lp = levelFor(m, prev.value), ln = levelFor(m, last.value);
+      if (lp && ln && lp.label === ln.label && lp.of === ln.of && lp.pct !== null && ln.pct !== null) {
+        item.classList.add('has-delta'); const at = (lv) => (lv.step - 1 + lv.pct) / lv.of; const x0 = at(lp), x1 = at(ln); const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
+        [...steps.children].forEach((sg, i) => { const a = Math.max(lo, i / ln.of), b2 = Math.min(hi, (i + 1) / ln.of); if (b2 <= a) return;
+          const d = el('b', x1 >= x0 ? 'td-sk-gain' : 'td-sk-loss'); d.style.left = `${(a * ln.of - i) * 100}%`; d.style.width = `${(b2 - a) * ln.of * 100}%`; d.setAttribute('aria-hidden', 'true'); sg.append(d); });
+      } }
+    { const spk = SKILL_ICON(m.key); if (['bike', 'run', 'swim'].includes(spk)) item.dataset.sport = sportTok(spk); } // the step bar in the sport colour, as on the tile
     const r3 = el('div', 'td-sk-r3'); const what = el('span');
     if (dLv > 0) what.append(skillTag('up', dLv === 1 ? 'Level up' : `+${dLv} levels`));
     else if (dLv < 0) what.append(skillTag('dn', (dLv === -1 ? '−1 level' : `−${-dLv} levels`)));
@@ -264,7 +272,7 @@
     const dtx = df(Math.abs(last.value - prev.value)); const ch = el('span', improved ? 'td-up' : 'td-down', /^0(\D|$)/.test(dtx) ? `slightly ${word}` : `${dtx} ${word}`); what.append(ch);
     const nx = el('span', 'td-sk-next'); nx.append(b.next ? `${df(Math.max(b.toNext, 0))} to ${lvTxt(b.n + 1)}` : 'Top level');
     r3.append(what, nx); item.append(r3);
-    item.append(el('span', 'ck-vh', ` Was ${vf(prev.value)}${a ? `, level ${a.n}, ${a.band.label}` : ''} on ${fDay(P(prev.date))}; now ${vf(last.value)} on ${fDay(P(last.date))}.`));
+    { const was = el('p', 'ck-sub td-sk-was'); was.append(`Was ${vf(prev.value)}${a ? ` (${a.band.label})` : ''} on ${fDay(P(prev.date))}, now ${vf(last.value)}.`); item.append(was); } // visible: where the 7 days began
     item.dataset.mag = String((improved ? 1000 : 0) + (dLv ? 100 * Math.abs(dLv) : Math.abs(dp || 0))); // gains first, the biggest move first within each
     return item;
   }
@@ -283,7 +291,10 @@
     const box = $('t-progress'), list = $('t-progress-list'); if (!box) return;
     const items = [];
     for (const { m, rows } of skillSeries()) {
-      if (rows.length < 2) continue; const last = rows[rows.length - 1], prev = rows[rows.length - 2];
+      if (rows.length < 2) continue; const last = rows[rows.length - 1];
+      // where you stood when the 7 days began (the athlete, Nov 15, 2026: "see where you were before these past seven days"): the last
+      // reading on or before that day, else the one before the latest
+      const before = rows.slice(0, -1).filter((r) => dayN(r.date) <= TN - 7); const prev = before.length ? before[before.length - 1] : rows[rows.length - 2];
       if (dayN(last.date) <= TN - 7) continue; const it = progressItem(m, prev, last); if (it) items.push(it);
     }
     items.sort((x, y) => Number(y.dataset.mag) - Number(x.dataset.mag));
@@ -583,6 +594,22 @@
     const ar = kind('race').filter((x) => x.priority === 'A' && x.status !== 'done' && dayN(x.date) >= TN).sort((x, y) => (x.date < y.date ? -1 : 1))[0];
     const al = $(p + '-race-a'); al.replaceChildren(); al.hidden = !ar || ar.race_id === r.race_id;
     if (!al.hidden) al.append('Main race: ', mark(el('b', null, ar.name.replace('IRONMAN 70.3 ', '')), 'coach', null, 'kind=race&race_id=' + ar.race_id, 'formatted'), ' in ', mark(el('span', null, String(Math.round(daysTo(ar.date) / 7))), 'coach', null, 'kind=race&race_id=' + ar.race_id, 'weeks-until'), ' wk');
+    // Game look pass (the athlete's pick 1, Nov 14, 2026): a thin track from today to the main race, every race on the way as a small
+    // stop and the next race as the marked stop; the main race line becomes the track's right label
+    { const old = card.querySelector('.ck-race-track'); if (old) old.remove(); }
+    const end = ar || r, endN = Math.max(1, daysTo(end.date));
+    const on = kind('race').filter((x) => x.status !== 'done' && dayN(x.date) >= TN && dayN(x.date) <= dayN(end.date)).sort((x, y) => (x.date < y.date ? -1 : 1));
+    const trk = el('div', 'ck-race-track'); const line = el('span', 'ck-rt-line');
+    for (const x of on) {
+      const st = el('i', 'ck-rt-stop' + (x.race_id === r.race_id ? ' is-next' : '') + (x.race_id === end.race_id ? ' is-end' : ''));
+      st.style.left = Math.max(0, Math.min(100, (daysTo(x.date) / endN) * 100)).toFixed(1) + '%'; line.append(st);
+    }
+    CKC().describe(line, ar && ar.race_id !== r.race_id ? `Track from today to ${ar.name} in ${daysTo(ar.date)} days: ${r.name} is the next stop, in ${n} days${on.length > 2 ? `, ${on.length - 2} more race${on.length > 3 ? 's' : ''} on the way` : ''}.` : `Track from today to ${r.name} in ${n} days.`, { source: 'coach', where: 'kind=race&race_id=' + end.race_id, derived: 'days-until' });
+    const lab = el('div', 'ck-rt-lab'); lab.append(el('span', null, 'Today'));
+    if (!al.hidden) { const rl = el('span'); rl.append(...al.childNodes); lab.append(rl); al.hidden = true; }
+    else lab.append(el('span', null, 'race day'));
+    trk.append(line, lab);
+    card.querySelector('.ck-race-main').after(trk);
     const key = kind('day').filter((d) => d.type !== 'rest' && (truthy(d.key) || N(d.pillar) !== null) && dayN(d.date) >= TN).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : (x.order || 0) - (y.order || 0)))[0];
     const kl = $(p + '-race-key'); kl.replaceChildren(); kl.hidden = !key;
     if (key) { const kw = `kind=day&date=${key.date}&order=${key.order}`; kl.append('Next key session: ', mark(el('b', null, key.title), 'coach', 'title', kw), ' · ', mark(el('span', null, daysTo(key.date) === 0 ? 'today' : fDow(P(key.date))), 'coach', null, kw, 'weekday')); }
@@ -993,12 +1020,27 @@
   }
   // A Week totals tile (Cockpit ck-tile): label, figure with its unit, a zone-style meter and a subline. Every part is a
   // marked element the caller builds; the meter names the week it reads.
-  function wkTile(label, fig, unit, sub, frac, wk) {
-    const t = el('div', 'ck-tile wk-tile'); t.append(el('span', 'ck-tile-label', label));
-    const v = el('span', 'ck-big'); v.append(fig); if (unit) { const u = el('span', 'ck-unit'); u.append(...[].concat(unit)); v.append(u); } t.append(v);
-    if (frac !== undefined && frac !== null) { const m = el('span', 'ck-zone-track wk-meter'); m.append(el('i', 'ck-zone-fill')); CKC().meter(m, { frac, sentence: `${label}: ${Math.round(Math.max(0, Math.min(1, frac)) * 100)}% of the plan`, marks: { source: 'week_view', where: wk ? 'week=' + wk : null, derived: 'meter' } }); t.append(m); }
-    if (sub) { const s = el('span', 'ck-sub'); s.append(...[].concat(sub)); t.append(s); }
+  // A Week totals ring (game look pass, the athlete's pick 2, Nov 14, 2026): a small ring that fills toward the plan with the figure
+  // inside, the label and "of N" under it. The ring track is the role=img meter (CKC.meter sentence and marks); the figure is
+  // a sibling over it, so it stays readable text. A tile's longer subline goes to one shared line under the row (wkNote).
+  function wkTile(label, fig, unit, sub, frac, wk, tone) {
+    const t = el('div', 'wk-rcell'); t.dataset.tone = tone || 'accent';
+    const ring = el('span', 'wk-ring'); const tr = el('span', 'wk-ring-t');
+    if (frac !== undefined && frac !== null) {
+      const f = Math.max(0, Math.min(1, frac)); tr.style.setProperty('--p', Math.round(f * 100) + '%');
+      CKC().meter(tr, { frac: f, fill: '.none', sentence: `${label}: ${Math.round(f * 100)}% of the plan`, marks: { source: 'week_view', where: wk ? 'week=' + wk : null, derived: 'meter' } });
+    } else { tr.classList.add('wk-ring-t--none'); tr.setAttribute('aria-hidden', 'true'); }
+    const v = el('span', 'wk-ring-v'); v.append(fig); ring.append(tr, v); t.append(ring);
+    t.append(el('span', 'wk-rl', label));
+    if (unit) { const u = el('span', 'wk-ru'); u.append(...[].concat(unit)); t.append(u); }
+    if (sub && !(Array.isArray(sub) && !sub.length)) t.wkSub = sub;
     return t;
+  }
+  // the subline of each ring as one line under the row: "Key sessions: 4 of 6 sessions overall · Effort load: ..."
+  function wkNote(cells) {
+    const p = el('p', 'ck-sub wk-rnote'); let n = 0;
+    for (const c of cells) { if (!c.wkSub) continue; if (n++) p.append(' · '); p.append(c.querySelector('.wk-rl').textContent + ': ', ...[].concat(c.wkSub)); }
+    return n ? p : null;
   }
   const dv = (txt, d, wk, src) => mark(el('span', null, txt), src || 'week_view', null, wk ? 'week=' + wk : null, d);
   // Key sessions (the athlete, Nov 3, 2026; rules coach/engine/KEY-SESSIONS.md): the three things that must happen each week for
@@ -1061,14 +1103,18 @@
     if (bl) {
       const weeks = Math.max(1, Math.round((dayN(bl.end) - dayN(bl.start) + 1) / 7)), n = Math.min(weeks, Math.max(1, Math.floor((dayN(wk) - dayN(bl.start)) / 7) + 1));
       bk.append(mark(el('b', null, bl.label), 'coach', 'label', bw), ' · ', mark(el('span', null, bl.name), 'coach', 'name', bw), ' · week ', mark(el('span', null, String(n)), 'coach', null, bw, 'block-week'), ' of ', mark(el('span', null, String(weeks)), 'coach', null, bw, 'block-weeks'), ' · ', mark(el('span', null, `${fDay(P(bl.start))} – ${fDay(P(bl.end))}`), 'coach', null, bw, 'formatted'));
-      if (bl.objectives) { bk.append(el('br')); bk.append(mark(el('span', null, bl.objectives), 'coach', 'objectives', bw)); }
+      // the block goal moved into About this block (the athlete, Nov 15, 2026: "too much text")
     }
     if (!ruled && dayN(wk) < dayN(KEY_RULE_FROM)) { const p = el('p', 'ck-note', 'Before '); p.append(ruleSpan('Nov 2', 'app.js KEY_RULE_FROM: 2026-11-02'), ' the plan tagged key sessions differently; shown as recorded.'); more.append(p); }
     if (!slots.length) box.append(el('p', 'ck-note', 'No key sessions were tagged this week.'));
-    // Phase 6 (the athlete, Nov 5, 2026): one compact row per key session (status glyph, name, day) in one small card; what each
-    // session is for moves behind one disclosure with the block's fuel and volume. The day list keeps its Key chips.
+    // Game look pass (the athlete's pick, Nov 14, 2026): the three keys sit side by side as slots. A slot's disc fills in its sport
+    // colour when done, rings when it is today, and outlines in red when missed. Tapping a slot opens what it is: the day,
+    // its sizes, what it is for, what was done and a link to it in the week list (the athlete: "selecting should give more info").
+    box.classList.add('wk-slots--3');
+    const info = el('div', 'wk-kinfo'); info.id = 'w-kinfo'; info.setAttribute('aria-live', 'polite');
     const why = [];
-    for (const x of slots) {
+    const sel = state.keySel && state.keySel.wk === wk ? state.keySel.i : null;
+    slots.forEach((x, i) => {
       const w = x.row ? wvWhere(x.row) : null;
       const restT = x.row && x.row.type === 'rest' && !/rest/i.test(x.row.title || '');
       const title = x.row ? (restT ? `Rest: ${x.row.title}` : x.row.title) : x.short || 'To be set';
@@ -1076,42 +1122,65 @@
       // the week this coach started: an empty key slot is still to come (the first plan fills it), not a warning
       const firstWeek = curWeek && startDay() && monday(startDay()) === wk;
       const st = x.row ? statusOf(x.row) : { t: (pastWeek || curWeek) && !firstWeek ? 'Not scheduled' : 'To schedule', c: (pastWeek || curWeek) && !firstWeek ? 'warn' : '' };
-      const s = WK_ST[st.c] || 'unknown';
-      const b = el(x.row ? 'button' : 'div', 'ck-row wk-krow'); if (x.row) b.type = 'button';
-      const g = el('span', 'ck-badge wk-kg'); g.dataset.s = s; g.append(icon(s, 'ck-g'), el('span', 'ck-vh', st.t));
-      const kn = el('span', 'wk-kn'); if (x.n === null) kn.append('★ Key'); else kn.append('Key ', x.row ? mark(el('span', null, String(x.n)), 'week_view', 'pillar', w) : ruleSpan(String(x.n), KEY_RULE));
-      const t1 = el('span', 'ck-row-t'); t1.append(kn, ' ');
+      const s = WK_ST[st.c] || (st.c === 'now' ? 'now' : 'unknown');
+      const b = el('button', 'wk-slot'); b.type = 'button'; b.dataset.s = s; b.setAttribute('aria-pressed', String(sel === i)); if (sel === i) b.setAttribute('aria-controls', 'w-kinfo');
+      if (x.row) b.dataset.sport = sportTok(tpOf(x.row) === 'race' ? 'run' : tpOf(x.row));
+      const disc = el('span', 'wk-sdisc'); disc.append(x.n === null ? '★' : x.row ? mark(el('span', null, String(x.n)), 'week_view', 'pillar', w) : ruleSpan(String(x.n), KEY_RULE));
+      const t1 = el('span', 'wk-stitle');
       if (x.row) t1.append(mark(el('span', null, title), 'week_view', restT ? null : 'title', w, restT ? 'formatted' : null));
       else t1.append(x.short ? mark(el('span', null, title), 'coach', x.shortF, bw, x.shortF ? null : 'formatted') : title);
-      const d = el('span', 'ck-row-d wk-kday');
-      if (x.row) d.append(mark(el('span', null, fDow(P(x.row.date))), 'week_view', null, w, 'formatted')); else d.append(st.t);
-      b.append(x.row ? mark(g, 'week_view', null, w, 'status') : mark(g, 'coach', null, bw, 'status'), t1, d);
+      const d = el('span', 'wk-sday');
+      if (x.row) d.append(mark(el('span', null, fDow(P(x.row.date))), 'week_view', null, w, 'formatted'), ' · ');
+      d.append(x.row ? mark(el('span', null, st.t), 'week_view', null, w, 'status') : mark(el('span', null, st.t), 'coach', null, bw, 'status'));
+      const top = el('span', 'wk-stop'); top.append(disc, el('span', 'wk-skey', 'Key'));
+      b.append(top, t1, d); spaced(b);
       b.setAttribute('aria-label', `Key session ${x.n === null ? '' : x.n}: ${title}, ${when}, ${st.t}`);
-      if (x.row) b.addEventListener('click', () => {
-        const k = itemKey(x.row); state.open.add(k);
-        if (x.row.week !== state.week) state.week = x.row.week;
-        renderWeek();
-        const target = [...document.querySelectorAll('#w-days .wk-item')].find((e) => e.dataset.k === k);
-        if (target) { target.scrollIntoView({ block: 'center' }); target.focus({ preventScroll: true }); }
+      b.addEventListener('click', () => {
+        state.keySel = sel === i ? null : { wk, i };
+        renderKeys(wk, items, wv);
+        { const nb = document.querySelectorAll('#w-slots .wk-slot')[i]; if (nb) nb.focus({ preventScroll: true }); }
       });
       box.append(b);
-      // the bold lead carries the same marks as the row (key number and title from week_view, or the block default)
-      const lb = el('b'); if (x.n === null) lb.append('Key'); else lb.append('Key ', x.row ? mark(el('span', null, String(x.n)), 'week_view', 'pillar', w) : ruleSpan(String(x.n), KEY_RULE));
-      lb.append(' · ');
-      if (x.row) lb.append(mark(el('span', null, title), 'week_view', restT ? null : 'title', w, restT ? 'formatted' : null));
-      else lb.append(x.short ? mark(el('span', null, title), 'coach', x.shortF, bw, x.shortF ? null : 'formatted') : title);
-      lb.append(': ');
-      const q = el('p'); q.append(lb);
-      if (x.row && x.row.why) q.append(mark(el('span', null, x.row.why), 'week_view', 'why', w));
-      else if (!x.row && x.text) q.append(mark(el('span', null, x.text), 'coach', 'pillar_' + x.n, bw));
-      else q.append(when);
-      why.push(q);
-    }
-    if (why.length || (bl && (bl.energy || bl.volume))) {
-      const fv = bl && (bl.energy || bl.volume);
+      if (sel === i) {
+        const h = el('p', 'wk-kh'); { const tc = t1.cloneNode(true); tc.className = ''; h.append(el('b', null, x.n === null ? 'Key' : `Key ${x.n}`), ' · ', tc); }
+        info.append(h);
+        const line = (...parts) => { const q = el('p', 'ck-row-s'); q.append(...parts); info.append(q); return q; };
+        if (x.row) {
+          line(mark(el('span', null, fWd(P(x.row.date))), 'week_view', null, w, 'formatted'), ' · ', mark(el('span', null, st.t), 'week_view', null, w, 'status'));
+          const r = x.row;
+          if (r.minutes && r.type !== 'rest') {
+            const q = line(); const bits = [];
+            if (r.fallback_minutes) bits.push(['Min ', hmSpan(r, 'fallback_minutes')]);
+            bits.push(['Plan ', hmSpan(r, 'minutes')]);
+            if (r.upper_minutes && N(r.upper_minutes) !== N(r.minutes)) bits.push(['Max ', hmSpan(r, 'upper_minutes')]);
+            bits.forEach((y, k) => { if (k) q.append(' · '); q.append(...y); });
+          }
+          if (r.why) { const q = el('p'); q.append(el('b', null, 'For: '), mark(el('span', null, r.why), 'week_view', 'why', w)); info.append(q); }
+          // the coach's full session text stays in the week list (Show the full session), so the panel reads at a glance (the athlete, Nov 15)
+          if (r.done_text) { const q = line('Done: ', mark(el('span', null, r.done_text), 'week_view', 'done_text', w)); if (r.rpe !== null && r.rpe !== undefined) q.append(' · effort ', mark(el('span', null, String(r.rpe)), 'week_view', 'rpe', w), ' of 10'); }
+          const go = el('button', 'ck-btn ck-btn--sm wk-kgo', 'Show the full session'); go.type = 'button';
+          go.addEventListener('click', () => {
+            const k = itemKey(r); state.open.add(k);
+            if (r.week !== state.week) state.week = r.week;
+            renderWeek();
+            const target = [...document.querySelectorAll('#w-days .wk-item')].find((e) => e.dataset.k === k);
+            if (target) { target.scrollIntoView({ block: 'center' }); target.focus({ preventScroll: true }); }
+          });
+          info.append(go);
+        } else {
+          line(when);
+          if (x.text) { const q = el('p'); q.append(el('b', null, 'For: '), mark(el('span', null, x.text), 'coach', 'pillar_' + x.n, bw)); info.append(q); }
+        }
+      }
+    });
+    { const old = $('w-kinfo'); if (old) old.remove(); }
+    if (sel !== null && info.childNodes.length) box.after(info);
+    if (bl && (bl.energy || bl.volume || bl.objectives)) {
+      const fv = true;
       const btn = el('button', 'ck-disc'); btn.type = 'button'; btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'w-fuel'); btn.dataset.ck = 'disc';
-      btn.append(why.length ? (fv ? 'What each is for, fuel and volume' : 'What each is for') : 'Fuel and volume for this block', icon('chevron', 'ck-chev'));
-      const p = el('div', 'ck-disc-panel'); p.id = 'w-fuel'; p.hidden = true; p.append(...why);
+      btn.append('About this block', icon('chevron', 'ck-chev'));
+      const p = el('div', 'ck-disc-panel'); p.id = 'w-fuel'; p.hidden = true;
+      if (bl && bl.objectives) { const q = el('p'); q.append(el('b', null, 'Goal: '), mark(el('span', null, bl.objectives), 'coach', 'objectives', bw)); p.append(q); }
       if (bl && bl.energy) { const q = el('p'); q.append(el('b', null, 'Fuel: '), mark(el('span', null, bl.energy), 'coach', 'energy', bw)); p.append(q); }
       if (bl && bl.volume) { const q = el('p'); q.append(el('b', null, 'Volume: '), mark(el('span', null, bl.volume), 'coach', 'volume', bw)); p.append(q); }
       if (fv) p.append(el('p', 'ck-note', 'Key sessions anchor the block: move one to another day if needed, never drop it.'));
@@ -1174,13 +1243,24 @@
     // script-held (CHARTS.md 10): the strength denominator is at least 2 a week, max(2, planned strength sessions)
     const strOf = ruleSpan(String(Math.max(2, strPlan)), 'app.js renderWeek: strength denominator max(2, planned strength sessions)');
     cardState($('w-totals'), null);
-    tiles.replaceChildren(
-      wkTile('Hours done', dv(f1(doneMin / 60), 'done-hours', wm), planMin ? ['of ', dv(f1(planMin / 60), 'plan-hours', wm), ' h'] : 'h', planMin ? '' : 'No plan for this week', planMin ? doneMin / planMin : null, wm),
-      kIn.length ? wkTile('Key sessions', dv(String(kDone), 'key-done', wm), ['of ', dv(String(kIn.length), 'key-n', wm)], [dv(String(doneN), 'sessions-done', wm), ' of ', dv(String(plan.length), 'sessions-planned', wm), ' sessions overall'], kDone / kIn.length, wm)
-        : wkTile('Sessions done', dv(String(doneN), 'sessions-done', wm), plan.length ? ['of ', dv(String(plan.length), 'sessions-planned', wm)] : '', doneRows.length > doneN ? ['+', dv(String(doneRows.length - doneN), 'sessions-unplanned', wm), ' not in the plan'] : '', plan.length ? doneN / plan.length : null, wm),
-      wkTile('Effort load', wl && wl.rated ? mark(el('span', null, String(wl.load)), 'weekly', 'load', lw) : mark(el('span', null, '—'), 'weekly', null, null, 'none'), 'effort × min', wl && wl.rated ? [mark(el('span', null, String(wl.rated)), 'weekly', 'rated', lw), ` rated session${wl.rated > 1 ? 's' : ''}, effort 1 to 10 × minutes`] : 'Rate sessions on Today', null, wm),
-      wkTile('Strength', dv(String(strDone), 'strength-done', wm), ['of ', strOf], 'logged this week', strDone / Math.max(2, strPlan), wm),
-    );
+    const cells = [
+      wkTile('Hours done', dv(f1(doneMin / 60), 'done-hours', wm), planMin ? ['of ', dv(f1(planMin / 60), 'plan-hours', wm), ' h'] : 'h', planMin ? '' : 'No plan for this week', planMin ? doneMin / planMin : null, wm, 'accent'),
+      kIn.length ? wkTile('Key sessions', dv(String(kDone), 'key-done', wm), ['of ', dv(String(kIn.length), 'key-n', wm)], [dv(String(doneN), 'sessions-done', wm), ' of ', dv(String(plan.length), 'sessions-planned', wm), ' sessions overall'], kDone / kIn.length, wm, 'good')
+        : wkTile('Sessions done', dv(String(doneN), 'sessions-done', wm), plan.length ? ['of ', dv(String(plan.length), 'sessions-planned', wm)] : '', doneRows.length > doneN ? ['+', dv(String(doneRows.length - doneN), 'sessions-unplanned', wm), ' not in the plan'] : '', plan.length ? doneN / plan.length : null, wm, 'good'),
+      (() => { // Effort load with a basis (the athlete, Nov 15, 2026: "there is no basis for effort ... What is it?"): the ring fills
+        // against your usual week, the median of the 8 weeks before with any rated session, and the line under the row says
+        // what the number counts with two anchors (an easy hour about 180, a hard hour about 420)
+        const prior = (rowsOk('weekly') || []).filter((x) => x.week < wk && N(x.rated) > 0 && N(x.load) > 0).slice(-8).map((x) => N(x.load)).sort((a, b) => a - b);
+        const usual = prior.length >= 3 ? prior[Math.floor(prior.length / 2)] : null;
+        const fig = wl && wl.rated ? mark(el('span', null, String(wl.load)), 'weekly', 'load', lw) : mark(el('span', null, '—'), 'weekly', null, null, 'none');
+        const unit = usual ? ['of ~', mark(el('span', null, String(Math.round(usual))), 'weekly', null, null, 'usual-load-8wk-median'), ' usual'] : 'effort × min';
+        const sub = wl && wl.rated ? ['effort 1 to 10 × minutes, from ', mark(el('span', null, String(wl.rated)), 'weekly', 'rated', lw), ` rated session${wl.rated > 1 ? 's' : ''}${N(wl.rated) < doneN ? ` of ${doneN} done, so it reads low until the rest are rated` : ''}; an easy hour is about `, ruleSpan('180', 'effort 3 × 60 min'), ', a hard hour about ', ruleSpan('420', 'effort 7 × 60 min')] : 'Rate sessions on Today';
+        return wkTile('Effort load', fig, unit, sub, usual && wl && wl.rated ? N(wl.load) / usual : null, wm, 'fg-3');
+      })(),
+      wkTile('Strength', dv(String(strDone), 'strength-done', wm), ['of ', strOf], '', strDone / Math.max(2, strPlan), wm, 'strength'),
+    ];
+    tiles.replaceChildren(...cells); { const nt = wkNote(cells); if (nt) tiles.append(nt); }
+
     days.replaceChildren();
     const list = $('w-list');
     // a week the coach has not written yet still shows what the season plan already fixes in it (plan.json milestones: tests,

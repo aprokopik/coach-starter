@@ -198,24 +198,24 @@
 .ck .td-adh-disc { border-top: 1px solid var(--ck-line); } .ck #t-adh-rule { margin: 0; }
 /* Doing the plan grid (plan.js, Nov 11, 2026): four rows by week, battery cells, one segment per planned item */
 .ck .pl-grid { display: grid; gap: 0; min-width: 0; }
-.ck .pl-row { display: grid; grid-template-columns: minmax(5.6em, 7em) repeat(3, minmax(0, 1fr)); gap: var(--ck-s2); align-items: center; padding: 7px 0; }
+.ck .pl-row { display: grid; grid-template-columns: minmax(84px, 105px) repeat(3, minmax(0, 1fr)); /* px, not em: the smaller header font made its em columns narrower, so the week dates sat left of their cells (the athlete, Nov 14, 2026) */ gap: var(--ck-s2); align-items: center; padding: 2px 0; } /* rows pulled closer, cells taller (the athlete, Nov 15: "a lot of space here") */
 .ck .pl-head { padding: 0 0 2px; font-size: var(--ck-t1); color: var(--ck-fg-2); text-align: center; }
 .ck .pl-head .is-now { color: var(--ck-fg); font-weight: var(--ck-w-bold); }
 .ck .pl-lab { font-size: var(--ck-t2); line-height: 1.2; font-weight: var(--ck-w-med); color: var(--ck-fg); min-width: 0; }
-.ck .pl-bat { display: flex; gap: 3px; height: 24px; padding: 3px; border-radius: 7px; border: 1.5px solid var(--ck-fg-3); min-width: 0; }
-.ck .pl-bat.is-now { border-color: var(--ck-fg); border-width: 2px; }
-.ck .pl-bat i { flex: 1 1 0; min-width: 2px; border-radius: 3px; background: var(--ck-line); }
-.ck .pl-bat i.on { background: var(--ck-good); }
-.ck .pl-na { height: 24px; border-radius: 7px; border: 1.5px dashed var(--ck-line); }
-.ck .pl-bat i.miss { background: repeating-linear-gradient(135deg, var(--ck-act) 0 4px, transparent 4px 6px); box-shadow: inset 0 0 0 1px var(--ck-act); }
+.ck .pl-bat { display: flex; gap: 3px; height: 18px; padding: 0; border-radius: 3px; min-width: 0; } /* game look pass, the athlete's pick 1 "step rows": the cells are steps like the level bar */
+.ck .pl-bat.is-now { outline: 1.5px solid var(--ck-fg); outline-offset: 3px; }
+.ck .pl-bat i { flex: 1 1 0; min-width: 2px; border-radius: 2px; background: transparent; box-shadow: inset 0 0 0 1px var(--ck-fg-3); background-image: repeating-linear-gradient(90deg, var(--ck-line) 0 3px, transparent 3px 5px); } /* to come: a dotted step */
+.ck .pl-bat i.on { background: var(--ck-good); background-image: none; box-shadow: none; }
+.ck .pl-na { height: 6px; border-bottom: 1.5px dashed var(--ck-line); }
+.ck .pl-bat i.miss { background: var(--ck-surface); background-image: none; box-shadow: inset 0 0 0 1.5px var(--ck-fg-2); } /* missed: an empty outlined step, not a red stripe; outline vs fill vs dots, never colour alone (WCAG 1.4.1) */
 .ck .pl-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: var(--ck-s2, 8px) 0 0; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
 .ck .pl-k { display: inline-flex; align-items: center; gap: 6px; }
-.ck .pl-k > i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: var(--ck-line); }
-.ck .pl-k > i.on { background: var(--ck-good); }
-.ck .pl-k > i.miss { background: repeating-linear-gradient(135deg, var(--ck-act) 0 4px, transparent 4px 6px); box-shadow: inset 0 0 0 1px var(--ck-act); }
+.ck .pl-k > i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--ck-fg-3); background-image: repeating-linear-gradient(90deg, var(--ck-line) 0 3px, transparent 3px 5px); }
+.ck .pl-k > i.on { background: var(--ck-good); background-image: none; box-shadow: none; }
+.ck .pl-k > i.miss { background: var(--ck-surface); background-image: none; box-shadow: inset 0 0 0 1.5px var(--ck-fg-2); }
 .ck .pl-td { display: block; min-width: 0; }
-.ck .pl-tap { display: block; width: 100%; min-height: 44px; padding: 0; margin: 0; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 9px; }
-.ck .pl-tap > .pl-bat { pointer-events: none; }
+.ck .pl-tap { display: block; width: 100%; min-height: 36px; padding: 0; margin: 0; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 9px; }
+.ck .pl-tap > .pl-bat { pointer-events: none; flex: 1; } .ck .pl-tap { display: flex; align-items: center; }
 .ck .pl-tap.is-open > .pl-bat { outline: 2px solid var(--ck-fg-2); outline-offset: 2px; }
 .ck .pl-why { margin: var(--ck-s1) 0 0; padding-top: var(--ck-s2); border-top: 1px solid var(--ck-line); font-size: var(--ck-t2); line-height: 1.3; color: var(--ck-fg-2); }
 .ck .pl-why b { color: var(--ck-fg); font-weight: var(--ck-w-med); }
@@ -270,7 +270,8 @@
 .ck .td-sk-ic .ck-i { width: var(--ck-i-lg); height: var(--ck-i-lg); }
 .ck .td-sk-nm { flex: 1; min-width: 0; display: grid; }
 .ck .td-sk-nm b { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); }
-.ck .td-sk-lv { flex: none; display: grid; justify-items: end; font-size: 22px; line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); }
+.ck .td-sk-lv { display: flex; margin-top: 4px; min-width: 0; } /* the stage discs and level name chip under the name, as on the Fitness tile (game look pass, the athlete's pick 2) */
+.ck .td-sk-steps { height: 10px; }
 .ck .td-sk-lv small { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-3); font-weight: var(--ck-w-bold); }
 .ck .td-sk-xp { position: relative; height: 10px; border-radius: 5px; background: var(--ck-chart-band); overflow: hidden; }
 .ck .td-sk-xp > i { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--ck-accent); box-shadow: 0 0 8px color-mix(in srgb, var(--ck-accent) 45%, transparent); }
@@ -1098,6 +1099,85 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ci-dueline { display: flex; align-items: center; justify-content: space-between; gap: var(--ck-s2); min-height: var(--ck-tap); }
 .ck .ci-dueline .ck-row-main { display: grid; min-width: 0; }
 .ck .ft-fig > .ck-unit { white-space: nowrap; } /* a unit of words ("longest, 4 wk") moves to the next line whole instead of splitting after the number (Nov 15, 2026, 360 px) */
+/* Check-ins survey rows (layout 4; game look pass, the athlete's pick 1 with the Start text centred): name and time chip, what it fills
+   in, and a small Start beside them */
+.ck .ck-tile.ci-card.ci-card--row { display: flex; align-items: center; justify-content: space-between; gap: var(--ck-s3); }
+.ck .ci-rowmain { display: grid; gap: 2px; min-width: 0; }
+.ck .ci-rowt { display: flex; align-items: center; gap: var(--ck-s2); flex-wrap: wrap; }
+.ck .ci-time { font-size: var(--ck-t1); line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); padding: 3px 6px; border-radius: 4px; background: var(--ck-surface-2); color: var(--ck-fg); }
+.ck .ci-fills { margin: 0; }
+.ck .ci-card--row .ci-open { flex: none; display: inline-flex; align-items: center; justify-content: center; text-align: center; min-height: var(--ck-tap); min-width: 72px; }
+/* Week key sessions as three slots (game look pass, the athlete's pick 1 with "selecting should give more info", Nov 14, 2026): a
+   slot's disc uses the stage disc parts; done fills in the sport colour, today rings, missed outlines in the act colour.
+   The pressed slot opens #w-kinfo under the row. */
+.ck .wk-slots.wk-slots--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ck-s2); padding: 0; background: none; border: 0; box-shadow: none; }
+.ck .wk-slot { --sp: var(--ck-fg-3); display: grid; align-content: start; gap: 4px; min-width: 0; min-height: var(--ck-tap); padding: var(--ck-s2); text-align: left; font: inherit; color: var(--ck-fg); background: var(--ck-surface); border: 1px solid var(--ck-line); border-top: 3px solid var(--ck-line); border-radius: var(--ck-r2); cursor: pointer; }
+.ck .wk-slot[data-s=good] { border-top-color: var(--sp); }
+.ck .wk-slot[aria-pressed=true] { border-color: var(--ck-fg); box-shadow: 0 0 0 1px var(--ck-fg); }
+.ck .wk-slot:focus-visible { outline: 2px solid var(--ck-focus, var(--ck-fg)); outline-offset: 2px; }
+.ck .wk-stop { display: flex; align-items: center; gap: 6px; }
+.ck .wk-skey { font-size: var(--ck-t1); line-height: 1; letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .wk-sdisc { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; border: 1.5px dashed var(--ck-fg-3); font-size: 11px; line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); color: var(--ck-fg-2); }
+.ck .wk-slot[data-s=good] .wk-sdisc { border: 0; background: var(--sp); color: var(--ck-on-accent, #fff); }
+.ck .wk-slot[data-s=now] .wk-sdisc { border: 2px solid var(--sp); color: var(--ck-fg); }
+.ck .wk-slot[data-s=act] .wk-sdisc, .ck .wk-slot[data-s=watch] .wk-sdisc { border: 1.5px solid var(--ck-act); color: var(--ck-act); }
+.ck .wk-slot[data-s=watch] .wk-sdisc { border-color: var(--ck-watch); color: var(--ck-fg); }
+.ck .wk-stitle { font-size: var(--ck-t2); line-height: 1.25; font-weight: var(--ck-w-bold); overflow-wrap: anywhere; }
+.ck .wk-sday { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
+.ck .wk-slot[data-s=now] .wk-sday { color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck .wk-kinfo { display: grid; gap: 6px; margin-top: var(--ck-s2); padding: var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); }
+.ck .wk-kinfo p { margin: 0; font-size: var(--ck-t2); line-height: 1.4; }
+.ck .wk-kinfo .wk-kh span { font-weight: var(--ck-w-bold); }
+.ck .wk-kinfo .wk-kgo { justify-self: start; }
+/* Week totals as four rings (game look pass, the athlete's pick 2, Nov 14, 2026): one row at every width; the ring fills toward the
+   plan in its tone (hours accent, keys good, strength its sport colour, effort load has no plan so its ring stays a plain
+   track); the figure sits inside, the label and "of N" under it; the sublines share one line under the row */
+.ck .ck-grid.wk-tiles, .ck .ck-grid.wk-tiles[class] { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ck-s2); padding: var(--ck-s3) var(--ck-s2); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); }
+.ck .wk-rcell { --tn: var(--ck-accent); display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 0; text-align: center; }
+.ck .wk-rcell[data-tone=good] { --tn: var(--ck-good); } .ck .wk-rcell[data-tone=strength] { --tn: var(--ck-strength); } .ck .wk-rcell[data-tone=fg-3] { --tn: var(--ck-fg-3); }
+.ck .wk-ring { display: grid; width: 56px; height: 56px; margin-bottom: 2px; }
+.ck .wk-ring > * { grid-area: 1 / 1; }
+.ck .wk-ring-t { border-radius: 50%; background: conic-gradient(var(--tn) var(--p, 0%), var(--ck-line) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px)); }
+.ck .wk-ring-t--none { background: var(--ck-line); }
+.ck .wk-ring-v { place-self: center; font-size: var(--ck-t3, 1.0625rem); line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); color: var(--ck-fg); }
+.ck .wk-rl { font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .wk-ru { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
+.ck .wk-rnote { grid-column: 1 / -1; margin: var(--ck-s1) 0 0; text-align: left; }
+/* This block's goals as step bars (game look pass, the athlete's pick 1, Nov 14, 2026): baseline to target in steps of the sport
+   colour, then one gold step from target to Strong; the even-pace tick sits on the target steps */
+.ck .bk-steps { display: flex; gap: 3px; height: 8px; }
+.ck .bk-tsteps { position: relative; flex: 4 1 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; }
+.ck .bk-steps i { display: block; border-radius: 2px; background: linear-gradient(90deg, var(--sp, var(--ck-accent)) var(--f, 0%), var(--ck-line) 0); }
+.ck .bk-steps i.bk-strong { flex: 1 1 0; background: linear-gradient(90deg, var(--ck-gold) var(--f, 0%), transparent 0); box-shadow: inset 0 0 0 1.5px var(--ck-gold); }
+.ck .bk-steps .bk-exp { top: -3px; bottom: -3px; }
+/* Next race track (game look pass, the athlete's pick 1, Nov 14, 2026): today on the left, the main race at the right end, every race
+   on the way a small stop and the next race the marked one */
+.ck .ck-race-track { display: grid; gap: 4px; margin-top: var(--ck-s2); }
+.ck .ck-rt-line { position: relative; display: block; height: 4px; margin: 6px 7px; border-radius: 2px; background: var(--ck-line); }
+.ck .ck-rt-stop { position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--ck-surface); box-shadow: inset 0 0 0 2px var(--ck-fg-3); }
+.ck .ck-rt-stop.is-next { width: 12px; height: 12px; margin: -6px 0 0 -6px; background: var(--ck-run, var(--ck-accent)); box-shadow: 0 0 0 2px var(--ck-surface); }
+.ck .ck-rt-stop.is-end { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 3px; transform: rotate(45deg); background: var(--ck-gold); box-shadow: 0 0 0 2px var(--ck-surface); }
+.ck .ck-rt-line::before { content: ""; position: absolute; left: -4px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--ck-fg); }
+.ck .ck-rt-lab { display: flex; justify-content: space-between; gap: var(--ck-s2); font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); }
+.ck .ck-rt-lab > :last-child { text-align: right; }
+/* Lifts: this week's lifts as discs beside the title, the routine facts as one line (game look pass, the athlete's pick 4, Nov 14,
+   2026); the discs are the stage disc parts in the strength colour */
+.ck .lx-log > .ck-tile-head { flex-wrap: wrap; align-items: center; gap: 4px var(--ck-s2); }
+.ck .lx-wk { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.ck .lx-wk-l { font-size: var(--ck-t1); line-height: 1; color: var(--ck-fg-2); }
+.ck .lx-wk-d { display: inline-flex; gap: 4px; }
+.ck .lx-wk-d i { display: inline-grid; place-items: center; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 1.5px dashed var(--ck-fg-3); font-style: normal; font-size: 11px; line-height: 1; font-weight: var(--ck-w-bold); font-variant-numeric: var(--ck-num); color: var(--ck-fg-2); }
+.ck .lx-wk-d i.on { border: 0; background: var(--ck-strength); color: var(--ck-on-accent); }
+.ck .lx-wk-d i.next { border: 2px solid var(--ck-strength); color: var(--ck-fg); }
+.ck .lx-facts { margin: 0; }
+.ck .lx-log .lx-st:empty { display: none; }
+.ck .lx-wk-n { font-size: var(--ck-t2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
+/* Skills: the 7 day change on the step bar (the athlete, Nov 15, 2026) */
+.ck .td-sk-steps .ft-step > .td-sk-gain, .ck .td-sk-steps .ft-step > .td-sk-loss { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
+.ck .td-sk-steps .ft-step > .td-sk-gain { background: var(--ck-good); }
+.ck .td-sk-steps .ft-step > .td-sk-loss { box-shadow: inset 0 0 0 1.5px var(--ck-watch); background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--ck-watch) 35%, transparent) 3px 5px); }
+.ck .td-sk.has-delta .td-sk-steps .ft-step > i { background: var(--ck-fg-3); } /* where you were: neutral; the change on top in colour */
+.ck .td-sk-was { margin: 2px 0 0; }
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }

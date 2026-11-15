@@ -170,14 +170,41 @@
     paintTicks(m); paintSkips();
     if (restored) { bar('Restored sets kept on this phone. Saving…', 'kept'); status(''); schedule(0); }
     else if (stored) { status('Saved ' + fWD(stored.date) + (stored.saved_at ? ', ' + stamp(stored.saved_at) : ''), 'ok'); bar('All sets saved · ' + stamp(stored.saved_at), 'ok'); }
-    else { status(db ? (date === TODAY ? 'Not logged yet' : 'Nothing logged ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
+    else { status(db ? (date === TODAY ? 'No sets saved today yet' : 'No sets saved for ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
   }
 
+  // This week's lifts as discs beside the title (game look pass, the athlete's pick 4, Nov 14, 2026): one disc per lift in the week's
+  // target, filled for each day with a lift on record (coach outcome_week, the Doing the plan count), plus a lift saved on this
+  // phone this week that the data has not caught up with yet (data-derived live). The next disc rings when today is still open.
+  function weekDiscs() {
+    const A = window.CX.app; const head = $('l-name-h'); if (!A || !head) return;
+    const old = document.getElementById('l-wk'); if (old) old.remove();
+    const wk = A.monday(TODAY), row = A.kind('outcome_week').find((x) => x.start === wk);
+    const tgt = row ? N(row.lifts_target != null ? row.lifts_target : row.lifts_planned) || 2 : 2;
+    const days = new Set(String(row ? row.lifts_days || '' : '').split(';').filter(Boolean));
+    const fromRow = row ? N(row.lifts_done) || 0 : 0;
+    const live = [...logs.keys()].filter((d) => dayN(d) >= dayN(wk) && dayN(d) <= dayN(TODAY) && !days.has(d)).length;
+    const n = fromRow + live, nS = Math.max(tgt, n);
+    const box = el('span', 'lx-wk'); box.id = 'l-wk';
+    const lab = el('span', 'lx-wk-l', 'this week'); box.append(lab);
+    const ds = el('span', 'lx-wk-d'); ds.setAttribute('role', 'img');
+    ds.setAttribute('aria-label', `Lifts this week: ${n} of ${tgt}` + (live ? `, ${live} saved on this phone` : ''));
+    for (let i = 0; i < nS; i++) { const d = el('i', i < n ? 'on' : i === n && !logs.has(TODAY) ? 'next' : null); d.textContent = String(i + 1); d.setAttribute('aria-hidden', 'true'); ds.append(d); }
+    // the count in words beside the discs (plain reading, the athlete Nov 15, 2026: the check runs on every proposed change), so a
+    // first reader never has to work out that a filled disc means done; the discs' own label says it for screen readers
+    const fig = live ? mk('span', null, String(n), null, null, null, 'live') : mk('span', null, String(n), 'coach', 'lifts_done', 'kind=outcome_week&start=' + wk);
+    const cnt = el('span', 'lx-wk-n'); cnt.setAttribute('aria-hidden', 'true'); cnt.append(fig, ' of ', mk('span', null, String(tgt), null, null, null, 'lift-target'), ' done');
+    box.append(ds, cnt);
+    head.parentNode.insertBefore(box, $('l-status'));
+  }
   function renderStatic(m) {
     const r = m.routine; const rw = 'kind=lift_routine&routine=' + r.routine;
     $('l-name').textContent = r.name; $('l-sub').textContent = r.subtitle || '';
     // the routine chips: the same four facts, each marked with its field
-    $('l-chips').replaceChildren(...[[`${r.per_week}× / week`, 'per_week'], [`~${r.minutes} min`, 'minutes'], [r.days || r.when, r.days ? 'days' : 'when'], [r.rir, 'rir']].filter((x) => x[0]).map(([t, f]) => mk('span', 'ck-chip', t, 'coach', f, rw)));
+    // game look pass (the athlete's pick 4, Nov 14, 2026): the four facts fold into one plain line, each part still marked
+    { const parts = [[`${r.per_week}× a week`, 'per_week'], [`~${r.minutes} min`, 'minutes'], [r.days || r.when, r.days ? 'days' : 'when'], [r.rir, 'rir']].filter((x) => x[0]);
+      const box = $('l-chips'); box.className = 'ck-sub lx-facts'; box.replaceChildren(); parts.forEach(([t, f], i) => { if (i) box.append(' · '); box.append(mk('span', null, t, 'coach', f, rw)); }); }
+    weekDiscs();
     $('l-chips').classList.remove('dash-skeleton');
     const ph = phaseAt(m, TODAY); const pn = $('l-phasenow'); pn.hidden = !ph;
     if (ph) { const pw = `kind=lift_phase&routine=${ph.routine}&label=${encodeURIComponent(ph.label)}`; const w = el('span', 'ck-notice-w'); w.append(icon('info'), mk('span', null, ph.label, 'coach', 'label', pw)); pn.replaceChildren(w, mk('p', 'ck-notice-t', ph.text, 'coach', 'text', pw)); }
@@ -316,7 +343,7 @@
     const fin = finish ? at : (prevDoc && prevDoc.finished_at) || null;
     const doc = { date: d, routine: m.routine.routine, routine_name: m.routine.name, sets: v.sets, ids, rpe: v.rpe, activity_id: g ? id : null, minutes: mins, note: v.note, done: v.done, skipped: v.skipped, saved_at: at, finished_at: fin };
     try {
-      await db.doc('lift_log/' + d).set(doc); logs.set(d, doc); draftDrop(d, at);
+      await db.doc('lift_log/' + d).set(doc); logs.set(d, doc); draftDrop(d, at); weekDiscs();
       const rateKey = id + '|' + (v.rpe ?? '');
       if (finish || (v.rpe !== null && fsRpe.get(d) !== rateKey)) {
         let prev = null; try { const r = await db.doc('feel_sessions/' + id).get(); prev = r.exists ? r.data() : null; } catch (e) { prev = null; }
