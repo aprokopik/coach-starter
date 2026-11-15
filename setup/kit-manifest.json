@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.63.3",
+ "version": "6.64.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -33,6 +33,7 @@
   "coach/dashboard/block.js",
   "coach/dashboard/body.js",
   "coach/dashboard/calc.js",
+  "coach/dashboard/change.js",
   "coach/dashboard/charts.css",
   "coach/dashboard/charts.js",
   "coach/dashboard/checkins.js",
@@ -115,6 +116,7 @@
   "coach/tools/catalog.py",
   "coach/tools/checkins.py",
   "coach/tools/compare.py",
+  "coach/tools/day_change.py",
   "coach/tools/experiments.py",
   "coach/tools/fit_ladder.py",
   "coach/tools/goal_check.py",

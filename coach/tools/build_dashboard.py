@@ -283,6 +283,9 @@ rows.append({"kind": "bp_week", **bp_cadence.from_repo(".", datetime.now(ZoneInf
 # Written only when coach/connections.json names a reader; fields fixed in coach/ops/contract.json.
 import summary  # noqa: E402
 rows.extend(summary.build(datetime.now(ZoneInfo("America/New_York")).date(), rows))
+# When today changes (6.64.0, Closed loops): the last week of day-of changes; Today shows today's replan note
+import day_change  # noqa: E402
+rows.extend(day_change.rows(datetime.now(ZoneInfo("America/New_York")).date()))
 # Meal guide rows for a connected meal planner, today and 13 days ahead (the athlete, Nov 3 and Nov 11, 2026; week 3 PR 2)
 import meal_guide  # noqa: E402
 rows.extend(meal_guide.build(datetime.now(ZoneInfo("America/New_York")).date()))

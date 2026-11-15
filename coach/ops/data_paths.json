@@ -3,7 +3,7 @@
  "updated": "2026-11-15",
  "note": "Single source for how each data feed and each scheduled task reaches the repo: route, cadence, how lateness is detected and the fallback. RUNBOOK, CURRENT-STATE and the task prompts point here instead of restating routes. A PR that changes a route edits this file in the same PR (PR template checkbox). Reference data, not coaching instructions.",
  "written_in_sessions": {
-  "note": "Athlete files no feed or task writes on a schedule: changed only in a session the athlete starts (a project thread, a reply to the check-in) or by a reviewed PR. Every tracked athlete file under coach/ and state/ is named under a path's writes or here (coach/tests/test_data_paths_writers.py, 6.62.0), so a new file cannot appear without a stated writer.",
+  "note": "Athlete files no feed or task writes on a schedule: changed only in a session the athlete starts (a project thread, a reply to the check-in) or by a reviewed PR. Every tracked athlete file under coach/ and state/ is named under a path's writes or here (coach/tests/test_data_paths_writers.py, 6.61.0), so a new file cannot appear without a stated writer.",
   "files": [
    "coach/athlete/PROFILE.md",
    "coach/athlete/RESPONSE-PROFILE.md",
@@ -242,6 +242,23 @@
    },
    "alert": false,
    "fallback": "the lift counts as unlogged (outcomes.py)",
+   "owner": "the athlete"
+  },
+  {
+   "id": "day_change",
+   "what": "Today changed? tap (Today plan card: reason, optional line, Do the Min size today), or a day-of change told in chat",
+   "route": "dashboard store day_change, copied by the daytime refresh and the morning run with day_change.py ingest (RUNBOOK Data 4, Today changed); chat: day_change.py add",
+   "writes": [
+    "coach/day_changes.csv"
+   ],
+   "cadence": "on a day the plan changes",
+   "evidence": {
+    "kind": "csv_max",
+    "file": "coach/day_changes.csv",
+    "column": "date"
+   },
+   "alert": false,
+   "fallback": "the plan stands until the next session that hears of the change",
    "owner": "the athlete"
   },
   {

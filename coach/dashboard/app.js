@@ -565,6 +565,7 @@
     renderRaceTile(r);
     renderNight();
     renderWatch();
+    if (window.CX.renderChange) window.CX.renderChange(); // change.js: Today changed?, after the size is drawn
   }
   // Race tile: days to the next race, the next A race in weeks when it is a different race, and the next key session
   // (never a rest day). Every figure is computed from the race and day rows and says so (data-derived).

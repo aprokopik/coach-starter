@@ -95,7 +95,7 @@ AVG_NOTE = "home 7-day average"  # a week's average entered on the Check-ins tab
 
 
 def bp_basis(readings, days=7):
-    """The rows the Blood pressure line averages (Improvements log, Nov 9, 2026; fixed 6.63.0).
+    """The rows the Blood pressure line averages (Improvements log, Nov 9, 2026; fixed 6.61.0).
 
     A week's average entered on the Check-ins tab is a summary, not one more reading: counted beside the cuff
     readings it summarises, it weighed as much as a single reading and pulled the number for 7 days. Cuff

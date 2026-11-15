@@ -350,6 +350,19 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-ci-go { display: inline-flex; align-items: center; gap: 4px; color: var(--ck-accent); font-weight: var(--ck-w-bold); }
 /* Help me pick (Phase 6): the disclosure at the bottom of the plan card (the athlete, Nov 14, 2026), a hairline above it; the card's edge closes it */
 .ck .ck-disc.td-pick { border-top: 1px solid var(--ck-line); }
+/* Today changed? (6.64.0, change.js): a quiet disclosure like Help me pick; inside, reason chips, Plan B, an optional line and Send.
+   The status line under it is small and never louder than the session (the athlete dislikes big or intrusive elements). */
+.ck .ck-disc.td-chg-btn { border-top: 1px solid var(--ck-line); }
+.ck .td-chg { display: grid; gap: var(--ck-s3); padding: 0 0 var(--ck-s3); min-width: 0; }
+.ck .td-chg[hidden] { display: none; }
+.ck .td-chg-why { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: var(--ck-s2); }
+.ck .td-chg-l { padding: 0; font-size: var(--ck-t2); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .td-chg-min { display: flex; align-items: center; gap: var(--ck-s2); min-height: var(--ck-tap); font-size: var(--ck-t3); cursor: pointer; }
+.ck .td-chg-min[hidden] { display: none; }
+.ck .td-chg-min input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--ck-accent); }
+.ck .td-chg-act { display: flex; flex-wrap: wrap; gap: var(--ck-s2); }
+.ck .td-chg-st { margin: 0; padding: 0 2px var(--ck-s2); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .td-chg-st[hidden] { display: none; }
 /* Last night gauge (Phase 6, option A; inside the call tile since round 2): the arc drawn at 1 unit = 1 px, the figure in the arc's bowl, then the word and its
    sentence; colours are tokens (status fill, page ink), never typed in the script */
 .ck .td-gauge { display: grid; justify-items: center; gap: var(--ck-s2); text-align: center; }

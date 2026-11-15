@@ -18,6 +18,7 @@
     if (sc.refresh) for (let h = 9; h <= 21; h += 2) if (h * 60 + 41 > m) return fmt(h, 41);
     return 'tomorrow ' + sc.at;
   }
+  window.CX.nextUpdate = nextRun; // change.js says when a changed day is replanned
   let until = 0; // a tap's longer message shows until this time
   function render(tapped) {
     const btn = $('cx-fresh'), word = $('cx-fresh-s'); if (!btn || !word) return;

@@ -32,8 +32,9 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `pillars.js` | Health tab |
 | `checkins.js` | Check-in tab and the Today check-ins due line |
 | `block.js` | This block card (Fitness) and the Season status panels |
+| `change.js` | Today changed? on the plan card: reason, Plan B (Min), the store document `day_change` and the replan line |
 
-Load order: calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
+Load order: calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
 A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering its renderer on `window.CX` and its `dash.calc` definitions at top level. Never grow `app.js` (about 171 KB). When a file nears the cap, split it along a `// ----------` page seam the way `season.js` was split.
 
@@ -102,6 +103,7 @@ RUNBOOK step 4 (Data) lists these on the dashboard store each morning:
 | `checkin` | Check-in tab surveys; the monthly one also on the Today card from its first Sunday | `coach/tools/checkins.py ingest` |
 | `lift_log` | Lifts tab | `coach/tools/lifts.py ingest` |
 | `lift_tap` | Today, Morning check ("Lifted yesterday?") | copied to `coach/lift_taps.csv` |
+| `day_change` | Today, plan card (Today changed?) | `coach/tools/day_change.py ingest`, then the replan (RUNBOOK "Today changed") |
 | `lift_choice` | Lifts tab, New block card | `lifts.py accept` or `keep` |
 | `brief_choice` | Fitness tab, This block card | `brief.py accept` or `change` |
 
