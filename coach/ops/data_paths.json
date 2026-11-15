@@ -279,6 +279,23 @@
    "owner": "the athlete"
   },
   {
+   "id": "calendar",
+   "what": "Trips and time away on the athlete's Google Calendar (read only, next 7 days)",
+   "route": "the morning run reads the calendar connector itself (RUNBOOK Data 4c, coach/tools/trips.py, 6.75.0); the events file stays outside the repo; coach/trips_seen.json keeps only hashed keys and dates of trips already asked about",
+   "writes": [
+    "coach/trips_seen.json"
+   ],
+   "cadence": "daily, at the morning run",
+   "evidence": {
+    "kind": "json_rows_max",
+    "file": "coach/trips_seen.json",
+    "field": "on"
+   },
+   "alert": false,
+   "fallback": "a missed read is a skipped step in coach/run_steps.json; the athlete telling a thread about a trip still reaches the plan",
+   "owner": "coach"
+  },
+  {
    "id": "checkins",
    "what": "Check-ins tab surveys",
    "route": "dashboard store checkin, ingested by checkins.py in the morning run",

@@ -30,12 +30,13 @@ def required(day, root="."):
     """Step ids the run of `day` must account for."""
     spec = _read(root, SPEC, {"steps": []})
     board = os.path.exists(os.path.join(root, "coach/board.json"))
+    cal = os.path.exists(os.path.join(root, "coach/trips_seen.json"))
     out = []
     for s in spec.get("steps", []):
         if str(s.get("since") or "") > day.isoformat():
             continue  # a step added after this run was not owed by it (Nov 15, 2026 dry run: coach-3f flagged on the Nov 13 run)
         w = s.get("when", "daily")
-        if w == "daily" or (w == "sunday" and day.weekday() == 6) or (w == "board" and board):
+        if w == "daily" or (w == "sunday" and day.weekday() == 6) or (w == "board" and board) or (w == "calendar" and cal):
             out.append(s["id"])
     return out
 
