@@ -623,7 +623,9 @@
   // drops "2:30", "35 min", "1.5 h" or "90'" from a title and tidies the commas left behind
   function noTime(s) {
     if (!s) return s;
-    const o = String(s).replace(/\s*\b\d{1,2}:\d{2}\b/g, '').replace(/\s*\b\d+(?:\.\d+)?\s*(?:min|mins|minutes|h|hr|hrs|hours)\b\.?/gi, '')
+    // a range goes as one ("50 to 60 min", "20-30 min", "1:30 to 2:00"); 6.55.4: it read "Easy run 50 to, flat"
+    const o = String(s).replace(/\s*\b\d{1,2}:\d{2}(?:\s*(?:-|–|to)\s*\d{1,2}:\d{2})?\b/g, '')
+      .replace(/\s*\b\d+(?:\.\d+)?(?:\s*(?:-|–|to)\s*\d+(?:\.\d+)?)?\s*(?:min|mins|minutes|h|hr|hrs|hours)\b\.?/gi, '')
       .replace(/\s+,/g, ',').replace(/,\s*,/g, ',').replace(/^[\s,]+|[\s,]+$/g, '').replace(/\s{2,}/g, ' ');
     return o || String(s);
   }

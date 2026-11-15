@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.63.2 (2026-11-15)
+- Dashboard fix: Today's session title drops a time range whole (overnight regression pass, the kit maker, Nov 15, 2026: "This could also include Regression testing"). Observed: the week's "Easy run 50 to 60 min, flat" read "Easy run 50 to, flat" on Today, and "20-30 min easy walk" read "20- easy walk", in 7 of the week's 35 titles. Root cause: `noTime` (6.39.0) took out a number with its unit, so the first number of a range stayed. It now takes "50 to 60 min", "20-30 min" and "1:30 to 2:00" as one; interval sets such as "3x10 min" stay. Test: coach/tests/test_today_title.py, on the week's real titles.
+
 ## 6.63.1 (2026-11-15)
 - Package fix: what's new after an update names tonight's changes again (overnight regression pass, the kit maker, Nov 15, 2026: "This could also include Regression testing"). Observed: a kit coach updated from 6.46.0 to 6.55.1 was told "Changes to the original athlete's own coaching only" for every release from 6.46.0 on, the heart rate anchors (6.54.0) and the Bike speed tile a rider without power starts with (6.55.0) included. Root cause: the kit keeps only release lines that start with a kit category, and nothing asked for one. The 25 lines of 6.46.0 to 6.55.0 that reach a kit user now start "Dashboard:" or "Engine:"; a new test (coach/tests/test_kit_whatsnew.py) fails an entry dated from Nov 16, 2026 that has no kit category line and no "- Owner only" line, and checks the sprint's lines reach the kit's notes.
 
