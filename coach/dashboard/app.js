@@ -1218,7 +1218,7 @@
   function renderWeek() {
     const wk = state.week;
     set('w-title', weekTitle(wk)); set('w-range', weekRange(wk));
-    $('w-prev').disabled = false; $('w-next').disabled = dayN(wk) >= dayN(monday(TODAY)) + 14;
+    $('w-prev').disabled = false; $('w-next').disabled = dayN(wk) >= dayN(monday(TODAY)) + 21; // three weeks ahead (the athlete, Nov 15, 2026: "Tentative plan made up to 3 weeks advance")
     for (const inp of document.querySelectorAll('#w-mode input')) inp.checked = inp.value === state.mode;
     const meta = kind('week').find((w) => w.week_start === wk);
     const ww = 'kind=week&week_start=' + wk;
@@ -1230,6 +1230,11 @@
       if (first === fx) wf.append(mark(el('span', null, fx), 'coach', 'focus', ww));
       else { wf.append(mark(el('span', null, first), 'coach', null, ww, 'first-sentence'), ' ');
         const dt = el('details', 'wk-note-more'); const sm = el('summary', null, 'Read the full week note'); dt.append(sm, mark(el('span', null, fx), 'coach', 'focus', ww)); wf.append(dt); } }
+    // A pencilled week (week.json week row status "pencilled", RUNBOOK coach-3s): the Sunday check-in sets the coming week
+    // and pencils the two after it; the tag says the days can still move and on which Sunday the week firms up
+    const pen = !!meta && String(meta.status || '') === 'pencilled';
+    $('w-list').classList.toggle('wk-pencil', pen);
+    if (pen) { const tag = el('p', 'wk-pentag'); tag.append(icon('edit', 'ck-i'), ' ', mark(el('b', null, 'Pencilled'), 'coach', null, ww, 'pencilled-week'), ' · '); const cd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(String(meta.check_day || '')); const chk = cd >= 0 ? dayN(wk) - 7 + cd : null; if (chk !== null && chk >= TN) tag.append('the coach checks it with you ', mark(el('span', null, fWd(P(isoN(chk)))), 'coach', null, ww, 'plan-check-day'), ' and '); tag.append('it firms up ', mark(el('span', null, fWd(P(isoN(dayN(wk) - 1)))), 'coach', null, ww, 'firms-up-sunday'), '. Days can still move; tests and races keep their dates.'); wf.append(tag); }
     renderWeekStale(wk);
     if (window.CX.renderRaceWeek) window.CX.renderRaceWeek(wk); // season.js
     drawLoad();

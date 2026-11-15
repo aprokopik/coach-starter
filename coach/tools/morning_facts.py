@@ -718,6 +718,26 @@ def morning_food(data, day, first_meal):
             "sessions": hits or unsure, "what": sorted(what, key=lambda w: next(i for i, o in enumerate(order) if w.startswith(o)))}
 
 
+DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def section_week_ahead(today, data, prof):
+    """Pencilled weeks (the athlete, Nov 15, 2026): the Sunday check-in sets the coming week and pencils the two after it. On the
+    plan check day (profile.json plan_check_day, default Friday) the check-in shows next week's key sessions and asks one
+    question about schedule or preference changes, so Sunday writes the week around them."""
+    day = ((prof.get("plan_check_day") or {}).get("day") or "Fri")[:3].title()
+    if day not in DOW:
+        day = "Fri"
+    nxt = today + timedelta(days=7 - today.weekday())
+    rows = [r for r in data.get("week", []) if r.get("kind") == "day" and nxt <= d(r["date"]) <= nxt + timedelta(days=6)]
+    meta = next((r for r in data.get("week", []) if r.get("kind") == "week" and r.get("week_start") == iso(nxt)), None)
+    keys = [f"{DOW[d(r['date']).weekday()]} {r.get('title', '')}" for r in sorted(rows, key=lambda r: (r["date"], r.get("order", 0))) if r.get("key")]
+    return {"plan_check_day": day, "plan_check_today": DOW[today.weekday()] == day, "next_week": iso(nxt),
+            "next_week_status": (meta or {}).get("status") or ("set" if rows else "not written"), "next_week_keys": keys,
+            "rule": "on the plan check day the check-in lists next week's key sessions and asks one question: any schedule or preference changes? The answer edits the pencilled rows the same day and Sunday writes the week around it",
+            "provenance": "Calculated from week.json and profile.json plan_check_day"}
+
+
 def section_morning_food(today, data, prof):
     fm = (prof.get("first_meal") or {}).get("time")
     if not fm:
@@ -1313,6 +1333,7 @@ def build(today):
     f["weight"] = section_weight(today, data, prof, th)
     f["weight"]["body_comp"] = section_body_comp(today, data)
     f["morning_food"] = section_morning_food(today, data, prof)
+    f["week_ahead"] = section_week_ahead(today, data, prof)
     f["races"] = section_races(today, data)
     f["calibration"] = section_calibration(today, data, prof, th)
     f["predictions"] = section_predictions(today, data)

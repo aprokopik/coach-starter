@@ -81,10 +81,14 @@ rows.append({
 for r in read_json("coach/today.json", {"rows": []}).get("rows", []):
     rows.append({"kind": "today", **r})
 
+_check_day = ((read_json("coach/athlete/profile.json", {}).get("plan_check_day") or {}).get("day") or "Fri")[:3].title()
 for r in read_json("coach/week.json", {"rows": []}).get("rows", []):
     k = r.get("kind")
     if k in ("week", "day"):
-        rows.append(dict(r))
+        row = dict(r)
+        if k == "week" and row.get("status") == "pencilled":
+            row["check_day"] = _check_day  # the day the coach checks the week with the person (profile.json plan_check_day)
+        rows.append(row)
 
 def to5(v, scale):
     """Feel scores are 1-5 from Oct 18, 2026 (the athlete); older 1-10 answers are rescaled linearly for trends."""

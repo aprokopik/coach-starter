@@ -206,6 +206,19 @@ def main():
                 y = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
                 j["rows"] = [r for r in j["rows"] if not (r.get("kind") == "day" and r.get("date") == y)]
                 j["rows"].append({"kind": "day", "date": y, "order": 1, "type": "strength", "title": "Long Life Lifts", "minutes": 30, "intensity": "easy", "harness_only": "lifttap variant"})
+            if ds_id == "coach" and variant == "pencil":  # Pencilled weeks: next week set, the two after it pencilled (sample sessions). Harness only.
+                import datetime
+                t0 = datetime.date.today(); m0 = t0 + datetime.timedelta(days=7 - t0.weekday())
+                plan = [("rest", "Rest day", 0, 0), ("run", "Easy run", 40, 0), ("bike", "Sweet spot 3x12 min (Zwift)", 65, 1), ("swim", "Easy swim", 40, 0),
+                        ("strength", "Long Life Lifts", 30, 0), ("bike", "Long ride 2:30", 150, 2), ("run", "Easy run 50 min", 50, 3)]
+                for w in range(3):
+                    ws = m0 + datetime.timedelta(days=7 * w)
+                    if any(r.get("kind") == "week" and r.get("week_start") == ws.isoformat() for r in j["rows"]): continue
+                    j["rows"].append({"kind": "week", "week_start": ws.isoformat(), "label": f"Sample week {w + 1}", "focus": "Sample week for the harness.", **({"status": "pencilled", "check_day": "Fri"} if w else {}), "harness_only": "pencil variant"})
+                    for i, (tp, ti, mn, k) in enumerate(plan):
+                        row = {"kind": "day", "order": 1, "date": (ws + datetime.timedelta(days=i)).isoformat(), "type": tp, "title": ti, "minutes": mn, "intensity": "rest" if tp == "rest" else "easy", "key": bool(k), "detail": "Sample.", "harness_only": "pencil variant"}
+                        if k: row.update(pillar=k, why="Sample key session.")
+                        j["rows"].append(row)
             if ds_id == "coach" and variant == "empty":
                 j["rows"] = [r for r in j["rows"] if r.get("kind") != "today"]
             data[ds_id] = {"type": "json", "file": rel, "json": j}
