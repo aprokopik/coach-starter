@@ -192,6 +192,29 @@
   CX.saveLvSeen = (ids) => { lvShared = [...new Set([...lvShared, ...ids])].slice(-200);
     if (db) { try { Promise.resolve(db.doc('seen/levelups').set({ ids: lvShared, saved_at: new Date().toISOString() })).catch(() => { /* kept on this device */ }); } catch (e) { /* kept on this device */ } } };
 
+
+  // Bike at 130 bpm as one tile, like Sustainable trail speed (the athlete, Nov 15, 2026: "merged and togglable", then "Handle the
+  // situation the same"): the power tile shows both readings, each with its level; the speed tile stays built but hidden; the
+  // opened chart carries a Power | Speed switch (power: the app.js chart, speed: the speed tile's level panel).
+  CX.pairBike = (box) => {
+    const p = box.querySelector(':scope > #f-bike'), s = box.querySelector(':scope > #f-bikespeed'), o = document.querySelectorAll('#f-bkseg, #f-bknote'); o.forEach((x) => x.remove());
+    if (!p || !s) return;
+    s.hidden = true; const lb = p.querySelector('.ft-label > span:last-child'); if (lb) { lb.textContent = lb.textContent.replace(/power /i, ''); lb.removeAttribute('data-field'); lb.setAttribute('data-derived', 'pair-name'); }
+    const row = (name, fig) => { const r = el('span', 'ft-barname'); const v = el('b'); for (const n of fig.childNodes) v.append(n.cloneNode(true)); r.append(el('b', null, name), v); return r; };
+    const pf = p.querySelector('.ft-fig'), sf = s.querySelector('.ft-fig'), lv = p.querySelector('.ft-lvrow, .ft-chip'), sub = p.querySelector('.ft-subl');
+    if (pf && lv) lv.before(row('Power', pf));
+    if (sf) { const add = [row('Speed', sf), ...['.ft-chip', '.ft-steps'].map((q) => s.querySelector(q)).filter(Boolean).map((n) => n.cloneNode(true))]; if (sub) sub.before(...add); else p.append(...add); }
+    p.setAttribute('aria-label', p.getAttribute('aria-label').replace(/^Bike power/, 'Bike') + `, speed ${sf ? sf.textContent.trim() : 'none yet'}`);
+    const sp = ui.open === 'bikespeed'; if (sp) p.setAttribute('aria-expanded', 'true');
+    p.addEventListener('click', () => { if (ui.open === 'bikespeed') { ui.open = null; CX.state.fit = null; rerender(); } });
+    const seg = el('fieldset', 'ck-seg ft-seg ft-sport'); seg.id = 'f-bkseg'; seg.append(el('legend', 'ck-vh', 'Bike reading'));
+    for (const [k, lab] of [['bike', 'Power'], ['bikespeed', 'Speed']]) { const l = el('label', 'ck-seg-opt'), i = el('input', 'ck-vh-input'); i.type = 'radio'; i.name = 'f-bkseg'; i.checked = (k === 'bikespeed') === sp;
+      i.addEventListener('change', () => { ui.open = k === 'bikespeed' ? k : null; CX.state.fit = k === 'bike' ? k : null; rerender(); const f = document.querySelectorAll('#f-bkseg input')[k === 'bike' ? 0 : 1]; if (f) f.focus({ preventScroll: true }); });
+      l.append(i, lab); seg.append(l); }
+    if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); pn.prepend(seg); } }
+    else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(seg, n); } else if (c) c.before(seg); }
+  };
+
   // ---------- saving ----------
   function pick(key, on) {
     const at = new Date().toISOString(); picks.set(key, { on, saved_at: at }); ui.err = '';

@@ -1897,14 +1897,14 @@
     if (!tilesBox.querySelector('.ft-tile, .mx-map')) { cardState(card, 'empty', 'No fitness markers yet. They fill in as runs and Zwift rides arrive from Garmin.'); return; }
     const panel = $('f-expand');
     if (!placeExpand(tilesBox, panel, state.fit)) { state.fit = null; return; }
-    if (state.fit === 'run' || state.fit === 'bike') { const sb = $('f-sport'); if (sb) sb.remove(); $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
-    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { note: m.why ? mark(el('span', null, m.why), 'coach', 'why', 'kind=marker&key=' + m.key) : null })); }
+    if (state.fit === 'run' || state.fit === 'bike') { for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); } $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
+    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { note: m.why && !m0.pair ? mark(el('span', null, m.why), 'coach', 'why', 'kind=marker&key=' + m.key) : null })); }
   }
   // A marker row with pair names a second marker for the same tile (the athlete, Nov 8, 2026: the Aerobic engine tile, VO2max per sport). The open
   // tile gets a switch above its chart (Run / Bike, from each row's sport_label) and shows one sport at a time, with that sport's own ladder.
   // The paired row has section 'pair', so it is never a tile. One sport only: no pair, no switch. Returns the marker to draw.
   function sportPick(m) {
-    const old = $('f-sport'); if (old) old.remove();
+    for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); }
     if (m.key === 'climb') return m; // no selector on Climbing: its opened tile is the run by run chart with all three grades (the athlete, Nov 12, 2026)
     // m.pair names one paired row, or several separated by commas (Climbing: Run, Hike and Steep grade bands, the athlete Nov 8, 2026);
     // a row's seg orders the options (lowest first), else the tile's own row comes first
@@ -1917,7 +1917,8 @@
       inp.addEventListener('change', () => { if (!inp.checked) return; state.fitSport[m.key] = x.key; renderFitness(); ftFocus(`#f-sport input[value="${x.key}"]`); });
       opt.append(inp, mark(el('span', null, x.sport_label || x.label), 'coach', 'sport_label', 'kind=marker&key=' + x.key)); bar.append(opt);
     }
-    $('c-fit').before(bar);
+    // a plain line under the switch says what the chosen part measures (the athlete, Nov 15, 2026: "have the overall/runnable toggles be more explainable")
+    const nt = el('p', 'ck-note ft-segnote'); nt.id = 'f-sportn'; if (pick.why) nt.append(mark(el('span', null, pick.why), 'coach', 'why', 'kind=marker&key=' + pick.key)); $('c-fit').before(bar, nt);
     return pick;
   }
   // Fitness KPIs grouped by race type and ordered by weight (the athlete, Nov 1, 2026; coach/fitness_layout.json): a header per group with its
@@ -1949,6 +1950,7 @@
     }
     // locked tiles, tiles the athlete added or hid, and the Add a metric list (metrics.js; the athlete, Nov 12, 2026)
     if (window.CX.metricTiles) window.CX.metricTiles(box, tiles);
+    if (window.CX.pairBike) window.CX.pairBike(box);
   }
   // Tiles grouped under sport headers with the sport stripe (the athlete, Nov 1, 2026: Season so far and All-time records by sport).
   // groups: [{ label, sport, tiles: [element] }]; empty groups are skipped; an odd last tile spans the row. Phase 5 (Season):
