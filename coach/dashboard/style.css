@@ -1336,3 +1336,4 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .qc-bar .qc-tile:last-child { border-radius: 0 var(--ck-r1) var(--ck-r1) 0; }
 .ck .qc-bar .qc-tile.pre { background: color-mix(in srgb, var(--ck-accent) 22%, var(--ck-surface-2)); }
 .ck .qc-bar .qc-tile.sel { background: var(--ck-accent); color: var(--ck-on-accent); box-shadow: none; }
+.ck .ck-chart-sw.wk-ref-sw { height: 0; border: 0; border-top: 2px dashed var(--ck-fg); border-radius: 0; }

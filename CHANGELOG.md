@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.81.4 (2026-11-15)
+- Dashboard: Week totals charts get the whole width and count every hour (the kit maker, Nov 15, 2026, with phone screenshots at 3:54 PM: "This week looks underreported in total time", "Dont need budged if you have plan. This should allow larger graph", and the Key sessions chart's top label cut off). Effort mix: the week's minutes with no effort rating now stack as Not rated in grey, so each bar matches Hours done (this week 7.0 h, of which 1.5 h rated; before, only the 1.5 h showed); the ring and its easy share still read rated minutes only. Hours: the 5 to 7 h budget band is dropped when the weeks carry a plan, and the dashed plan mark is named in the key under the chart ("Planned") instead of the right margin, so the bars take the full width. Key sessions and Strength: the scale runs to 4 so the top label shows, and the dashed mark is named in the key ("Key sessions planned", "Strength target"). No data, rule or store change.
+
 ## 6.81.3 (2026-11-15)
 - Dashboard fix: on Health, Lab results, the yellow edge now marks only the markers the lab flagged outside its range (the kit maker, Nov 15, 2026, with a phone screenshot at 3:51 PM: "This looks like all results are under watch in yellow"). Root cause: 6.72.0's status edge (game look round three) assumed every row in a lab list was flagged, and "Show all markers" reuses the same list, so in range markers such as HDL and hs-CRP took the edge too. The edge now keys on the lab's own flag (class is-flag). Guard: coach/tests/test_lab_edge.py.
 

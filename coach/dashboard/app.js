@@ -1418,6 +1418,9 @@
     const by = Object.fromEntries(wk.map((w) => [w.week, w]));
     const plannedBy = {}; for (const r of rowsOk('week_view') || []) if (r.kind === 'plan' && !['rest', 'test'].includes(r.type)) plannedBy[r.week] = (plannedBy[r.week] || 0) + (N(r.minutes) || 0) / 60;
     { const h = $('w-load-h'); if (h) h.textContent = WK_TITLE[state.mode] || WK_TITLE.hours; }
+    // the dashed bar mark, named in the chart key (6.81.4)
+    const refKey = (host, text) => { let kp = host.querySelector('.ck-chart-key'); if (!kp) { kp = el('p', 'ck-chart-key'); const cap = host.querySelector('.ck-chart-cap'); cap ? cap.before(kp) : host.append(kp); }
+      const it = el('span'), sw = el('i', 'ck-chart-sw wk-ref-sw'); sw.setAttribute('aria-hidden', 'true'); it.append(sw, text); kp.append(it); };
     // Key sessions and Strength tabs: done per week against the week's number (3 key sessions; strength at least 2 a week,
     // the ring's own denominator), counted from the week's rows as the rings count them
     if (state.mode === 'key' || state.mode === 'strength') {
@@ -1428,18 +1431,19 @@
       const rows = weeks.map((w) => { const c = cnt(w); return { x: w, parts: { n: c.n }, ref: c.of || null, t: { week: w, ...c } }; });
       CKC().bar(box, {
         key: 'week-' + state.mode, h: 190, rows, stack: [{ key: 'n', label: isKey ? 'Key sessions done' : 'Strength sessions done', tone: isKey ? 'good' : 'strength' }],
-        tone: isKey ? 'good' : 'strength', partKey: 'all', floor: 3, unit: '', vfmt: (v) => String(v), fmt: (v) => String(v),
-        refLabel: isKey ? 'Key sessions' : 'Target', selected: state.week, valueLabel: (v) => String(v),
+        tone: isKey ? 'good' : 'strength', partKey: 'all', floor: 4, unit: '', vfmt: (v) => String(v), fmt: (v) => String(v),
+        refLabel: null, selected: state.week, valueLabel: (v) => String(v),
         title: isKey ? 'Key sessions done by week' : 'Strength sessions done by week', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
         marks: { source: 'week_view' }, onPick: (r) => { state.week = r.x; renderWeek(); },
         tip: (r) => ({ head: `Week of ${fDay(P(r.t.week))}`, lines: [{ text: `${r.t.n} of ${r.t.of} done` }] }),
       });
+      refKey(box, isKey ? 'Key sessions planned' : 'Strength target');
       return;
     }
     const keys = ['bike', 'run', 'swim', 'strength', 'hike', 'other'];
     const hours = state.mode === 'hours';
-    const MIX = [['easy', 'Easy', 'seq-1'], ['steady', 'Steady', 'seq-3'], ['hard', 'Hard', 'seq-5']]; // effort mix, Nov 15, 2026
-    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; for (const m of ['easy', 'steady', 'hard']) o[m] = by[w] ? (N(by[w][m + '_min']) || 0) / 60 : 0; o.total = keys.reduce((s, k) => s + o[k], 0); o.plan = plannedBy[w] || null; return o; });
+    const MIX = [['easy', 'Easy', 'seq-1'], ['steady', 'Steady', 'seq-3'], ['hard', 'Hard', 'seq-5'], ['unrated', 'Not rated', 'fg-3']]; // effort mix, Nov 15, 2026
+    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; for (const m of ['easy', 'steady', 'hard']) o[m] = by[w] ? (N(by[w][m + '_min']) || 0) / 60 : 0; o.total = keys.reduce((s, k) => s + o[k], 0); o.unrated = Math.max(0, o.total - o.easy - o.steady - o.hard); o.plan = plannedBy[w] || null; return o; });
     const present = keys.filter((k) => table.some((t) => t[k] > 0));
     const curIn = hours && weeks.includes(cur) && TN - dayN(cur) + 1 < 7 ? { x: cur, days: TN - dayN(cur) + 1, of: 7 } : null;
     { const lg = $('c-load-legend'); lg.replaceChildren(); lg.hidden = true; } // direct labels replace the legend
@@ -1450,13 +1454,14 @@
       stack: hours ? present.map((k) => ({ key: k, label: NAME[k], tone: SPORT_TONE[k], outline: k === 'hike' })) : MIX.map(([key, label, tone]) => ({ key, label, tone })), tone: 'series-2',
       partKey: 'all',
       floor: hours ? 7.5 : 2, unit: 'h', vfmt: f1, fmt: (v) => String(v), partial: curIn,
-      bands: hours && hb ? [{ lo: N(hb.lo), hi: N(hb.hi), label: `${N(hb.lo)} to ${N(hb.hi)} h budget`, marks: { source: 'coach', where: 'kind=target&key=hours' } }] : [],
-      refLabel: hours ? 'Planned' : null, selected: state.week, valueLabel: (v) => `${f1(v)} h`,
-      title: hours ? 'Training hours by week' : 'Easy, steady and hard hours by week (rated sessions)', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
+      bands: hours && hb && !table.some((t) => t.plan) ? [{ lo: N(hb.lo), hi: N(hb.hi), label: `${N(hb.lo)} to ${N(hb.hi)} h budget`, marks: { source: 'coach', where: 'kind=target&key=hours' } }] : [],
+      refLabel: null, selected: state.week, valueLabel: (v) => `${f1(v)} h`,
+      title: hours ? 'Training hours by week' : 'Easy, steady and hard hours by week', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
       marks: { source: 'weekly', key: 'week' },
       onPick: (r) => { state.week = r.x; renderWeek(); },
-      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : t.rated ? MIX.map(([k, lab, tone]) => ({ tone, text: `${lab}: ${f1(t[k])} h` })).concat([{ text: `${t.rated} session${t.rated > 1 ? 's' : ''} rated` }]) : [{ text: 'No rated sessions' }] }; },
+      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : MIX.filter(([k]) => t[k] > 0).map(([k, lab, tone]) => ({ tone, text: `${lab}: ${f1(t[k])} h` })).concat([{ text: t.rated ? `${t.rated} session${t.rated > 1 ? 's' : ''} rated` : 'No rated sessions' }]) }; },
     });
+    if (hours && table.some((t) => t.plan)) refKey(box, 'Planned');
   }
 
   // ---------- GOALS (the Health tab, page id goals; Cockpit since Phase 5). pillars.js draws the cards. ----------
