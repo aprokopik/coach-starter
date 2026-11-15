@@ -148,7 +148,7 @@
   const snap = (id, v) => ({ id, exists: v !== undefined, data: () => (v === undefined ? undefined : JSON.parse(JSON.stringify(v))) });
   const db = {
     doc: (path) => ({
-      get: async () => snap(path.split('/').pop(), store.get(path)),
+      get: async () => { if (window.__slowReads) await new Promise((r) => setTimeout(r, window.__slowReads)); return snap(path.split('/').pop(), store.get(path)); }, // 6.77.4: __slowReads holds doc reads too (the phone's store is a network round trip)
       set: async (v) => { if (window.__failWrites) { H.failed = (H.failed || 0) + 1; const e = new Error('harness: write refused'); e.code = 'unavailable'; throw e; } if (window.__slowWrites) await new Promise((r) => setTimeout(r, window.__slowWrites)); H.writes.push([path, JSON.stringify(v)]); store.set(path, JSON.parse(JSON.stringify(v))); }, // Phase 5 Lifts: __slowWrites (ms) holds each write, so the Saving and restored words can be seen;: window.__failWrites makes every write fail (the retrying state)
     }),
     collection: (name) => ({

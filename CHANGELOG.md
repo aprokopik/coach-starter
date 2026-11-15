@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.77.4 (2026-11-15)
+- Dashboard, no dimmed Today at open (the kit maker, Nov 15, 2026, after 6.77.3: "4 seconds base load. 3 second it looked like screen attached. Then I pressed anywhere and it went back to normal", with a screenshot of Today dimmed and no card). The level up screen drew before the store's seen list arrived, so it opened for a win the athlete had already closed; when the list arrived only the Skills cards drew again, so the dim stayed until a tap redrew Today. The screen now waits for the seen list, and the page draws again once it is in. The open timing record finally names why it never saved (it wrote "Attempted to assign to readonly property."): the runtime hands back read-only data, and the record pushed onto the list it read; it now copies it first.
+
 ## 6.77.3 (2026-11-15)
 - Dashboard, the level up screen comes sooner (the kit maker, Nov 15, 2026, after 6.77.2: "4 seconds to load, 7 seconds for the pop up and about 1 to 2 seconds to close after pressing thanks coach"; their "Thanks, coach" tap saved at 12:54 PM ET, so store writes work again). The screen waits for the seen list, the last of five store reads that ran one after another, each a network round trip on the phone; they now run side by side. The open timing record saves as JSON text, and when it cannot save it writes the reason to `open_log/<day>-error` (no v2 or v3 record has arrived yet, cause unknown).
 

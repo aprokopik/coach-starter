@@ -393,6 +393,7 @@
   let lvOpen = null; // the screen showing now: { ids, prev focus }
   function renderKudos() {
     const box = $('t-lvup'); if (!box || document.documentElement.dataset.lvx === 'off') return; // harness/build.py sets lvx off (the screen covers Today) unless --lvx
+    if (!window.CX.lvReady) return; // 6.77.4: not before metrics.js has the store's seen list
     const seen = new Set(lvSeen()); const groups = lvGroups(levelUps().filter((u) => !seen.has(u.id)));
     if (!groups.length) { box.hidden = true; box.replaceChildren(); if (lvOpen) { document.documentElement.classList.remove('td-lvx-on'); lvOpen = null; } return; }
     const g = groups[0]; if (lvOpen && lvOpen.ids.join() === g.ids.join() && !box.hidden) return; // a re-render keeps the screen as it is

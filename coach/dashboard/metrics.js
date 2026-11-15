@@ -479,5 +479,8 @@
       (async () => { if (db) { try { const d = await db.doc('seen/levelups').get(); const v = d && d.exists ? d.data() : null; const ids = v && (Array.isArray(v.ids) ? v.ids : arr(v.ids)); if (ids && ids.length) { lvShared = [...new Set([...lvShared, ...ids.map(String)])]; lv = ids.length; } } catch (e) { /* nothing seen yet */ } } })(),
     ]);
     loaded = true; if (picks.size || order || sc || lv || Object.keys(cards).length) rerender();
+    // 6.77.4: the level up screen waits for the seen list (the athlete, Nov 15: a dimmed Today with no card, until a tap, after he had
+    // already pressed Thanks, coach); once it is here, the page draws again so the screen shows only a win not yet seen
+    CX.lvReady = true; if (window.CX.render) { try { window.CX.render(); } catch (e) { /* the next draw shows it */ } }
   })();
 })();

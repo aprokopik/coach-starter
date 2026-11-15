@@ -55,7 +55,8 @@
     try {
       const db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; if (!db) return;
       const day = rec.at.slice(0, 10), ref = db.doc('open_log/' + day);
-      let opens = []; try { const d = await ref.get(); const v = d && d.exists ? d.data() : null; opens = v && Array.isArray(v.opens) ? v.opens : v && typeof v.opens === 'string' ? JSON.parse(v.opens) : []; } catch (e) { opens = []; }
+      let opens = []; try { // 6.77.4: the runtime hands back read-only data, so the list is copied before the push (Safari: "Attempted to assign to readonly property")
+       const d = await ref.get(); const v = d && d.exists ? d.data() : null; opens = v && Array.isArray(v.opens) ? [...v.opens] : v && typeof v.opens === 'string' ? JSON.parse(v.opens) : []; } catch (e) { opens = []; }
       opens.push(rec); await ref.set({ opens: JSON.stringify(opens.slice(-12)), saved_at: new Date().toISOString() }); // 6.77.3: as JSON text, plain fields only (no v2 or v3 record ever arrived, cause unknown)
     } catch (e) { // 6.77.3: say why a record did not save, in one flat doc, so the next miss names its cause
       try { const db = await window.claude.use('db'); await db.doc('open_log/' + rec.at.slice(0, 10) + '-error').set({ at: rec.at, error: String(e && (e.message || e.code) || e).slice(0, 300), saved_at: new Date().toISOString() }); } catch (e2) { /* nothing more to try */ }

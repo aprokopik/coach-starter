@@ -34,6 +34,7 @@ Tab ids: `today`, `checkins`, `week`, `lifts`, `trends` (Fitness), `goals` (Heal
 - Check-ins layouts: `node cilayouts.js [index.html]` renders the five Check-ins layouts at 360 px (each survey once, Surveys first in 3 and 4, the folded line opens from the keyboard, focus after Start and Go, 44 px targets); exit 1 on a failure.
 - Cut text: `node cliptext.js [index.html]` lists any text clamped or cut with an ellipsis on any tab at 360 and 390 px; exit 1 when anything is cut.
 - Level up dismiss: `node lvdismiss.js <page.html>` (build with `--lvx`): "Thanks, coach" closes the screen and Week takes a tap, with a working store and with one that throws; exit 1 on a failure.
+- Level up seen: `node lvseen.js <page.html>` (build with `--lvx`): a win already in the store's seen list never opens the screen, with store reads held 1.5 s; exit 1 when it opens.
 - `node contrast.js <page.html>`: a spot probe of a few Today and Week texts on the live host colours (build with `--host live`).
 
 ## Speed
