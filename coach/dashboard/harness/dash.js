@@ -68,7 +68,7 @@
   }
 
   function evalCalc(id, stack) {
-    if (calcCache[id]) return calcCache[id];
+    if (calcCache[id] && !window.__liveData) return calcCache[id]; // 6.77.5: __liveData acts like the live runtime, which runs a calc again on every dash.data call
     const c = calcs[id];
     if ((stack || []).includes(id)) { return result('error', [], [], { message: 'calc cycle: ' + stack.concat(id).join(' -> ') }); }
     const ins = [];
@@ -115,7 +115,7 @@
 
   let booted = false;
   window.dash = {
-    data: (id) => get(id),
+    data: (id) => { const r = get(id); if (!window.__liveData) return r; const fz = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); for (const k of Object.keys(o)) fz(o[k]); } return o; }; return fz(structuredClone(r)); }, // 6.77.5: __liveData also hands back a fresh read-only copy each call, as the live runtime does (the athlete's Nov 15 open: 1,054 calls, 38 s of work)
     onData: (fn) => { handlers.push(fn); if (booted) { try { fn(); } catch (e) { console.error('[harness] onData handler threw: ' + (e && e.stack || e)); } } },
     calc: (id, def) => { calcs[id] = Object.assign({ inputs: [] }, def || {}); calcCache = {}; },
     loader: (id, def) => { loaders[id] = def || {}; },

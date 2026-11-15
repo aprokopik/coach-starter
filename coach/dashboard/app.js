@@ -37,7 +37,9 @@
   // Each call still hands back its own array, so a caller that sorts or trims it changes nothing for the next one.
   const kindIx = new WeakMap();
   const kind = (k) => { const rows = rowsOk('coach'); if (!rows) return []; let ix = kindIx.get(rows);
-    if (!ix) { ix = new Map(); for (const r of rows) { const a = ix.get(r.kind); if (a) a.push(r); else ix.set(r.kind, [r]); } kindIx.set(rows, ix); }
+    // 6.77.5: marker rows are held as this page's own copies. The live runtime hands back read-only rows, and applyScales sets the
+    // scale in use on each marker row, so on the phone a scale pick never took (the athlete, Nov 15: "Changing scale on tile doesnt seem to work")
+    if (!ix) { ix = new Map(); for (const r0 of rows) { const r = r0 && r0.kind === 'marker' ? { ...r0 } : r0; const a = ix.get(r.kind); if (a) a.push(r); else ix.set(r.kind, [r]); } kindIx.set(rows, ix); }
     return (ix.get(k) || []).slice(); };
   // the athlete's own easy heart rates the markers are read at (coach.json hr_anchor row, coach/tools/hr_anchor.py; the athlete, Nov 14, 2026)
   const ANC = () => { const a = kind('hr_anchor')[0] || {}; const n = (v) => (v === '' || v == null || isNaN(Number(v)) ? null : Number(v)); return { run: n(a.run) || 150, bike: n(a.bike) || 130, grun: n(a.guard_run) || 150, gbike: n(a.guard_bike) || 135 }; };

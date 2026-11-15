@@ -1,3 +1,15 @@
+// 6.77.5 dataset memo (the athlete, Nov 15, 2026: 4 s to load, Week "done today" blank for 3 s, Fitness tile 1.5 s, its buttons 3 s).
+// His phone's open record: 1,054 dash.data calls took 38 s of main thread work, and one stall held the page 13.5 s. The live
+// runtime runs a calc again (and hands back a fresh read-only copy) on every dash.data call; the harness mock cached them, so
+// tests never saw it. Each dataset is now read once per data change: the memo clears when new data arrives (onData, registered
+// here before every page handler but openlog.js's), and a loading answer is never kept.
+(() => {
+  try {
+    const raw = dash.data.bind(dash); let memo = new Map();
+    dash.onData(() => { memo = new Map(); });
+    dash.data = (id) => { if (memo.has(id)) return memo.get(id); const r = raw(id); if (r && r.status !== 'loading') memo.set(id, r); return r; };
+  } catch (e) { /* the runtime's dash object is fixed: reads stay direct */ }
+})();
 // calc.js: shared helpers (window.CX) and the dash.calc definitions every page reads. Loaded first.
 (() => {
   // Shared helpers and the calculations every page reads.

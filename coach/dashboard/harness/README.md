@@ -35,6 +35,7 @@ Tab ids: `today`, `checkins`, `week`, `lifts`, `trends` (Fitness), `goals` (Heal
 - Cut text: `node cliptext.js [index.html]` lists any text clamped or cut with an ellipsis on any tab at 360 and 390 px; exit 1 when anything is cut.
 - Level up dismiss: `node lvdismiss.js <page.html>` (build with `--lvx`): "Thanks, coach" closes the screen and Week takes a tap, with a working store and with one that throws; exit 1 on a failure.
 - Level up seen: `node lvseen.js <page.html>` (build with `--lvx`): a win already in the store's seen list never opens the screen, with store reads held 1.5 s; exit 1 when it opens.
+- Live data: `node livedata.js <page.html>`: open, Week and Fitness taps with `window.__liveData` (fresh read-only copies and calcs run on every `dash.data` call, like the live runtime); exit 1 when the open is over 1 s.
 - `node contrast.js <page.html>`: a spot probe of a few Today and Week texts on the live host colours (build with `--host live`).
 
 ## Speed
