@@ -468,11 +468,16 @@
 
   (async () => {
     try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
-    if (db) { try { const q = await db.collection('metric_pick').get(); for (const d of q.docs) if (d.exists) { const v = d.data(); picks.set(d.id, { on: !!v.on, saved_at: v.saved_at }); } } catch (e) { /* no picks yet */ } }
-    if (db) { try { const d = await db.doc('metric_order/groups').get(); const v = d && d.exists ? d.data() : null; const o = v && (Array.isArray(v.order) ? v.order : arr(v.order)); if (o && o.length) order = o.map(String); } catch (e) { /* no order saved */ } }
-    if (db) { try { const d = await db.doc('metric_order/cards').get(); const v = d && d.exists ? d.data() : null; let c = v && v.cards; if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { c = null; } } if (c && typeof c === 'object') { cards = {}; for (const g of Object.keys(c)) { const l = Array.isArray(c[g]) ? c[g] : arr(c[g]); if (l && l.length) cards[g] = l.map(String); } } } catch (e) { /* no card order saved */ } }
-    let sc = 0; if (db) { try { const q = await db.collection('metric_compare').get(); for (const d of q.docs) if (d.exists) { const v = d.data(); if (v && v.compare) { scaleSaved[d.id] = { id: String(v.compare), at: String(v.saved_at || '') }; sc += 1; } } } catch (e) { /* no scale choices yet */ } }
-    let lv = 0; if (db) { try { const d = await db.doc('seen/levelups').get(); const v = d && d.exists ? d.data() : null; const ids = v && (Array.isArray(v.ids) ? v.ids : arr(v.ids)); if (ids && ids.length) { lvShared = [...new Set([...lvShared, ...ids.map(String)])]; lv = ids.length; } } catch (e) { /* nothing seen yet */ } }
+    // 6.77.3: the five store reads run side by side, not one after another (each is a network round trip on the phone;
+    // the athlete, Nov 15: the level up screen showed 7 s after open, after this chain)
+    let sc = 0, lv = 0;
+    await Promise.all([
+      (async () => { if (db) { try { const q = await db.collection('metric_pick').get(); for (const d of q.docs) if (d.exists) { const v = d.data(); picks.set(d.id, { on: !!v.on, saved_at: v.saved_at }); } } catch (e) { /* no picks yet */ } } })(),
+      (async () => { if (db) { try { const d = await db.doc('metric_order/groups').get(); const v = d && d.exists ? d.data() : null; const o = v && (Array.isArray(v.order) ? v.order : arr(v.order)); if (o && o.length) order = o.map(String); } catch (e) { /* no order saved */ } } })(),
+      (async () => { if (db) { try { const d = await db.doc('metric_order/cards').get(); const v = d && d.exists ? d.data() : null; let c = v && v.cards; if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { c = null; } } if (c && typeof c === 'object') { cards = {}; for (const g of Object.keys(c)) { const l = Array.isArray(c[g]) ? c[g] : arr(c[g]); if (l && l.length) cards[g] = l.map(String); } } } catch (e) { /* no card order saved */ } } })(),
+      (async () => { if (db) { try { const q = await db.collection('metric_compare').get(); for (const d of q.docs) if (d.exists) { const v = d.data(); if (v && v.compare) { scaleSaved[d.id] = { id: String(v.compare), at: String(v.saved_at || '') }; sc += 1; } } } catch (e) { /* no scale choices yet */ } } })(),
+      (async () => { if (db) { try { const d = await db.doc('seen/levelups').get(); const v = d && d.exists ? d.data() : null; const ids = v && (Array.isArray(v.ids) ? v.ids : arr(v.ids)); if (ids && ids.length) { lvShared = [...new Set([...lvShared, ...ids.map(String)])]; lv = ids.length; } } catch (e) { /* nothing seen yet */ } } })(),
+    ]);
     loaded = true; if (picks.size || order || sc || lv || Object.keys(cards).length) rerender();
   })();
 })();
