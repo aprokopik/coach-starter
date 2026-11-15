@@ -1223,8 +1223,9 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .hp-p:has(.hp-bl > .ck-badge[data-s=act]) { --pst: var(--ck-act); }
 .ck .hp-p > .hp-row { box-shadow: inset 3px 0 0 var(--pst); padding-left: 8px; }
 .ck .hp-p > .hp-row > .hp-pi { width: 26px; height: 26px; color: var(--pst); } /* the athlete, Nov 15: solid set, bare, a little larger */
-/* Lab review markers (round three, my pick 5): the status edge from the Pillars refresh; every row here is outside the lab's range */
-.ck .hl-list > li { box-shadow: inset 3px 0 0 var(--ck-watch); padding-left: 8px; }
+/* Lab review markers (round three, my pick 5): the status edge from the Pillars refresh, only on a row the lab flagged outside
+   its range (6.81.3: "Show all markers" reuses the list, and every row there took the edge) */
+.ck .hl-list > li.is-flag { box-shadow: inset 3px 0 0 var(--ck-watch); padding-left: 8px; }
 /* Morning check-in answers as one joined step bar (game look round three, my pick 1 pending the athlete): the five answers of a
    question sit as joined steps like the level bars; the tapped step fills, the steps to its left take a light fill. Order
    stays worst left, best right (test_survey_order.py). */

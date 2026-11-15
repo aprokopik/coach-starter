@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.81.3 (2026-11-15)
+- Dashboard fix: on Health, Lab results, the yellow edge now marks only the markers the lab flagged outside its range (the kit maker, Nov 15, 2026, with a phone screenshot at 3:51 PM: "This looks like all results are under watch in yellow"). Root cause: 6.72.0's status edge (game look round three) assumed every row in a lab list was flagged, and "Show all markers" reuses the same list, so in range markers such as HDL and hs-CRP took the edge too. The edge now keys on the lab's own flag (class is-flag). Guard: coach/tests/test_lab_edge.py.
+
 ## 6.81.2 (2026-11-15)
 - Dashboard fix: the "Closest to a new level" card takes you to its tile (the kit maker, Nov 15, 2026, with a phone screenshot of the Fitness Scorecard: "Is this supposed to be a button?"). It is a button: a tap opens that measure's tile with its chart. On the Scorecard the tile opened in place, often several screens below (Aerobic engine about 3,900 px down), and the page neither scrolled nor moved focus, so the tap looked dead. The tap now scrolls the opened tile to the top of the screen and focuses it, on the Scorecard and the Map alike; no other focus change scrolls. Harness `nexttap.js` checks the tile is on screen after the tap; guard coach/tests/test_next_level_tap.py.
 

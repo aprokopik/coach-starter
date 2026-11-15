@@ -199,7 +199,7 @@
   const fdate = (iso, yr) => { if (!iso) return ''; const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('en-US', yr ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric' }); };
   const flagWord = (f) => (f ? lc(f) : '');
   function labRow(m) {
-    const li = el('li', 'hl-m'); const w = LW(m.key); const isOpen = labOpen.key === m.key;
+    const li = el('li', m.flagged ? 'hl-m is-flag' : 'hl-m'); const w = LW(m.key); const isOpen = labOpen.key === m.key;
     const b = el('button', 'ck-row hl-mrow'); b.type = 'button'; b.id = 'hl-m-' + m.key; b.setAttribute('aria-expanded', String(isOpen));
     const main = el('span', 'ck-row-main'); main.append(fig(m.name, 'name', w, 'ck-row-t'));
     const s2 = el('span', 'ck-row-s');
