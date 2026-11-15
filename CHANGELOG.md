@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.66.0 (2026-11-15)
+- Contract, the meal planner's reading rules have one home (the kit maker's pick on the Sprint Review page for PR #32, option 3, Nov 14, 2026: fold anything still useful into the nutrition backlog entry, then close). PR #32 (Nov 3) asked for meal guidance rows; `meal_guide` has carried them since the week 3 contract (Nov 11). What it still held that was written nowhere else is how Chef uses the rows: guidance only, never blocks a meal, read only, stale after 30 hours, energy followed as published. That now sits in `coach/ops/contract.json` as `meal_guide.reader_rules`. Its other asks are built, or dropped on purpose: no maintenance calorie estimate (the data has no resting energy measure; Chef applies the offsets to its own portions), and no recovery week day type (the Nov 11 winter blend replaced recovery week deficits). PR #32 closes when this merges.
+
 ## 6.65.0 (2026-11-15)
 - Dashboard, Bike power at 130 bpm says when it is out of date (roadmap priority 3, Closed loops; Improvements log row of Nov 8, 2026; the kit maker's pick on the Sprint Review page, option 1 of five, Nov 15, 2026). The tile counts only rides with power (Zwift), so outdoor riding can leave it on an old number. It now always names the last power ride ("Last Zwift ride Nov 13"), and after 14 days with none the level chip becomes a Watch badge "Out of date" with "Last Zwift ride Nov 13, 15 days ago". The figure itself is unchanged (the 28 days up to that ride).
 
