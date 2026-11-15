@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.80.2 (2026-11-15)
+- Dashboard, preventive actions from the Dashboard slowness RCA and CAPA (the kit maker, Nov 15, 2026: "RCA and CAPA"). The class closed: checks that pass against a kinder stand in than the live app. The harness mock now acts like the live runtime by default (calcs rerun and a fresh read-only copy on every `dash.data` call; `window.__liveData = false` turns it off), so every existing check (marks, speed, layouts, cut text, keyboard) runs against it; all pass. MAINTAIN: the publish steps run `livedata.js`, `lvdismiss.js` and `lvseen.js`, and a fix is done only when the kit maker's next open record shows no freeze over 1 s and no errors; two written rules: never change data the runtime hands back, never wrap its objects. No page file changes.
+
 ## 6.80.1 (2026-11-15)
 - Dashboard: Today's Morning check-in card missed the kit maker's round three pick 1 (Sprint Review audit, Nov 15: "I think you missed some of the comments"): its answers now join into one step bar like the Check-in tab form, worst left, best right, the tapped step filled and the steps to its left lightly filled, no digits. The card is called Morning check-in on Today too (it said Morning check). Guard: coach/tests/test_today_checkin_bar.py.
 

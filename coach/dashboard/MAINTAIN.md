@@ -80,10 +80,10 @@ Every chart draws through `CKC`: which chart, anatomy, the sentence, marks, phon
 
 1. `python3 -m unittest discover -s coach/tests` is green.
 2. Version: `python3 coach/tools/version.py bump major|minor|patch` (MAJOR a contract, MINOR a change the athlete signed off, PATCH a fix the athlete would not notice; the rule heads `CHANGELOG.md`), fill the new `CHANGELOG.md` entry (area, PR, what changed, the athlete's pick), and `python3 coach/tools/version.py check` passes. Data commits never bump.
-3. `python3 coach/tools/pack_dashboard.py <dir>` writes one JSON document per file, made smaller for the phone (scripts minified, comments and indentation dropped; needs node, `--full` packs them as written), and prints each size against the cap. Use `--only name,name` for the changed files. Before packing a page change, run the speed check: `python3 coach/dashboard/harness/build.py --host live --packed --out /tmp/p.html` then `node coach/dashboard/harness/speed.js --page /tmp/p.html`; every figure must sit within `harness/speed-budget.json`.
+3. `python3 coach/tools/pack_dashboard.py <dir>` writes one JSON document per file, made smaller for the phone (scripts minified, comments and indentation dropped; needs node, `--full` packs them as written), and prints each size against the cap. Use `--only name,name` for the changed files. Before packing a page change, run the speed check: `python3 coach/dashboard/harness/build.py --host live --packed --out /tmp/p.html` then `node coach/dashboard/harness/speed.js --page /tmp/p.html`; every figure must sit within `harness/speed-budget.json`. Then the live app checks (6.80.2): `node coach/dashboard/harness/livedata.js /tmp/p.html`, and on a `--lvx` build `lvdismiss.js` and `lvseen.js`; all exit 0.
 4. ArtifactData `get` each changed `files/<name>` for its current version.
 5. One ArtifactData `batch`: an `update` per changed file, `file_path` the packed JSON, pinned to the version you read. A new file is a `set` without a version. Never delete store documents.
-6. Open the live page in light and dark at phone width and check the console. A thread cannot open it, so post the athlete the one minute phone check (`PHONE-CHECK.md`) with the fixed spot named, and keep the change open until the athlete answers.
+6. Open the live page in light and dark at phone width and check the console. A thread cannot open it, so post the athlete the one minute phone check (`PHONE-CHECK.md`) with the fixed spot named, and keep the change open until the athlete answers. Then read their next open's record (ArtifactData `get` `open_log/<UTC day>`, `opens` is JSON text; a failed save leaves `open_log/<day>-error`): a fix is done only when it shows no freeze (stall) over 1 s and no errors.
 7. At merge: nothing to tag by hand. The `release-tag.yml` workflow runs on the push to main and tags the merge commit `vX.Y.Z` (`python3 coach/tools/version.py missing` shows what it will do). The footer shows the new number after the next morning run rebuilds coach.json.
 
 The repo files are the record; the store copies them. The daily data (`coach.json`, the CSVs) is published by the morning run, not by a page change (RUNBOOK, Publish).
@@ -96,6 +96,8 @@ The repo files are the record; the store copies them. The daily data (`coach.jso
 - Functionality stays as is unless the change says otherwise: controls, localStorage keys, store document ids, fields and save timing.
 - A dashboard change never edits the 7:45 morning run, the data files, `coach/ops`, `coach/engine` rules or `coach/tools/build_dashboard.py`.
 - No em dashes and no model names in repo text.
+- Never change data the runtime hands back (`dash.data` rows, store `data()`): it is read only on the phone. Copy first (`{ ...row }`, `[...list]`). Never call `dash.data` in a loop without the `calc.js` memo, and never wrap the runtime's own objects (`window.claude`, the store) in a Proxy (Dashboard slowness RCA, Nov 15, 2026).
+- The harness mock acts like the live runtime by default (`harness/dash.js` LIVE); a check that only passes with `window.__liveData = false` is a failing check.
 
 ## Store collections the morning run reads
 
@@ -126,6 +128,7 @@ A new collection the coach must read needs, in the same change and with the athl
 - [ ] `pack_dashboard.py` reports every file under the cap.
 - [ ] A Today change passed the plain reading test (`PLAIN-READING.md`; `harness/plainwords.js` shows 0 hits).
 - [ ] Tests green.
+- [ ] Live app checks pass: `livedata.js`, and `lvdismiss.js` + `lvseen.js` on a `--lvx` build (the harness acts like the live runtime by default).
 - [ ] `VERSION` bumped and a `CHANGELOG.md` entry added; `version.py check` passes.
 - [ ] `coach/DASHBOARD.md`: the tab's description updated to the new state, and one changelog line (PR, date, what changed, the athlete's pick).
 - [ ] `CHARTS.md` updated when a chart changed.

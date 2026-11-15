@@ -1,6 +1,6 @@
 # Dashboard render harness
 
-Renders the Coach dashboard locally, with Playwright, from this checkout. It is a mock: `dash.js` stands in for the Dashboard runtime (`dash.data`, `dash.calc`, `dash.onData`) and for the store (`window.claude.use('db')`, in memory), and `host.css` / `host-live.css` stand in for the host page. A page that passes here can still differ live, so after a publish always open the live page in light and dark at phone width and check the console (MAINTAIN.md, Publishing).
+Renders the Coach dashboard locally, with Playwright, from this checkout. It is a mock: since 6.80.2 it acts like the live runtime by default (calcs rerun and read-only copies on every `dash.data` call; `window.__liveData = false` turns that off). `dash.js` stands in for the Dashboard runtime (`dash.data`, `dash.calc`, `dash.onData`) and for the store (`window.claude.use('db')`, in memory), and `host.css` / `host-live.css` stand in for the host page. A page that passes here can still differ live, so after a publish always open the live page in light and dark at phone width and check the console (MAINTAIN.md, Publishing).
 
 Nothing here is a page file: `pack_dashboard.py` reads only `coach/dashboard` itself, never this folder.
 

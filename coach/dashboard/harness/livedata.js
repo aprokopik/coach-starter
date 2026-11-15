@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 (async () => { const b = await chromium.launch();
   for (const f of process.argv.slice(2)) {
     const p = await b.newPage({ viewport: { width: 390, height: 844 } }); const errs = []; p.on('pageerror', e => errs.push(e.message.slice(0, 120)));
-    await p.addInitScript(() => { window.__liveData = true; });
+    await p.addInitScript(() => { window.__liveData = true; }); // the default since 6.80.2; kept explicit
     const t0 = Date.now(); await p.goto('file://' + f);
     await p.waitForFunction(() => { const r = document.getElementById('t-ready'); return r && r.textContent && r.textContent !== '—'; }, null, { timeout: 120000 });
     const ready = Date.now() - t0; await p.waitForTimeout(500);
