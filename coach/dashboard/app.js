@@ -421,7 +421,9 @@
     const done = () => {
       const s = lvSeen(); for (const id of g.ids) if (!s.includes(id)) s.push(id);
       try { localStorage.setItem('cx-lvseen', JSON.stringify(s.slice(-200))); } catch (e) { /* the store copy below still saves */ }
-      if (window.CX.saveLvSeen) window.CX.saveLvSeen(g.ids);
+      // 6.77.2: a store error can never keep the screen open (the athlete, Nov 15: "the Thanks coach button does not work"); the
+      // seen list is in page memory either way, so the screen closes first and the store save follows on its own
+      try { if (window.CX.saveLvSeen) window.CX.saveLvSeen(g.ids); } catch (e) { /* kept on this device; the next open saves again */ }
       if (groups.length > 1) { renderKudos(); return; }
       box.hidden = true; box.replaceChildren(); document.documentElement.classList.remove('td-lvx-on'); const back = lvOpen && lvOpen.prev; lvOpen = null;
       const ph = $('t-progress-h'); const to = back && document.contains(back) && back !== document.body ? back : ph; if (to) { if (to === ph) to.setAttribute('tabindex', '-1'); to.focus(); }

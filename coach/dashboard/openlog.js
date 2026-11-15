@@ -8,35 +8,29 @@
 // part black and taps did nothing for 6 to 7 s, and the record took 8 s to save): every time is now in ms from this
 // file's start (the page's own clock started long before, as the app keeps the frame alive), and each open also records
 //   stalls   every gap of 250 ms or more in a 100 ms heartbeat for 20 s: the page's main thread was busy (no taps, no paint)
-//   store    each dashboard store read and write: what, when it started, how long it took
+//   store    (6.77.0 only; removed in 6.77.2, the wrapper broke store writes on the phone)
+//   errors   6.77.2: uncaught errors and rejected promises; taps: each tap, its delay and target; lvx: level up screen state
 //   data     calls to the datasets (dash.data): count and total ms, and when each dataset first arrived
 //   draws    each data draw (dash.onData handlers): when and how long
 // What happens before the page code starts (the app opening, sign in, the page files arriving) is not seen here.
 (() => {
   const T0 = performance.now(), ms = () => Math.round(performance.now() - T0);
-  const rec = { v: 2, at: new Date().toISOString(), page_age_ms: Math.round(T0), data: {}, ready_ms: null, w: window.innerWidth, h: window.innerHeight,
+  const rec = { v: 3, at: new Date().toISOString(), page_age_ms: Math.round(T0), data: {}, ready_ms: null, w: window.innerWidth, h: window.innerHeight,
     stalls: [], store: [], dash: { calls: 0, ms: 0 }, draws: [] };
   const readyCheck = () => { const r = document.getElementById('t-ready'); if (rec.ready_ms === null && r && r.textContent && r.textContent !== '—') rec.ready_ms = ms(); };
   // heartbeat: a late tick means the main thread was busy for that long
   let last = performance.now(), beats = 0;
-  const hb = setInterval(() => { const n = performance.now(), gap = n - last; last = n; beats++; readyCheck();
+  const hb = setInterval(() => { const n = performance.now(), gap = n - last; last = n; beats++; readyCheck(); if (saved) return;
     if (gap >= 250 && rec.stalls.length < 40) rec.stalls.push([Math.round(n - T0 - gap), Math.round(gap)]);
     if (beats >= 200) clearInterval(hb); }, 100);
-  // the store: time each read and write the page makes
-  const timed = (what, p) => { const s = ms(); const row = [what, s, null]; if (rec.store.length < 60) rec.store.push(row);
-    return Promise.resolve(p).then((v) => { row[2] = ms() - s; return v; }, (e) => { row[2] = -(ms() - s); throw e; }); };
-  // a Proxy forwards everything else to the real object, with its own `this`, so the page's calls behave as before
-  const proxy = (o, over) => new Proxy(o, { get: (t, k) => (k in over ? over[k] : (typeof t[k] === 'function' ? t[k].bind(t) : t[k])) });
-  const wrapDb = (db) => (!db ? db : proxy(db, {
-    doc: (p) => { const d = db.doc(p); return proxy(d, { get: (...a) => timed('get ' + p.split('/')[0], d.get(...a)), set: (...a) => timed('set ' + p.split('/')[0], d.set(...a)) }); },
-    collection: (p) => { const c = db.collection(p); return proxy(c, { get: (...a) => timed('list ' + p, c.get(...a)) }); },
-  }));
-  try {
-    if (window.claude && typeof window.claude.use === 'function') {
-      const use = window.claude.use.bind(window.claude); let dbp = null;
-      window.claude.use = (cap, ...a) => (cap === 'db' ? (dbp = dbp || timed('use db', use(cap, ...a)).then(wrapDb)) : use(cap, ...a));
-    }
-  } catch (e) { /* no timing of the store; the rest still records */ }
+  // 6.77.2: the store is no longer wrapped. Since 6.77.0 wrapped it (a Proxy around window.claude.use('db')), not one store
+  // write from the athlete's phone arrived (no open record, no level up seen), so the page now uses the store untouched.
+  // page errors: every uncaught error and rejected promise, so a failure on the phone shows in the record
+  rec.errors = [];
+  window.addEventListener('error', (e) => { if (rec.errors.length < 10) rec.errors.push([ms(), String(e.message || e.type).slice(0, 200), String(e.filename || '').split('/').pop() + ':' + (e.lineno || 0)]); });
+  window.addEventListener('unhandledrejection', (e) => { if (rec.errors.length < 10) rec.errors.push([ms(), 'promise: ' + String(e.reason && (e.reason.message || e.reason.code) || e.reason).slice(0, 200), '']); });
+  // taps: each tap and how long until the page handled it, so a dead button shows
+  rec.taps = []; document.addEventListener('click', (e) => { if (rec.taps.length < 20) { const t = e.target && e.target.closest ? e.target.closest('button, a, [role=tab]') : null; rec.taps.push([ms(), Math.round(performance.now() - e.timeStamp), t ? (t.className || t.tagName).toString().slice(0, 40) : 'none']); } }, true);
   // the datasets and each draw
   try {
     const data = dash.data.bind(dash), onData = dash.onData.bind(dash);
@@ -50,7 +44,7 @@
   let saved = false;
   async function save() {
     if (saved) return; saved = true; clearInterval(hb);
-    rec.dash.ms = Math.round(rec.dash.ms); rec.saved_ms = ms(); rec.h_now = window.innerHeight; rec.doc_h = document.documentElement.scrollHeight;
+    rec.dash.ms = Math.round(rec.dash.ms); rec.saved_ms = ms(); rec.lvx = (() => { const b = document.getElementById('t-lvup'); return b ? (b.hidden ? 'closed' : 'open') : 'none'; })(); rec.h_now = window.innerHeight; rec.doc_h = document.documentElement.scrollHeight;
     try {
       const nav = performance.getEntriesByType('navigation')[0];
       if (nav) rec.page_dom_ms = Math.round(nav.domContentLoadedEventEnd - T0) || null;
@@ -68,5 +62,5 @@
   // 6.77.1: an open closed before 20 s still saves (the athlete's Nov 15 open left none); h and doc_h tell a frame as tall as the page
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
   window.addEventListener('pagehide', save);
-  setTimeout(save, 20500); // after the heartbeat's 20 s, so every stall of the open is in the record
+  setTimeout(save, 10000); // 6.77.2: at 10 s (the 6.76.0 record saved at 8 s; none saved at 20 s)
 })();

@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.77.1",
+ "version": "6.77.2",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -52,6 +52,7 @@
   "coach/dashboard/harness/host-live.css",
   "coach/dashboard/harness/host.css",
   "coach/dashboard/harness/kbwalk.js",
+  "coach/dashboard/harness/lvdismiss.js",
   "coach/dashboard/harness/marks.js",
   "coach/dashboard/harness/package.json",
   "coach/dashboard/harness/plainwords.js",

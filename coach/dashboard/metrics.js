@@ -189,7 +189,7 @@
   let lvShared = [];
   CX.lvSeenShared = () => lvShared;
   CX.saveLvSeen = (ids) => { lvShared = [...new Set([...lvShared, ...ids])].slice(-200);
-    if (db) db.doc('seen/levelups').set({ ids: lvShared, saved_at: new Date().toISOString() }).catch(() => { /* kept on this device */ }); };
+    if (db) { try { Promise.resolve(db.doc('seen/levelups').set({ ids: lvShared, saved_at: new Date().toISOString() })).catch(() => { /* kept on this device */ }); } catch (e) { /* kept on this device */ } } };
 
   // ---------- saving ----------
   function pick(key, on) {
