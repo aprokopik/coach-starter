@@ -35,7 +35,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `openlog.js` | Open timing: when the page files ran, each dataset arrived and readiness showed, saved to the store as `open_log/<day>` (DASHBOARD.md) |
 | `change.js` | Today changed? on the plan card: reason, Plan B (Min), the store document `day_change` and the replan line |
 
-Load order: calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js, openlog.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
+Load order: openlog.js (first, so it times everything after it), calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
 A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering its renderer on `window.CX` and its `dash.calc` definitions at top level. Never grow `app.js` (about 171 KB). When a file nears the cap, split it along a `// ----------` page seam the way `season.js` was split.
 
