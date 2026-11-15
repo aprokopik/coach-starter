@@ -32,9 +32,17 @@
   let feel = null, yest = null, lift = null; // feel: today's morning answers; lift: {Y, name, answer}
   let monthSaved = false, mon = null; // the monthly survey when it is due on Today: {label, qs, answers} from checkins.js CX.survey
 
-  // a per-viewer convenience, so browser storage: a day the finished card was put away (wrapped, as storage can throw)
+  // The day the finished card was put away. the athlete, Nov 15, 2026: "Morning check shows up on each new load, does not save I
+  // already selected done in prev session". Browser storage does not last between opens in the Claude app (the level up
+  // seen list met the same, 6.47.0), so Done is kept in the store, doc seen/morning-card {day, saved_at}: page state only,
+  // nothing in the morning run reads it. This device's copy still counts when the store cannot be reached.
   const KEY = 'cx-qc-done';
-  const gone = (set) => { try { if (set) localStorage.setItem(KEY, A().TODAY); return localStorage.getItem(KEY) === A().TODAY; } catch (e) { return false; } };
+  let goneDay = null; // the store's day, read with the answers in renderAsk
+  const gone = (set) => {
+    if (set) { goneDay = A().TODAY; try { localStorage.setItem(KEY, goneDay); } catch (e) { /* the store copy below */ }
+      if (db) { try { Promise.resolve(db.doc('seen/morning-card').set({ day: goneDay, saved_at: new Date().toISOString() })).catch(() => { /* kept for this open */ }); } catch (e) { /* kept for this open */ } } }
+    if (goneDay === A().TODAY) return true;
+    try { return localStorage.getItem(KEY) === A().TODAY; } catch (e) { return false; } };
   const blank = (v) => v === null || v === undefined || v === '';
   const painWord = (p) => { p = Number(p); return p <= 0 ? 'None' : p <= 2 ? 'Niggle' : p <= 4 ? 'Hurts' : 'Stop'; };
   function summary() {
@@ -222,7 +230,8 @@
     if (!db) return; // nowhere to save: ask nothing
     const Y = isoN(dayN(TODAY) - 1);
     const get = async (p) => { try { const d = await db.doc(p).get(); return d.exists ? d.data() : null; } catch (e) { return null; } };
-    const [t, y, tap, log] = await Promise.all([get('feel_daily/' + TODAY), get('feel_daily/' + Y), get('lift_tap/' + TODAY), get('lift_log/' + Y)]);
+    const [t, y, tap, log, put] = await Promise.all([get('feel_daily/' + TODAY), get('feel_daily/' + Y), get('lift_tap/' + TODAY), get('lift_log/' + Y), get('seen/morning-card')]);
+    if (put && put.day === TODAY) goneDay = TODAY;
     feel = t; yest = y && Number(y.scale) === 5 ? y : null;
     const plan = wv.filter((r) => r.kind === 'plan' && r.date === Y && (r.type === 'strength' || LIFT.test(r.title || '')));
     if (plan.length && !plan.some((r) => ['done', 'fallback', 'swapped'].includes(r.status)) && !log) {
