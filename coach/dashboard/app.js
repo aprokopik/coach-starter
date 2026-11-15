@@ -466,7 +466,7 @@
   // Readiness GREEN / YELLOW / RED reads as the good / watch / act badge with the readiness word; no row = unknown.
   const READY_S = { GREEN: 'good', YELLOW: 'watch', RED: 'act' };
   // plain reading (6.47.0): what each call means, in the words of RULES 3, 13 and the pain ladder, read by a first-time user
-  const READY_MEAN = { GREEN: 'Ready: train as planned', YELLOW: 'Ease off: the shorter or easier size is the smart pick', RED: 'Stop the planned stress today' };
+  const READY_MEAN = { GREEN: 'Train as planned', YELLOW: 'Ease off: the shorter or easier size is the smart pick', RED: 'Stop the planned stress today' };
   const CALL_WORD = { push: 'Go for more', hold: 'Keep to the plan', restrain: 'Back off' };
   function renderToday() {
     applyScales(); // stages first, so Skills and the ribbon read the stage in use
@@ -819,20 +819,23 @@
     $('n-g-v').textContent = (v > 0 ? '+' : v < 0 ? '−' : '') + f1(a);
     const b = $('n-g-b'); b.replaceChildren(s === 'plain' ? neutralChip(word, 'ck-badge--md') : badge(s, word, 'ck-badge--md'));
     $('n-g-s').textContent = v === 0 ? 'at your normal' : `${a < 1 ? 'a little ' : a >= 2 ? 'well ' : ''}${v > 0 ? 'above' : 'below'} your normal`;
-    // geometry: 1 unit = 1 px (280 by 164), so the 11 px scale words stay 11 px; the arc's centre is (140, 140), radius 106
-    const W = 280, H = 164, cx = 140, cy = 140, R = 106, f = Math.max(0, Math.min(1, (v - lo) / (hi - lo))), ang = Math.PI * (1 - f);
-    const px = cx + R * Math.cos(ang), py = cy - R * Math.sin(ang), NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('class', 'td-g-svg');
-    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', `Gauge from ${lo} SD, low, to +${hi} SD, high, with normal at 0; usual range is -${USUAL} to +${USUAL} SD: last night sits at ${$('n-g-v').textContent.trim()} SD, ${word.toLowerCase()}.`);
+    // Bell curve (the athlete, Nov 15, 2026: "really like the Bell curve ... for when you expand"): your nights spread as a normal
+    // curve from lo to hi; the shaded middle is your usual range (-1 to +1 SD, about 2 in 3 nights), the dot is last night.
+    // 1 unit = 1 px (280 by 150), so the 11 px words stay 11 px.
+    const W = 280, H = 150, x0 = 16, x1 = 264, base = 112, top = 22, NS = 'http://www.w3.org/2000/svg';
+    const X = (u) => x0 + (Math.max(lo, Math.min(hi, u)) - lo) / (hi - lo) * (x1 - x0), Y = (u) => base - (base - top) * Math.exp(-u * u / 2);
+    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('class', 'td-g-svg td-bell');
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', `Bell curve of your nights: most land near your normal, about 2 in 3 inside the shaded middle. Last night sits ${$('n-g-s').textContent}, ${word.toLowerCase()}.`);
     const add = (tag, at, txt) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (txt) e.textContent = txt; svg.append(e); return e; };
-    const arc = `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`;
-    add('path', { d: arc, class: 'td-g-edge' }); add('path', { d: arc, class: 'td-g-track' });
-    add('path', { d: `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}`, class: 'td-g-fill', 'data-s': s, pathLength: 1 });
-    add('line', { x1: cx, y1: cy - R - 15, x2: cx, y2: cy - R + 15, class: 'td-g-mid' });
-    // the usual range's edges (-1 and +1 SD): 1 px dashed radial marks across the track, in the muted token
-    for (const u of [-USUAL, USUAL]) { const ua = Math.PI * (1 - (u - lo) / (hi - lo)), c = Math.cos(ua), sn = Math.sin(ua); add('line', { x1: (cx + (R - 15) * c).toFixed(1), y1: (cy - (R - 15) * sn).toFixed(1), x2: (cx + (R + 15) * c).toFixed(1), y2: (cy - (R + 15) * sn).toFixed(1), class: 'td-g-sd' }); }
-    add('circle', { cx: px.toFixed(1), cy: py.toFixed(1), r: 8, class: 'td-g-dot' });
-    add('text', { x: cx - R, y: cy + 22, class: 'td-g-w' }, 'low'); add('text', { x: cx, y: cy - R - 20, class: 'td-g-w' }, 'normal'); add('text', { x: cx + R, y: cy + 22, class: 'td-g-w' }, 'high');
+    const pts = (from, to) => { const o = []; for (let u = from; u <= to + 1e-9; u += (to - from) / 60) o.push(`${X(u).toFixed(1)} ${Y(u).toFixed(1)}`); return o; };
+    add('path', { d: `M ${X(-USUAL).toFixed(1)} ${base} L ${pts(-USUAL, USUAL).join(' L ')} L ${X(USUAL).toFixed(1)} ${base} Z`, class: 'td-bell-band' });
+    add('path', { d: `M ${pts(lo, hi).join(' L ')}`, class: 'td-bell-line' });
+    add('line', { x1: x0, y1: base, x2: x1, y2: base, class: 'td-bell-base' });
+    add('line', { x1: X(0), y1: top - 4, x2: X(0), y2: base, class: 'td-g-mid' });
+    add('line', { x1: X(v).toFixed(1), y1: Y(v).toFixed(1), x2: X(v).toFixed(1), y2: base, class: 'td-bell-stem', 'data-s': s });
+    add('circle', { cx: X(v).toFixed(1), cy: Y(v).toFixed(1), r: 7, class: 'td-g-dot' });
+    add('text', { x: x0, y: base + 18, class: 'td-g-w', 'text-anchor': 'start' }, 'low'); add('text', { x: X(0), y: base + 18, class: 'td-g-w' }, 'normal'); add('text', { x: x1, y: base + 18, class: 'td-g-w', 'text-anchor': 'end' }, 'high');
+    add('text', { x: X(0), y: base + 36, class: 'td-g-w td-bell-cap' }, 'shaded: your usual range, about 2 in 3 nights');
     draw.append(svg);
     if (window.CK && window.CK.firstDraw) window.CK.firstDraw(draw, 'night-gauge');
     // the meter line in the call (the same figure and word, marked the same): a bar from lo to hi, the fill from 0 to the
@@ -840,9 +843,12 @@
     $('t-nm-v').textContent = $('n-g-v').textContent;
     $('t-nm-word').replaceChildren(s === 'plain' ? neutralChip(word) : badge(s, word));
     const at = (u) => Math.max(0, Math.min(1, (u - lo) / (hi - lo))) * 100, bar = $('t-nm-bar'); bar.replaceChildren(); bar.dataset.s = s;
-    const fill = el('i', 'td-nm-fill'); fill.style.left = Math.min(at(0), at(v)) + '%'; fill.style.width = Math.abs(at(v) - at(0)) + '%';
+    // game look round two (option 1, SD bar): the usual band (-1 to +1 SD) is shaded on the track, whole SD steps are labelled
+    // under it, and last night is the dot in its status colour; the scale and the cut-offs are unchanged
+    const band = el('i', 'td-nm-band'); band.style.left = at(-USUAL) + '%'; band.style.width = (at(USUAL) - at(-USUAL)) + '%';
     const mk = (c, u) => { const i = el('i', c); i.style.left = at(u) + '%'; return i; };
-    bar.append(fill, mk('td-nm-sd', -USUAL), mk('td-nm-sd', USUAL), mk('td-nm-mid', 0), mk('td-nm-pt', v));
+    bar.append(band, mk('td-nm-mid', 0), mk('td-nm-pt', v));
+    for (let u = Math.ceil(lo); u <= Math.floor(hi); u++) { const t = mk('td-nm-tk', u); t.textContent = u === 0 ? 'normal' : ''; /* the athlete, Nov 15: SD figures confuse people who do not know them; the marks stay, the middle one named */ bar.append(t); }
     $('t-nm-btn').setAttribute('aria-label', `Last night ${$('t-nm-v').textContent} SD, ${word}, on a scale from ${lo} to +${hi} SD; usual range is -${USUAL} to +${USUAL} SD. Show the gauge and all vitals`);
   }
   // The deck's Watch notice: the six vitals under the rule above (no new rule).

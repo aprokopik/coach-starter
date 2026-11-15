@@ -25,7 +25,9 @@
   const fig = (text, field, where, cls) => mark(el('span', 'ck-fig' + (cls ? ' ' + cls : ''), text), 'coach', field, where);
   const der = (e, where, what) => mark(e, 'coach', null, where, what);
   // one sprite icon per pillar, used on the health map and in the pillar rows (always beside the pillar's name)
-  const PICON = { heart: 'hr', labs: 'bp', habits: 'habits', strength: 'strength', body: 'weight', sleep: 'sleep', mind: 'mind' };
+  // the seven pillar glyphs are their own set (cx-p-*, the athlete Nov 15: one design language): 24 grid, 2 px round stroke, open
+  // shapes, no frames, one object each; the metric icons (cx-hr, cx-bp, cx-weight...) stay as they are elsewhere
+  const PICON = { heart: 'p-heart', labs: 'p-labs', habits: 'p-habits', strength: 'p-strength', body: 'p-body', sleep: 'p-sleep', mind: 'p-mind' };
   const picon = (id, cls) => icon(PICON[id] || 'health', cls || 'ck-i');
   const SHORT = { heart: 'Heart', labs: 'Labs', habits: 'Habits', strength: 'Strength', body: 'Body', sleep: 'Sleep', mind: 'Mind' };
   const chev = () => icon('chevron', 'ck-chev');

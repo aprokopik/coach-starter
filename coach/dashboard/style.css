@@ -614,11 +614,11 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .hp-rc2 { font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-med); color: var(--ck-fg-2); white-space: nowrap; }
 .ck .hp-rbtns { margin: 0; padding: 0; list-style: none; } .ck .hp-rpos { position: absolute; transform: translate(-50%, -26px); }
 .ck .hp-rbtn { display: grid; justify-items: center; min-width: var(--ck-tap); min-height: var(--ck-tap); margin: 0; padding: 0 2px 2px; background: none; border: 0; border-radius: var(--ck-r2); color: var(--ck-fg); font: inherit; cursor: pointer; touch-action: manipulation; }
-.ck .hp-rdisc { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--ck-surface); }
-.ck .hp-ri { width: 38px; height: 38px; color: var(--st); }
+.ck .hp-rdisc { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--ck-surface); }
+.ck .hp-ri { width: 44px; height: 44px; color: var(--st); } /* the athlete, Nov 15: a little larger on the ring */
 .ck .hp-rn { margin-top: -6px; padding: 0 3px; border-radius: var(--ck-r1); background: var(--ck-surface); font-size: var(--ck-t1); line-height: var(--ck-l1); font-weight: var(--ck-w-bold); color: var(--ck-fg); white-space: nowrap; }
 .ck .hp-rbtn:hover .hp-rn { text-decoration: underline; text-underline-offset: 2px; }
-.ck .hp-rbtn[aria-expanded=true] .hp-ri { width: 46px; height: 46px; } .ck .hp-rbtn[aria-expanded=true] .hp-rn { color: var(--st); }
+.ck .hp-rbtn[aria-expanded=true] .hp-ri { width: 52px; height: 52px; } .ck .hp-rbtn[aria-expanded=true] .hp-rn { color: var(--st); }
 .ck .hp-earned { display: inline-flex; align-items: center; gap: 4px; color: var(--ck-fg); font-weight: var(--ck-w-bold); }
 .ck .hp-focus { padding: var(--ck-s3); background: var(--ck-surface); border: 1px solid var(--ck-line); border-radius: var(--ck-r2); } /* on the surface, not surface-2: the Act badge in dark needs it for 4.5:1 */
 .ck .hp-flist { display: grid; gap: var(--ck-s2); margin: 0; padding: 0; list-style: none; }
@@ -1171,6 +1171,28 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .lx-wk-d i.next { border: 2px solid var(--ck-strength); color: var(--ck-fg); }
 .ck .lx-facts { margin: 0; }
 .ck .lx-log .lx-st:empty { display: none; }
+/* Today's call, game look round two (option 1, SD bar; the athlete keeps the SD basis): the call word drops to one small row beside
+   its meaning, and the last night track shades the usual band (average ± 1 SD) with whole SD steps labelled under it */
+.ck #t-hero .ck-call-main { display: inline-flex; vertical-align: middle; gap: 6px; margin-right: var(--ck-s2); }
+.ck #t-hero .td-ready-m { display: inline; vertical-align: middle; margin: 0; }
+.ck #t-hero .td-ready-m[hidden] { display: none; }
+.ck #t-hero .ck-ready.td-ready { font-size: var(--ck-t3); line-height: 1; letter-spacing: .06em; text-transform: uppercase; padding: 5px 8px; border: 1.5px solid currentColor; border-radius: 6px; }
+.ck #t-hero .ck-call-glyph { display: none; }
+.ck .td-nm-scale { padding-bottom: 16px; }
+.ck .td-nm-bar > .td-nm-band { border-radius: 4px; background: color-mix(in srgb, var(--ck-good) 30%, var(--ck-surface-2)); }
+.ck .td-nm-bar > .td-nm-pt { background: var(--st, var(--ck-fg)); }
+.ck .td-nm-bar > .td-nm-tk { top: 13px; height: auto; transform: translateX(-50%); font-size: 11px; line-height: 1; font-variant-numeric: var(--ck-num); color: var(--ck-fg-2); white-space: nowrap; }
+.ck #t-hero:has(#t-ready-g[data-s=good]) .td-ready { color: var(--ck-good); }
+.ck #t-hero:has(#t-ready-g[data-s=watch]) .td-ready { color: var(--ck-watch); }
+.ck #t-hero:has(#t-ready-g[data-s=act]) .td-ready { color: var(--ck-act); }
+/* Pillars, game look round two (option 1; the athlete: "use my structure, but give it a refresh visually"): every part of the row stays;
+   the icon sits in a small tile tinted by the pillar's status and a thin status edge runs down the row's left side */
+.ck .hp-p { --pst: var(--ck-line); }
+.ck .hp-p:has(.hp-bl > .ck-badge[data-s=good]) { --pst: var(--ck-good); }
+.ck .hp-p:has(.hp-bl > .ck-badge[data-s=watch]) { --pst: var(--ck-watch); }
+.ck .hp-p:has(.hp-bl > .ck-badge[data-s=act]) { --pst: var(--ck-act); }
+.ck .hp-p > .hp-row { box-shadow: inset 3px 0 0 var(--pst); padding-left: 8px; }
+.ck .hp-p > .hp-row > .hp-pi { width: 26px; height: 26px; color: var(--pst); } /* the athlete, Nov 15: solid set, bare, a little larger */
 .ck .lx-wk-n { font-size: var(--ck-t2); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }
 /* Skills: the 7 day change on the step bar (the athlete, Nov 15, 2026) */
 .ck .td-sk-steps .ft-step > .td-sk-gain, .ck .td-sk-steps .ft-step > .td-sk-loss { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
@@ -1178,6 +1200,15 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-sk-steps .ft-step > .td-sk-loss { box-shadow: inset 0 0 0 1.5px var(--ck-watch); background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--ck-watch) 35%, transparent) 3px 5px); }
 .ck .td-sk.has-delta .td-sk-steps .ft-step > i { background: var(--ck-fg-3); } /* where you were: neutral; the change on top in colour */
 .ck .td-sk-was { margin: 2px 0 0; }
+/* Today's call, the athlete's Sprint Review (Nov 15, 2026): no SD figure on the compact line (the word carries it), and the bell curve
+   in the opened view */
+.ck #t-hero .td-nm-v, .ck #t-hero .td-nm-u { display: none; }
+.ck .td-bell ~ .td-g-fig, .ck .td-g-fig { display: none; } /* the SD figure sat over the dial; the bell curve and the word carry it (the athlete, Nov 15) */
+.ck .td-bell-band { fill: color-mix(in srgb, var(--ck-good) 22%, transparent); }
+.ck .td-bell-line { fill: none; stroke: var(--ck-fg-2); stroke-width: 2; }
+.ck .td-bell-base { stroke: var(--ck-line); stroke-width: 1; }
+.ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.ck .td-bell-cap { fill: var(--ck-fg-2); }
 
 /* Lifts with no routine yet (6.55.0): the message alone, no date, effort, note or Finish bar */
 .ck #l-log[data-none] .lx-date, .ck #l-log[data-none] .lx-rpe, .ck #l-log[data-none] .lx-note, .ck #l-log[data-none] .lx-bar, .ck #l-log[data-none] .lx-body > .ck-note:last-child, .ck #l-log[data-none] #l-status { display: none; }
