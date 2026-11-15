@@ -98,7 +98,7 @@
     const thru = m.pct === '' || m.pct === null || m.pct === undefined ? NaN : Number(m.pct);
     if (m.level && Number.isFinite(thru)) {
       const n = 3, x = Math.min(Math.max(thru, 0) * n, n - 1e-9), k = Math.floor(x), tt = `step ${k + 1} of ${n}, ${Math.round((x - k) * 100)}% through this step`;
-      const bar = mark(el('span', 'ft-steps'), 'coach', 'pct', mw(m), 'level-steps'); bar.setAttribute('role', 'img'); bar.setAttribute('aria-label', `Level ${m.level}: ${tt}`); bar.title = tt;
+      const bar = mark(el('span', 'ft-steps'), 'coach', null, mw(m), 'level-steps'); bar.setAttribute('role', 'img'); bar.setAttribute('aria-label', `Level ${m.level}: ${tt}`); bar.title = tt;
       for (let i = 0; i < n; i++) { const sg = el('span', i === k ? 'ft-step is-now' : i < k ? 'ft-step is-done' : 'ft-step'); const f = el('i'); f.style.width = `${i < k ? 100 : i === k ? Math.round((x - k) * 100) : 0}%`; sg.append(f); bar.append(sg); }
       b.append(bar);
     }
@@ -432,7 +432,11 @@
   // the layout rank in front of the name, as app.js gives the marker tiles (one look for every tile in a group)
   function withRank(t) {
     const k = CX.kind('fit_kpi').find((x) => x.key === t.dataset.k); const l = t.querySelector('.ft-label');
-    if (k && l && k.rank !== undefined && k.rank !== '' && !l.querySelector('.ft-rk')) { const rk = CX.ck.mark(el('span', 'ft-rk', String(k.rank)), 'coach', 'rank', 'kind=fit_kpi&key=' + k.key); rk.title = `Weight ${k.weight} of 10 for this race type: ${k.why_weight || ''}`; l.prepend(rk); }
+    if (k && l && k.rank !== undefined && k.rank !== '' && !l.querySelector('.ft-rk')) {
+      // 6.55.5: the label itself carries the name mark on a catalog tile, so the name moves into its own marked span first
+      // and the number sits beside it, as on the marker tiles (marks read "1Consistency" against "Consistency")
+      if (l.hasAttribute('data-field')) { const nm = el('span', 'ft-nm'); nm.append(...l.childNodes); for (const a of ['data-source', 'data-field', 'data-where', 'data-derived']) if (l.hasAttribute(a)) { nm.setAttribute(a, l.getAttribute(a)); l.removeAttribute(a); } l.append(nm); }
+      const rk = CX.ck.mark(el('span', 'ft-rk', String(k.rank)), 'coach', 'rank', 'kind=fit_kpi&key=' + k.key); rk.title = `Weight ${k.weight} of 10 for this race type: ${k.why_weight || ''}`; l.prepend(rk); }
     return t;
   }
   function placeInGroup(box, heads, group, tile) {

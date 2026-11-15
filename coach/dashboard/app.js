@@ -1876,7 +1876,7 @@
     // an open-ended level (Bottom 10%, Top 0.5%) has no steps of its own: it gets the marker's step count over the notional
     // width the bar already uses (closedSpan), so every tile reads in steps (the athlete, Nov 15, 2026: "bike power at 130 is one bar")
     if ((!st.sub || !st.sub.of) && (st.band.lo === null || st.band.hi === null) && st.pct !== null) {
-      const n = Math.max(2, Number(m.split) || 2), x = Math.min(st.pct * n, n - 1e-9), k = Math.floor(x);
+      const n = Math.max(2, Number(m.split) || 3), x = Math.min(st.pct * n, n - 1e-9), k = Math.floor(x);
       return { label: st.band.label, bandPct: st.pct, step: k + 1, of: n, pct: x - k, notional: true, basis: st.band.basis || m.basis || 'coach' };
     }
     return { label: st.band.label, bandPct: st.pct, step: st.sub && st.sub.step ? st.sub.step : 1, of: st.sub && st.sub.of ? st.sub.of : 1, pct: pt.pct, notional: pt.notional, basis: st.band.basis || m.basis || 'coach' };
@@ -1981,7 +1981,8 @@
   // steps inside a level are counted, never Roman numerals (the athlete, Nov 15, 2026, option 4: "getting rid of the" numerals;
   // the tile shows the level name and one bar segment per step)
   function subtiersOf(m) {
-    const ts = tiersOf(m); const n0 = Math.max(1, Number(m.split) || 2); const better = Number(m.better) || 1; const out = [];
+    // 3 steps per level when a row carries no split (the athlete, Nov 15, 2026: exactly 3 on every level; 6.55.5)
+    const ts = tiersOf(m); const n0 = Math.max(1, Number(m.split) || 3); const better = Number(m.better) || 1; const out = [];
     const per = String(m.splits || '').split(',').filter((x) => x.trim() !== '').map(Number); // per-band sub-levels: finer near the top (the athlete, Nov 8, 2026)
     for (const [ti, t] of ts.entries()) {
       const n = ti < per.length ? Math.max(1, per[ti]) : n0;
@@ -2114,7 +2115,7 @@
         ul.append(li);
       }
       scb.append(ul);
-      scb.append(dLine(null, m.splits ? 'Steps (1, 2, 3 and on) are equal parts inside each level, and the upper levels have more, smaller steps because gains come slower there; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress (coach estimate).' : `Steps (1 to ${Number(m.split) || 2}) are equal parts inside each level; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress.`));
+      scb.append(dLine(null, m.splits ? 'Steps (1, 2, 3 and on) are equal parts inside each level, and the upper levels have more, smaller steps because gains come slower there; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress (coach estimate).' : `Steps (1 to ${Number(m.split) || 3}) are equal parts inside each level; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress.`));
     }
     if (m.how) scb.append(dLine(null, mf('how')));
     if (d.children.length) wrap.append(main.dt);
