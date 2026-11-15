@@ -1,0 +1,31 @@
+/* Live host theme tokens of the Coach dashboard (Dashboard Artifact type page, app.css version 1793794414-fc47, read Nov 4, 2026).
+   Resolved by hand from the host stylesheet's variable chain: --color-* -> --t-* -> --cds-* -> primitives.
+   Dark mode signal in the host: an ancestor with [data-mode=dark] (also .cds-root[data-mode=dark]); [data-mode=light] forces light;
+   [data-mode=system] or no data-mode follows @media (prefers-color-scheme: dark). The page's own root is inside .cds-root.
+   Surfaces: --color-bg = --cds-surface-0, --color-panel = --cds-surface-2. Border = 10% of the text colour (hsl alpha).
+   Not exact for one host variant (a 'fizzy-lake' colour theme overrides greys with neutral #f9f9f9 etc.); values below are the default theme. */
+:root {
+  --color-bg: #f9f9f7;
+  --color-panel: #fff;
+  --color-fg: #0b0b0b;
+  --color-fg-secondary: #52514e;
+  --color-fg-muted: #898781;
+  --color-border-line: rgb(11 11 11 / 10%);
+  --color-ok: #006300;
+  --color-warn: #734500;
+  --color-bad: #8e2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0b0b0b;
+    --color-panel: #1a1a19;
+    --color-fg: #f0efec;
+    --color-fg-secondary: #c3c2b7;
+    --color-fg-muted: #898781;
+    --color-border-line: rgb(255 255 255 / 10%);
+    --color-ok: #0ca30c;
+    --color-warn: #db9300;
+    --color-bad: #ec7e7e;
+  }
+}
+/* fonts: --font-anthropic-sans: "Anthropic Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --font-anthropic-serif: "Anthropic Serif", ui-serif, Georgia, serif */

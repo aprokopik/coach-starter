@@ -1,0 +1,10 @@
+node_modules/
+package-lock.json
+# pages built by build.py and what the scripts write
+*.html
+pages/
+renders/
+shots/
+*.png
+marks.json
+report.json

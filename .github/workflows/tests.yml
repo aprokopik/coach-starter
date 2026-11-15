@@ -1,0 +1,30 @@
+name: Coach tests
+
+# Runs the deterministic coach tests on every pull request and on every push to main, data commits included
+# (6.2.2: the old paths filter skipped data pushes, so main sat red from Nov 9 with nobody told).
+# The unit tests read frozen fixtures only (coach/tests/frozen.py), so a data commit cannot turn them red.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit and regression tests
+        run: python -m unittest discover -s coach/tests -v
+      # Today's athlete files (key sessions, shared race page, briefs, lift rotation). A failure means a data
+      # file needs fixing, not the code, so it is reported here and never blocks a merge.
+      - name: Live data checks
+        continue-on-error: true
+        run: python -m unittest discover -s coach/tests/live -v

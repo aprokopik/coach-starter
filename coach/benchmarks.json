@@ -1,0 +1,4 @@
+{
+ "about": "Fitness benchmarks for the dashboard's Trends page. kind benchmark: a repeatable test (protocol, when, how to read it). kind result: one dated result per test, added by the coach after the athlete reports it (Reported) or the activity shows it (Measured). Garmin VO2max and efficiency trends are computed on the page from the Garmin data. Result rows: {kind: result, key, date, value (number, used for better/worse), text (as shown, e.g. 21:45 or 235 W, 3.2 W/kg), note, source: Reported or Measured}. Benchmark when: shown for a proposed test.",
+ "rows": []
+}

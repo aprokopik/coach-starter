@@ -1,0 +1,44 @@
+name: Scale weigh-ins from Apple Health
+
+# the athlete's iPhone Shortcut sends the last few days of Weight, Body Fat Percentage and
+# Lean Body Mass samples as a repository_dispatch event of type body_comp, using a
+# fine-grained token limited to this repository. Setup: coach/ops/SCALE-SHORTCUT.md.
+on:
+  repository_dispatch:
+    types: [body_comp]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: garmin-pull   # shares the pull's queue so the two never race on summary.csv
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Merge weigh-ins
+        env:
+          # passed as data, never interpolated into the shell
+          BODY_COMP_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: python scripts/body_comp.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "garmin-pull-bot"
+          git config user.email "garmin-pull-bot@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -q -m "Scale weigh-in $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull -q --rebase && git push -q
+          fi

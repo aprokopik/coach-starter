@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+garmin_tokens.json
+.garminconnect/
+dist/

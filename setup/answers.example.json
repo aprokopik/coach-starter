@@ -1,0 +1,30 @@
+{
+ "about": "Filled by Claude during onboarding (ONBOARDING-PROMPT.md), one card at a time, then read by setup/personalize.py. goals.selected holds ids from: event, fitter, body, age_well, stronger, restart, habit; goals.main is the one that matters most. Only athlete, github, goals.selected, schedule.hours_per_week and the 12 screen answers are required; the rest may stay empty and is asked later on the dashboard. This example is a made-up athlete.",
+ "athlete": {"name": "Sam", "pronouns": "they/them", "timezone": "America/Chicago", "units": "imperial", "birth_year": 1988, "sex": "female"},
+ "github": {"owner": "sam-example", "repo": "my-coach"},
+ "goals": {
+  "selected": ["event", "age_well", "stronger"],
+  "main": "event",
+  "why": "",
+  "priority_order": "health and safety first, enjoyment second, getting faster third",
+  "long_term": "A first marathon in 2028.",
+  "style": "Encouraging, direct, tell me when to back off.",
+  "weight": {"unit": "lb", "target_lo": null, "target_hi": null, "target_by": null}
+ },
+ "data_source": "garmin",
+ "strava": false,
+ "care": ["running"],
+ "care_other": "",
+ "races": [
+  {"name": "City Half Marathon", "date": "2027-04-18", "sport": "Run", "distance": "13.1 mi", "location": "Chicago, IL", "status": "planned", "priority": "A", "goal": "Finish strong and healthy", "url": "", "limit": ""}
+ ],
+ "schedule": {"hours_per_week": [4, 6], "strength_per_week": 2, "swims_per_month": 0, "blocked_days": "Tuesdays", "checkin_time": "7:00 AM", "sleep_hours": [7, 8]},
+ "physiology": {"hr_max": null, "easy_hr_run": null, "easy_hr_bike": null},
+ "equipment": ["Garmin Forerunner 265", "home dumbbells"],
+ "not_measured": ["SpO2", "blood pressure", "body fat", "power"],
+ "health": {"injury_notes": "", "conditions": ""},
+ "screen": {"answers": ["no", "no", "no", "no", "no", "no", "no", "no", "no", "no", "yes", "no"], "notes": {}, "hold_body_questions": false},
+ "season_start": null,
+ "options": {"scale": false, "home_bp": false, "race_watch": true, "research_scan": true},
+ "links": {"dashboard_url": "", "season_url": ""}
+}

@@ -1,0 +1,90 @@
+"""Shared Race Season page generated from races.json (coach/tools/build_season.py; the athlete, Nov 3, 2026)."""
+import os
+import shutil
+import sys
+import tempfile
+import unittest
+from datetime import date
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "coach", "tools"))
+import build_season  # noqa: E402
+import race_check  # noqa: E402
+
+# Synthetic races (6.2.2): the tests never read the live races.json or season.html, which the coach and the
+# race watch rewrite. Today's live page is checked in coach/tests/live/.
+ROWS = [
+    {"kind": "race", "race_id": "tri", "name": "Lake Triathlon 70.3", "public_name": "Lake 70.3", "date": "2027-06-13",
+     "sport": "Triathlon", "status": "registered", "distance": "70.3 mi", "location": "Lakeside", "with": "",
+     "start_time": "06:50", "start_basis": "posted", "goal": "finish strong and healthy, private goal text",
+     "limit": "8:30", "cutoffs": "bike 5:30 after the start, private", "lat": 38.5, "lon": -76.1,
+     "wx_kind": "typical", "wx_hi": 84, "wx_lo": 66, "wx_text": "humid", "water": "76 F"},
+    {"kind": "race", "race_id": "ultra", "name": "Ridge 100K", "date": "2027-09-25", "approx": True, "sport": "Trail run",
+     "status": "planned", "distance": "100 km", "location": "Ridge Park", "with": "Sam; Lee",
+     "registration": "lottery opens in January, private note", "forecast": "17:00 to 18:00 private estimate"},
+    {"kind": "race", "race_id": "done", "name": "Fall 50K", "date": "2026-10-24", "sport": "Trail run", "status": "done",
+     "distance": "50 km", "location": "River Park", "stats": "Time|7:40;Place|", "result": "finished, private result note"},
+    {"kind": "race_note", "race_id": "ultra", "text": "Private note about the ultra plan that must stay off the page"},
+    {"kind": "race_kit", "race_id": "tri", "item": "Private kit list item: spare tubular and CO2"},
+]
+SKELETON = ("<main>\n  " + build_season.FOOT_BEGIN + "Jan 1, 2026" + build_season.FOOT_END + "\n</main>\n<script>\n"
+            + build_season.BEGIN + "\n" + build_season.END + "\n</script>\n")
+HTML, _ = build_season.render(SKELETON, ROWS, today=date(2026, 11, 1))
+
+
+class TestSeason(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.old_page = build_season.PAGE
+        build_season.PAGE = os.path.join(self.tmp, "season.html")
+        with open(build_season.PAGE, "w") as fh:
+            fh.write(HTML)
+
+    def tearDown(self):
+        build_season.PAGE = self.old_page
+        shutil.rmtree(self.tmp)
+
+    def test_page_built_from_rows_is_in_sync(self):
+        self.assertEqual(race_check.shared_page_status(ROWS), "in sync")
+        self.assertIn("Updated Nov 1, 2026.", HTML)
+
+    def test_every_race_on_the_page_once(self):
+        block = build_season.races_block(ROWS)
+        for r in ROWS:
+            if r.get("kind") == "race":
+                self.assertIn(f'd: "{r["date"]}"', block)
+        self.assertEqual(block.count("{ d: "), sum(1 for r in ROWS if r.get("kind") == "race"))
+
+    def test_no_private_fields_reach_the_shared_page(self):
+        block = build_season.races_block(ROWS)
+        for r in ROWS:
+            if r.get("kind") != "race":
+                continue
+            for f in build_season.PRIVATE_FIELDS:
+                v = r.get(f)
+                if isinstance(v, str) and len(v) > 12:
+                    self.assertNotIn(v, block, f"{r['race_id']}.{f} leaked to the shared page")
+        notes = [r["text"] for r in ROWS if r.get("kind") in ("race_note",)] + [r["item"] for r in ROWS if r.get("kind") == "race_kit"]
+        for t in notes:
+            self.assertNotIn(t, block)
+
+    def test_start_time_on_the_shared_page(self):
+        base = {"kind": "race", "race_id": "t", "name": "T", "date": "2027-01-01", "sport": "Run", "status": "registered"}
+        self.assertEqual(build_season.entry(dict(base, start_time="08:30", start_basis="posted"))["st"], "08:30")
+        self.assertEqual(build_season.entry(dict(base, start_time="06:00", start_basis="expected"))["st"], "~06:00")
+        self.assertNotIn("st", build_season.entry(dict(base, start_time="tbd")))
+        self.assertNotIn("st", build_season.entry(dict(base, status="done", start_time="08:30")))
+        self.assertNotIn("start_note", build_season.races_block([dict(base, start_time="08:30", start_note="secret source note")]))
+
+    def test_new_race_changes_page_and_footer(self):
+        rows = ROWS + [{"kind": "race", "race_id": "t", "name": "Test 10K", "date": "2027-01-01", "sport": "Run", "status": "registered", "goal": "secret goal text here"}]
+        out, changed = build_season.render(HTML, rows, today=date(2027, 1, 2))
+        self.assertTrue(changed)
+        self.assertIn("Test 10K", out)
+        self.assertIn("Updated Jan 2, 2027.", out)
+        self.assertNotIn("secret goal", out)
+        self.assertEqual(race_check.shared_page_status(rows).split(":")[0], "stale")
+
+
+if __name__ == "__main__":
+    unittest.main()

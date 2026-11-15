@@ -1,0 +1,4 @@
+{
+ "about": "How the Fitness tab groups and orders the fitness KPIs (the athlete, Nov 1, 2026). One group per race type, named for the type with the current target race beside it, plus Foundation for what every race needs. Inside a group the KPIs are ordered by weight: 1 to 10 for how much that KPI decides that race type for this athlete, finishing safely first. Weights are the coach's judgment (race time share by leg, cutoff margins, the athlete's limiters), not a published scale; the coach reviews them when a target race changes and at each block brief, and says any change in the check-in. sport sets the tile's colour stripe (swim, bike, run, trail, strength, all). Keys are the marker keys from coach/tools/markers.py; run and bike are the page calculations. A KPI not listed here is not shown on the tab (wkg rides on the FTP tile).",
+ "rows": []
+}
