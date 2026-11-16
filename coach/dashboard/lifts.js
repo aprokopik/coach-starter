@@ -60,6 +60,10 @@
   const hasLoad = (e) => e.load === 'lb' || e.load === 'lb_added';
   // kg for a metric person (6.108.0): loads stay lb in the data, converted only here
   const alpha = (id) => !!(window.CX.app && window.CX.app.kind('alpha').some((b) => b.id === id));
+  // Clean session (alpha lift_clean; the athlete's option 1 notes on the cleanup page, Nov 16, 2026): one hint line (last time and
+  // the aim), column heads carry the range, grey boxes hold last time, one Done per block, skip reasons, Time for more,
+  // Easy / Steady / Hard, and a Routines page of tiles in place of the dropdown.
+  const CL = () => alpha('lift_clean');
   const KG = () => !!(window.CX.U && window.CX.U.metric()) && alpha('lift_kg'), wU = () => (KG() ? 'kg' : 'lb');
   const toU = (lb) => (KG() && lb !== null && lb !== undefined ? Math.round(lb * 0.45359237 * 2) / 2 : lb);
   const fromU = (v) => (KG() && v !== null && v !== undefined ? Math.round((v / 0.45359237) * 100) / 100 : v);
@@ -93,16 +97,48 @@
     return H(false, 'Next', `same ${hasLoad(e) ? 'load' : 'setup'}, aim for ${e.hi}${e.unit === 's' ? ' s' : ''}`, ' on every set');
   }
 
+  // "Last time 55 lb 2×8 · aim 55×9" (the athlete: just last time, weight sets×reps; BW = body weight; every lift with history has an aim)
+  const rng = (a) => (a.length ? (Math.min(...a) === Math.max(...a) ? String(a[0]) : Math.min(...a) + '–' + Math.max(...a)) : '?');
+  function cleanHint(e, last, mode) {
+    if (!last) return null;
+    const S = last.sets.filter((st) => N(st.reps) !== null), u = e.unit === 's' ? ' s' : '', ps = e.per_side ? ' a side' : '';
+    const top = hasLoad(e) ? Math.max(0, ...S.map((st) => N(st.lb) ?? 0)) : null;
+    const ld = hasLoad(e) ? (e.load === 'lb_added' && !(top > 0) ? 'BW ' : loadTxt(e, top) + ' ' + wU() + ' ') : '';
+    const t = `Last time ${ld}${S.length}×${rng(S.map((st) => N(st.reps)))}${u}${ps}`;
+    if (mode === 'light') return { t, aim: 'same or lighter' };
+    const best = Math.max(0, ...S.map((st) => N(st.reps) ?? 0)), full = S.length >= N(e.sets) && S.every((st) => N(st.reps) >= N(e.hi));
+    let aim;
+    if (full && hasLoad(e)) aim = `${loadTxt(e, top + (N(e.step) || 5))}×${e.lo}${u}`;
+    else if (full) aim = e.next_hard || 'make it harder';
+    else aim = `${hasLoad(e) ? (e.load === 'lb_added' && !(top > 0) ? 'BW×' : loadTxt(e, top) + '×') : ''}${Math.min(best + 1, N(e.hi))}${u}${ps}`;
+    return { t, aim };
+  }
+  const colHead = (e) => `${e.unit === 's' ? (e.per_side ? 's per side' : 'sec') : e.per_side ? 'per side' : 'reps'} (${N(e.lo) === N(e.hi) ? e.lo : e.lo + '–' + e.hi})`;
+  let skipWhy = {};
+  const WHY = ['Pain', 'No time', 'No kit', 'Other'];
   function chips(box, opts, labels, get, setv) {
     box.replaceChildren(...opts.map((v, i) => { const b = el('button', 'lx-opt'); b.append(icon('check'), labels ? labels[i] : v + ' min'); b.type = 'button'; b.dataset.v = v; b.addEventListener('click', () => { setv(get() === v ? null : v); paint(); }); return b; }));
     const paint = () => { for (const b of box.querySelectorAll('button')) b.setAttribute('aria-pressed', String(get() === b.dataset.v)); };
     paint(); return paint;
   }
-  let paintRpe = () => {};
+  let paintRpe = () => {}, rpe3 = false;
 
   const extraSets = new Map(); // extra set rows added with + set, per exercise, for the day being logged
   // Lift day: the day's strength plan row (week.json `lifts`, `lifts_busy`) sets which lifts are open; the rest fold.
-  let dayView = 'plan', dayFor = '';
+  let dayView = 'plan', dayFor = '', dayMins = 0;
+  // Minus and plus (alpha lift_time; the athlete, Nov 16, 2026, option 1C): the minutes rebuild the session. About 1.25 min a set
+  // (1.75 per side) and 2 to set up. Over time: extras go first (not loaded, not in the busy version), then the busy-version
+  // lifts, then sets drop to 1; with nothing cut, spare time adds a set to main lifts (loaded, both sides).
+  function fitTime(ex, mins) {
+    const main = (e) => /^lb/.test(e.load || '') && !e.per_side, rank = (e) => (main(e) ? 0 : e.busy ? 1 : 2);
+    const per = (e) => (e.per_side ? 1.75 : 1.25), cost = (L) => 2 + L.reduce((s, x) => s + x.n * per(x.e), 0);
+    let L = ex.map((e) => ({ e, n: N(e.sets) || 2 })).sort((a, b) => rank(a.e) - rank(b.e) || a.e.order - b.e.order); const k = L.length;
+    while (cost(L) > mins && L.length > 1 && rank(L[L.length - 1].e) > 0) L.pop();
+    for (let i = L.length - 1; cost(L) > mins && i >= 0; i--) L[i].n = 1;
+    while (cost(L) > mins && L.length > 1) L.pop();
+    if (L.length === k && L.every((x) => x.n === (N(x.e.sets) || 2))) for (const x of L) if (main(x.e) && cost(L) + per(x.e) <= mins) x.n++;
+    return new Map(L.map((x) => [x.e.ex, x.n]));
+  }
   const codes = (v) => String(v || '').split(/[;,\s]+/).filter(Boolean);
   function dayPlan(m) {
     const A = window.CX.app; if (!A) return null;
@@ -114,12 +150,21 @@
   }
   function build(m) {
     const box = $('l-ex'); box.replaceChildren(); box.classList.remove('dash-skeleton');
-    if (dayFor !== date) { dayView = 'plan'; dayFor = date; }
-    const dp = dayPlan(m), want = dp && (dayView === 'busy' && dp.busy.length ? dp.busy : dp.full);
+    const dp = dayPlan(m), tm = alpha('lift_time');
+    if (dayFor !== date) { dayView = 'plan'; dayFor = date; dayMins = N(dp && dp.r.minutes) || N(m.routine.minutes) || 25; }
+    const fit = tm && dayView !== 'all' ? fitTime(m.ex.filter((e) => !dp || !dp.full.length || dp.full.includes(e.ex)), dayMins) : null;
+    const want = fit ? [...fit.keys()] : dp && (dayView === 'busy' && dp.busy.length ? dp.busy : dp.full);
     // a lift with sets already saved or typed that day always shows, so saving never drops it (collect reads the open inputs)
     const has = (e) => !!(saved && saved.sets && Array.isArray(saved.sets[e.ex]) && saved.sets[e.ex].length) || doneSet.has(e.ex) || skipSet.has(e.ex);
     const inDay = (e) => !want || !want.length || dayView === 'all' || want.includes(e.ex) || has(e);
-    if (dp) {
+    if (tm) {
+      const pr = el('div', 'lx-day lx-time'), lab = (dp ? (date === TODAY ? 'Today: ' : fWD(date) + ': ') + dp.r.title : 'Time you have');
+      const st = (d, t) => { const b = el('button', 'ck-btn ck-btn--secondary lx-tbtn', t); b.type = 'button'; b.setAttribute('aria-label', (d > 0 ? 'Add' : 'Take off') + ' 5 minutes');
+        b.disabled = d > 0 ? dayMins >= 60 : dayMins <= 10; b.addEventListener('click', () => { flush(); dayMins += d; build(m); const nb = document.querySelector(`.lx-tbtn[aria-label^="${d > 0 ? 'Add' : 'Take'}"]`); if (nb) nb.focus(); }); return b; };
+      const mn = el('b', 'lx-tmin', dayMins + ' min'); mn.setAttribute('aria-live', 'polite');
+      const row = el('div', 'lx-trow'); row.append(st(-5, '−'), mn, st(5, '+'));
+      pr.append(mk('span', 'ck-sub', lab, dp ? 'coach' : null, null, dp ? `kind=day&date=${dp.r.date}&order=${dp.r.order}` : null, 'plan'), row); box.append(pr);
+    } else if (dp) {
       const pr = mk('div', 'lx-day', null, 'coach', null, `kind=day&date=${dp.r.date}&order=${dp.r.order}`, 'plan');
       const busy = dayView === 'busy' && dp.busy.length, mins = busy ? N(dp.r.fallback_minutes) : N(dp.r.minutes);
       pr.append(el('b', null, (date === TODAY ? 'Today: ' : fWD(date) + ': ') + (busy ? 'busy version' : dp.r.title) + (mins ? `, ${mins} min` : '')));
@@ -131,18 +176,21 @@
     const stored = logs.get(date) || null; const dr = draftGet(date);
     // A draft newer than the stored day (typed but not yet saved, e.g. the page closed mid-save) wins and is sent again below.
     const restored = !!(dr && dr.at && (!stored || dr.at > (stored.saved_at || '')));
-    const saved = restored ? { ...(stored || {}), date, sets: dr.sets || {}, rpe: dr.rpe, note: dr.note, done: dr.done } : stored;
+    const saved = restored ? { ...(stored || {}), date, sets: dr.sets || {}, rpe: dr.rpe, note: dr.note, done: dr.done, skipped: dr.skipped, skip_why: dr.skip_why } : stored;
     doneSet = new Set(arr(saved && saved.done)); skipSet = new Set(arr(saved && saved.skipped));
+    { let w = saved && saved.skip_why; if (typeof w === 'string') { try { w = JSON.parse(w); } catch (x) { w = null; } } skipWhy = w && typeof w === 'object' ? { ...w } : {}; }
+    const cl = CL();
     const gate = (e) => { if (mode !== 'upper' || !e.legs) return null; const al = ph.allow && ph.allow[e.ex]; return al ? { off: false, t: al } : { off: true, t: ph.legs_note || 'Not in this phase' }; };
     for (const b of m.blocks) {
       const bw = `kind=lift_block&routine=${b.routine}&block=${b.block}`;
-      const blk = el('div', 'lx-block'); const bh = el('div', 'lx-bh'); bh.append(mk('h3', 'ck-eyebrow', b.label, 'coach', 'label', bw), mk('span', 'lx-bnote', b.note || '', 'coach', 'note', bw)); blk.append(bh);
+      const blk = el('div', 'lx-block' + (cl ? ' lx-cl' : '')); const bh = el('div', 'lx-bh'); bh.append(mk('h3', 'ck-eyebrow', b.label, 'coach', 'label', bw), mk('span', 'lx-bnote', b.note || '', 'coach', 'note', bw)); blk.append(bh);
       // A block whose exercises are all Done folds to one line (the athlete, Nov 2); tapping it shows the slim lines again.
       const bs = el('button', 'lx-bsum'); bs.type = 'button'; bs.dataset.label = b.label; bs.setAttribute('aria-expanded', 'false');
       bs.addEventListener('click', () => { blk.classList.toggle('peek'); bs.setAttribute('aria-expanded', String(blk.classList.contains('peek'))); }); blk.append(bs);
       const list = el('ul', 'ck-list lx-list'); blk.append(list);
       const bex = m.ex.filter((x) => x.block === b.block && inDay(x)); if (!bex.length) continue;
-      for (const e of bex) {
+      for (const e0 of bex) {
+        const e = fit && fit.has(e0.ex) ? { ...e0, sets: fit.get(e0.ex) } : e0;
         const gt = gate(e); const ew = exWhere(e);
         const row = el('li', 'ck-row lx-row' + (gt && gt.off ? ' off' : ''));
         const ok = el('span', 'lx-ok'); ok.dataset.ok = e.ex;
@@ -152,8 +200,14 @@
         row.append(mk('span', 'lx-id', e.ex, 'coach', 'ex', ew), main, end);
         if (gt) { const tg = mk('div', 'lx-gate' + (gt.off ? '' : ' ok'), gt.t, 'coach', null, 'kind=lift_phase&routine=' + e.routine + '&mode=upper', 'phase-gate'); row.append(tg); }
         const last = lastBefore(e.id || e.ex, date); const h = gt ? null : hint(e, last, mode);
-        // two short lines (the athlete, Nov 5): last sets, then the next step as a chip
-        if (last) {
+        if (cl) {
+          const ch = gt ? null : cleanHint(e, last, mode), hl = mk('div', 'lx-hint', null, 'coach', null, ew, last ? 'store:lift_log/' + last.date + ' sets, next-step' : 'first-time');
+          if (ch) { hl.append(el('span', 'lx-nw', ch.t)); if (ch.aim) hl.append(' · ', el('span', 'lx-nw', 'aim ' + ch.aim)); }
+          else if (!gt) hl.append(el('span', null, hasLoad(e) ? 'First time: pick a load you could lift a few more times' : 'First time: easy version, stop with reps to spare'));
+          if (!gt) row.append(hl);
+          const cols = el('div', 'lx-cols2' + (hasLoad(e) ? '' : ' one')); cols.setAttribute('aria-hidden', 'true');
+          cols.append(el('span', null, 'Set')); if (hasLoad(e)) cols.append(el('span', null, e.load === 'lb_added' ? '+' + wU() : wU())); cols.append(el('span', null, colHead(e))); row.append(cols);
+        } else if (last) {
           const ln = mk('div', 'ck-row-s lx-last', null, null, null, null, 'store:lift_log/' + last.date + ' sets');
           ln.append('Last ' + fD(last.date) + ' · '); ln.append(el('b', null, last.sets.map((st) => setTxt(e, st)).join(', ')));
           row.append(ln);
@@ -172,11 +226,11 @@
           const prev = last && last.sets[i] ? last.sets[i] : null; const mine = cur[i] || {};
           if (hasLoad(e)) {
             const w = el('input', 'ck-input lx-in'); w.type = 'number'; w.inputMode = 'decimal'; w.step = 'any'; w.min = '0'; w.dataset.ex = e.ex; w.dataset.i = i; w.dataset.f = 'lb';
-            w.placeholder = prev && N(prev.lb) !== null ? String(toU(N(prev.lb))) : (e.load === 'lb_added' ? '+' + wU() : wU()); w.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.load === 'lb_added' ? 'added ' + wU() : wU()}`);
+            w.placeholder = prev && N(prev.lb) !== null ? String(toU(N(prev.lb))) : (cl ? '' : e.load === 'lb_added' ? '+' + wU() : wU()); w.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.load === 'lb_added' ? 'added ' + wU() : wU()}`);
             if (N(mine.lb) !== null) w.value = toU(N(mine.lb)); g.append(w);
           }
           const r = el('input', 'ck-input lx-in'); r.type = 'number'; r.inputMode = 'numeric'; r.step = '1'; r.min = '0'; r.dataset.ex = e.ex; r.dataset.i = i; r.dataset.f = 'reps';
-          r.placeholder = prev && N(prev.reps) !== null ? String(prev.reps) : (e.unit === 's' ? 'sec' : 'reps'); r.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.unit === 's' ? 'seconds' : 'reps'}`);
+          r.placeholder = prev && N(prev.reps) !== null ? String(prev.reps) : (cl ? '' : e.unit === 's' ? 'sec' : 'reps'); r.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.unit === 's' ? 'seconds' : 'reps'}`);
           if (N(mine.reps) !== null) r.value = mine.reps; g.append(r);
           return g;
         };
@@ -189,27 +243,70 @@
         // Skip (the athlete, Nov 2): only while the exercise has no entries, so typed sets are never thrown away; stored as skipped: [<ex>].
         const sk = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-skip'); sk.append(icon('skip'), 'Skip'); sk.type = 'button'; sk.setAttribute('aria-label', `Skip ${e.name}`);
         sk.addEventListener('click', () => markDone(e, row, true, true));
-        const acts = el('div', 'lx-acts'); acts.append(add, sk, fin);
+        const acts = el('div', 'lx-acts'); if (cl) { acts.append(add); end.prepend(sk); } else acts.append(add, sk, fin);
         const sum = el('button', 'lx-sum'); sum.type = 'button'; sum.setAttribute('aria-label', `Edit ${e.name}`);
         sum.addEventListener('click', () => markDone(e, row, false));
         row.dataset.ex = e.ex; row.append(sets, acts, sum); list.append(row);
         if (doneSet.has(e.ex)) fold(e, row, true);
       }
+      if (cl) { // one Done per block (superset): untouched grey boxes keep last time's figures
+        const ft = el('div', 'lx-bfoot'), nx = el('span', 'ck-sub lx-nset'); nx.setAttribute('aria-live', 'polite');
+        const bd = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-bdone'); bd.type = 'button'; bd.append(icon('check'), 'Done'); bd.setAttribute('aria-label', b.label + ' done');
+        bd.addEventListener('click', () => blockDone(m, blk)); ft.append(nx, bd); blk.append(ft);
+      }
       box.append(blk);
     }
     const out = want && want.length ? m.ex.filter((e) => !want.includes(e.ex) && !has(e)) : [];
-    if (out.length) { const fb = el('button', 'lx-dayfold'); fb.type = 'button'; fb.setAttribute('aria-expanded', String(dayView === 'all'));
-      fb.append(el('span', null, dayView === 'all' ? 'Back to today\'s plan' : `Not in today's plan (${out.length}): ${out.map((e) => e.name).join(', ')}`), el('span', 'lx-dayfold-a', dayView === 'all' ? 'Hide' : 'Show'));
+    if (out.length && cl && fit) box.append(moreBox(m, out, dp));
+    else if (out.length) { const fb = el('button', 'lx-dayfold'); fb.type = 'button'; fb.setAttribute('aria-expanded', String(dayView === 'all'));
+      fb.append(el('span', null, dayView === 'all' ? 'Back to today\'s plan' : `Not in ${fit ? dayMins + ' min' : 'today\'s plan'} (${out.length}): ${out.map((e) => e.name).join(', ')}`), el('span', 'lx-dayfold-a', dayView === 'all' ? 'Hide' : 'Show'));
       fb.addEventListener('click', () => { dayView = dayView === 'all' ? 'plan' : 'all'; build(m); }); box.append(fb); }
     rpeSel = saved && N(saved.rpe) !== null ? String(saved.rpe) : null;
     paintRpe(); $('l-note').value = saved ? saved.note || '' : '';
     finBtn(!restored && stored && stored.finished_at);
-    paintTicks(m); paintSkips();
+    paintTicks(m); paintSkips(); paintNext();
     if (restored) { bar('Restored sets kept on this phone. Saving…', 'kept'); status(''); schedule(0); }
     else if (stored) { status('Saved ' + fWD(stored.date) + (stored.saved_at ? ', ' + stamp(stored.saved_at) : ''), 'ok'); bar('All sets saved · ' + stamp(stored.saved_at), 'ok'); }
     else { status(db ? (date === TODAY ? 'No sets saved today yet' : 'No sets saved for ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
   }
 
+  // Block Done: fill the empty boxes that show last time's figures (grey), then fold every lift in the block.
+  function blockDone(m, blk) {
+    for (const r of blk.querySelectorAll('.lx-row:not(.done)')) {
+      for (const i of r.querySelectorAll('.lx-sets input')) if (i.value === '' && i.placeholder !== '' && !isNaN(Number(i.placeholder))) i.value = i.placeholder;
+      const e = m.ex.find((x) => x.ex === r.dataset.ex); if (e) { const has = [...r.querySelectorAll('.lx-sets input')].some((i) => i.value !== ''); markDone(e, r, true, !has); }
+    }
+    paintNext();
+  }
+  // "Next: set 2 of 3 on each lift" under each open block
+  function paintNext() {
+    for (const f of document.querySelectorAll('#l-ex .lx-bfoot')) {
+      const rows = [...f.closest('.lx-block').querySelectorAll('.lx-row:not(.done):not(.off)')];
+      if (!rows.length) { f.hidden = true; continue; } f.hidden = false;
+      const per = rows.map((r) => [...r.querySelectorAll('.lx-set')].map((g) => [...g.querySelectorAll('input')].some((i) => i.value !== '')));
+      const n = Math.min(...per.map((p) => p.filter(Boolean).length)), M = Math.max(...per.map((p) => p.length));
+      f.firstChild.textContent = n >= M ? 'All sets in. Tap Done.' : `Next: set ${n + 1} of ${M}${rows.length > 1 ? ' on each lift' : ''}`;
+    }
+  }
+  // Time for more (the athlete, Nov 16): +5, +10 and +15 minutes add NEW lifts at the end in the coach's order, never sets on a lift
+  // already done; each button lists what it adds. Show all opens every lift, as before.
+  function moreBox(m, out, dp) {
+    const pool = m.ex.filter((e) => !dp || !dp.full.length || dp.full.includes(e.ex)), now = new Set(fitTime(pool, dayMins).keys());
+    const box = el('div', 'lx-more'), hd = el('div', 'lx-morehd'); hd.append(el('b', null, 'Time for more?'));
+    const sa = el('button', 'lx-showall', 'Show all'); sa.type = 'button'; sa.addEventListener('click', () => { dayView = 'all'; build(m); }); hd.append(sa); box.append(hd);
+    const row = el('div', 'lx-more3'); let seen = '';
+    for (const d of [5, 10, 15]) {
+      if (dayMins + d > 60) break;
+      const add = [...fitTime(pool, dayMins + d).keys()].filter((k) => !now.has(k)).map((k) => m.ex.find((e) => e.ex === k)).filter(Boolean);
+      const key = add.map((e) => e.ex).join(); if (!add.length || key === seen) continue; seen = key;
+      const b = el('button', 'lx-tmb'); b.type = 'button'; b.append(el('b', null, `+${d} min`)); for (const e of add) b.append(el('span', null, e.name));
+      b.setAttribute('aria-label', `Add ${d} minutes: ${add.map((e) => e.name).join(', ')}`);
+      b.addEventListener('click', () => { flush(); dayMins += d; build(m); }); row.append(b);
+    }
+    if (row.childNodes.length) box.append(row);
+    box.append(el('p', 'ck-sub', `Not in ${dayMins} min: ${out.map((e) => e.name).join(', ')}`));
+    return box;
+  }
   // This week's lifts as discs beside the title (game look pass, the athlete's pick 4, Nov 14, 2026): one disc per lift in the week's
   // target, filled for each day with a lift on record (coach outcome_week, the Doing the plan count), plus a lift saved on this
   // phone this week that the data has not caught up with yet (data-derived live). The next disc rings when today is still open.
@@ -245,19 +342,69 @@
     sel.addEventListener('change', () => { pickView = sel.value; renderPicker(m); const s2 = $('l-picksel'); if (s2) s2.focus(); });
     const lw = `kind=lift_lib&id=${row.id}`;
     const card = el('div', 'lx-pickcard' + (row.id === cur ? ' rec' : ''));
-    if (row.id === cur) card.append(mk('p', 'lx-pickwhy', null, 'coach', 'pick_why', 'kind=lift_routine&routine=' + cur));
-    if (row.id === cur) card.firstChild.append(el('b', null, 'Recommended for you. '), m.routine.pick_why || 'The routine your coach set up with you.');
-    card.append(mk('p', 'ck-sub', `${row.needs} · ${row.minutes} min, busy ${row.busy_minutes} · ${row.per_week}× a week`, 'coach', 'needs', lw), mk('p', 'lx-picklifts', row.lifts.split(';').map((t) => t.trim()).join(' · '), 'coach', 'lifts', lw));
+    const lite = alpha('lift_lite');
+    if (lite) card.append(mk('p', 'ck-sub', `Needs ${String(row.needs || '').replace(/^\w/, (c) => c.toLowerCase())} · ${row.minutes} min · ${row.per_week}× a week`, 'coach', 'needs', lw));
+    else if (row.id === cur) card.append(mk('p', 'lx-pickwhy', null, 'coach', 'pick_why', 'kind=lift_routine&routine=' + cur));
+    if (!lite && row.id === cur) card.firstChild.append(el('b', null, 'Recommended for you. '), m.routine.pick_why || 'The routine your coach set up with you.');
+    if (!lite) card.append(mk('p', 'ck-sub', `${row.needs} · ${row.minutes} min, busy ${row.busy_minutes} · ${row.per_week}× a week`, 'coach', 'needs', lw), mk('p', 'lx-picklifts', row.lifts.split(';').map((t) => t.trim()).join(' · '), 'coach', 'lifts', lw));
     if (pickPending && pickPending !== cur) { const pr = m.lib.find((x) => x.id === pickPending); card.append(mk('p', 'lx-pickpend', `Switch to ${pr ? pr.name : pickPending} asked. Your coach checks it against your equipment and preferences and moves you over at the next check-in.`, null, null, null, 'store:lift_pref/routine')); }
     if (row.id !== cur && pickPending !== row.id) { const b = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Ask to switch to ' + row.name); b.type = 'button'; b.addEventListener('click', () => savePick(m, row.id)); card.append(b); }
     if (pickPending && pickPending !== cur && row.id === pickPending) { const b = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); b.type = 'button'; b.addEventListener('click', () => savePick(m, cur)); card.append(b); }
     if (row.mine) card.prepend(el('p', 'ck-sub', 'Your version'));
     // editing is a quiet line, not a form (the athlete, Nov 16, 2026): routines change by telling the coach in plain words
     const ed = el('p', 'ck-sub lx-pickedit', 'To change a routine or add your own, tell your coach in chat, e.g. "swap step-ups for lunges".');
-    const f = el('div', 'ck-field'); f.append(lab, sel); box.replaceChildren(f, card, ed);
+    const f = el('div', 'ck-field'); f.append(lab, sel); box.replaceChildren(f, card); if (!lite) box.append(ed);
+  }
+  // Routines page (alpha lift_clean; the athlete picked A2, Nov 16: "this is the way forward"): a tile row with Change ›, then a page
+  // of tiles like made-for-you playlists (today's pick on top, Made by you, Library); a tile opens its own page.
+  let rView = '';
+  const hue = (id) => [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
+  const ini = (n) => String(n).split(/[\s,]+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+  const art = (x, big) => { const a = el('span', 'lx-art' + (big ? ' big' : '')); a.style.setProperty('--h', hue(x.id)); a.setAttribute('aria-hidden', 'true'); a.append(el('b', null, big ? x.name.split(',')[0] : ini(x.name))); return a; };
+  const goR = (m, v) => { rView = v; renderRoutines(m); const f = $('l-pick').querySelector('button'); if (f) f.focus(); if (!v) $('l-log').scrollIntoView({ block: 'start' }); };
+  function renderRoutines(m) {
+    const box = $('l-pick'); if (!box) return; box.hidden = false;
+    const cur = m.routine.routine, r = m.routine;
+    const cr = m.lib.find((x) => x.id === cur) || { id: cur, name: r.name, minutes: r.minutes, needs: '', lifts: m.ex.map((e) => e.name).join('; ') };
+    const lib = m.lib.some((x) => x.id === cur) ? m.lib : [cr, ...m.lib];
+    const src = (x) => (x.id === cur ? 'Today\u2019s pick' : x.mine ? 'Made by you' : 'Library');
+    $('l-log').classList.toggle('lx-browse', !!rView);
+    const pend = pickPending && pickPending !== cur ? lib.find((x) => x.id === pickPending) : null;
+    if (!rView) {
+      const b = el('button', 'lx-rt'); b.type = 'button'; b.setAttribute('aria-label', `Routine: ${cr.name}. Change`);
+      const t = el('span', 'lx-rtt'); t.append(mk('b', null, cr.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(cr)));
+      b.append(art(cr), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b); return;
+    }
+    const top = el('div', 'lx-rtop'), back = el('button', 'lx-back', rView === 'list' ? '\u2039 Back to today' : '\u2039 Routines'); back.type = 'button';
+    back.addEventListener('click', () => goR(m, rView === 'list' ? '' : 'list')); top.append(back);
+    if (rView === 'list') {
+      top.append(el('h3', 'ck-h3', 'Routines'));
+      const hero = el('button', 'lx-hero'); hero.type = 'button'; const hx = el('span', 'lx-hx');
+      hx.append(el('span', 'lx-mh', 'Today\u2019s pick'), el('b', null, cr.name), el('span', 'ck-sub', `${cr.minutes} min${cr.needs ? ' \u00b7 ' + cr.needs : ''}`));
+      if (r.pick_why) hx.append(mk('span', 'lx-bc', r.pick_why, 'coach', 'pick_why', 'kind=lift_routine&routine=' + cur));
+      hero.append(art(cr, true), hx); hero.addEventListener('click', () => goR(m, cur));
+      const shelf = (h, L) => { if (!L.length) return []; const row = el('div', 'lx-shelf'); for (const x of L) { const t = el('button', 'lx-tile'); t.type = 'button'; t.append(art(x, true), el('span', 'ck-sub', `${x.minutes} min`)); t.setAttribute('aria-label', `${x.name}, ${x.minutes} min`); t.addEventListener('click', () => goR(m, x.id)); row.append(t); } return [el('span', 'lx-mh', h), row]; };
+      const rest = lib.filter((x) => x.id !== cur);
+      box.replaceChildren(top, hero, ...shelf('Made by you', rest.filter((x) => x.mine)), ...shelf('Library', rest.filter((x) => !x.mine)),
+        el('p', 'ck-sub lx-own', '+ Make your own: tell your coach in chat what you want, e.g. \u201c20 minutes in a hotel gym, dumbbells only\u201d, and it lands here.'));
+      return;
+    }
+    const x = lib.find((y) => y.id === rView) || cr, lw = `kind=lift_lib&id=${x.id}`;
+    const hero = el('div', 'lx-hero'), hx = el('span', 'lx-hx');
+    hx.append(el('span', 'lx-mh', src(x)), el('b', null, x.name), mk('span', 'ck-sub', `${x.minutes} min${x.needs ? ' \u00b7 ' + x.needs : ''}`, 'coach', 'needs', lw));
+    if (x.best_for) hx.append(mk('span', 'lx-bc', x.best_for, 'coach', 'best_for', lw));
+    hero.append(art(x, true), hx);
+    const acts = el('div', 'lx-racts');
+    if (x.id === cur) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button'; u.addEventListener('click', () => goR(m, '')); acts.append(u); }
+    else if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Switch asked. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, cur)); acts.append(c); }
+    else { const a = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Ask the coach to switch'); a.type = 'button'; a.addEventListener('click', () => savePick(m, x.id)); acts.append(a, el('span', 'ck-sub', 'Your coach sets it up with your weights at the next check-in.')); }
+    const ul = mk('ul', 'lx-rlifts', null, 'coach', 'lifts', lw);
+    const names = x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
+    for (const n of names) ul.append(el('li', null, n.replace(/^\w/, (c) => c.toUpperCase())));
+    box.replaceChildren(top, hero, acts, ul);
   }
   async function savePick(m, id) {
-    pickPending = id; renderPicker(m);
+    pickPending = id; if (CL()) renderRoutines(m); else renderPicker(m);
     if (db) { try { await db.doc('lift_pref/routine').set({ pick: id, from: m.routine.routine, saved: new Date().toISOString() }); } catch (e) { status('Could not save your routine pick.', 'err'); } }
   }
   function renderStatic(m) {
@@ -267,7 +414,7 @@
     // game look pass (the athlete's pick 4, Nov 14, 2026): the four facts fold into one plain line, each part still marked
     { const parts = [[`${r.per_week}× a week`, 'per_week'], [`~${r.minutes} min`, 'minutes'], [r.days || r.when, r.days ? 'days' : 'when'], [r.rir, 'rir']].filter((x) => x[0]);
       const box = $('l-chips'); box.className = 'ck-sub lx-facts'; box.replaceChildren(); parts.forEach(([t, f], i) => { if (i) box.append(' · '); box.append(mk('span', null, t, 'coach', f, rw)); }); }
-    weekDiscs(); renderPicker(m);
+    weekDiscs(); if (CL()) renderRoutines(m); else renderPicker(m);
     $('l-chips').classList.remove('dash-skeleton');
     const ph = phaseAt(m, TODAY); const pn = $('l-phasenow'); pn.hidden = !ph;
     if (ph) { const pw = `kind=lift_phase&routine=${ph.routine}&label=${encodeURIComponent(ph.label)}`; const w = el('span', 'ck-notice-w'); w.append(icon('info'), mk('span', null, ph.label, 'coach', 'label', pw)); pn.replaceChildren(w, mk('p', 'ck-notice-t', ph.text, 'coach', 'text', pw)); }
@@ -332,13 +479,13 @@
     if (!n && !anyHist) { cardState($('l-prog'), loaded ? 'empty' : 'loading', 'Your sets show here after the first saved session, with the next step for each lift.'); return; }
     cardState($('l-prog'), null);
     const mode = (phaseAt(m, TODAY) || {}).mode || 'normal';
-    const top = el('div', 'lx-ssum'); summary(top, m);
+    const lite = alpha('lift_lite'), top = el('div', 'lx-ssum'); if (!lite) summary(top, m); // alpha lift_lite (the athlete, Nov 16, 2A)
     const pins = pinIds(m), keyEx = pins.map((id) => m.ex.find((e) => e.id === id)).filter(Boolean), rest = m.ex.filter((e) => !pins.includes(e.id));
     const row = (e) => {
       const h = history(e.id || e.ex), hr = m.hist.get(e.id) || {}, p = pts(hr), st = hr.status || 'none', ew = exWhere(e), on = opened === e.ex;
       const li = el('li', 'lx-srow'); const b = el('button', 'lx-sbtn'); b.type = 'button'; b.setAttribute('aria-expanded', String(on));
       const nm = el('span', 'lx-snm'); nm.append(mk('span', null, e.name, 'coach', 'name', ew), el('span', 'ck-sub', hr.best_set ? `best ${setU(hr.best_set)}, ${fD(hr.best_date)}` : 'Not logged yet'));
-      b.append(nm, sline(p, 64, 26, false), mk('span', 'lx-sw ' + st, SW[st] || 'Not logged yet', 'coach', 'status', 'kind=lift_hist&id=' + e.id));
+      b.append(nm, sline(p, 64, 26, false)); if (!lite) b.append(mk('span', 'lx-sw ' + st, SW[st] || 'Not logged yet', 'coach', 'status', 'kind=lift_hist&id=' + e.id));
       b.addEventListener('click', () => { opened = on ? '' : e.ex; renderProgress(m); const nb = document.querySelector(`#l-progbody .lx-sbtn[data-ex="${e.ex}"]`); if (nb) nb.focus(); });
       b.dataset.ex = e.ex; li.append(b);
       if (on) {
@@ -356,7 +503,7 @@
       return li;
     };
     const parts = [top];
-    if (keyEx.length) { parts.push(el('h3', 'lx-shd', pinned ? 'Your key lifts' : 'Your key lifts (most logged, open one to change)')); const k = el('ul', 'lx-srows'); k.append(...keyEx.map(row)); parts.push(k); }
+    if (keyEx.length) { parts.push(el('h3', 'lx-shd', pinned || lite ? 'Your key lifts' : 'Your key lifts (most logged, open one to change)')); const k = el('ul', 'lx-srows'); k.append(...keyEx.map(row)); parts.push(k); }
     if (rest.length) { if (keyEx.length) parts.push(el('h3', 'lx-shd', 'Other lifts')); const r = el('ul', 'lx-srows'); r.append(...rest.map(row)); parts.push(r); }
     body.replaceChildren(...parts);
   }
@@ -384,8 +531,16 @@
       const sum = row.querySelector('.lx-sum');
       const has = st && st.length; const sl = mk('span', 'lx-sl', null, 'coach', null, exWhere(e), has ? 'entered-sets' : 'skipped');
       sum.replaceChildren(mk('span', 'lx-id', e.ex, 'coach', 'ex', exWhere(e)), icon(has ? 'check' : 'skip'), sl, icon('edit', 'ck-i lx-edit'));
-      sl.append(e.name + ' · ', el('b', null, has ? st.map((x) => setTxt(e, x)).join(', ') : 'Skipped'));
-    }
+      sl.append(e.name + ' · ', el('b', null, has ? st.map((x) => setTxt(e, x)).join(', ') : 'Skipped' + (skipWhy[e.ex] ? ': ' + skipWhy[e.ex].toLowerCase() : '')));
+      const old = row.querySelector('.lx-why'); if (old) old.remove();
+      if (CL() && !has) { // why skipped: optional, one tap; the coach reads it at the next check-in
+        const w = el('div', 'lx-why'); w.setAttribute('role', 'group'); w.setAttribute('aria-label', 'Why skip ' + e.name + '? Optional');
+        w.append(el('span', 'ck-sub', 'Why? (optional)'));
+        for (const r of WHY) { const b = el('button', 'lx-opt', r); b.type = 'button'; b.setAttribute('aria-pressed', String(skipWhy[e.ex] === r));
+          b.addEventListener('click', () => { if (skipWhy[e.ex] === r) delete skipWhy[e.ex]; else skipWhy[e.ex] = r; fold(e, row, true); const mm = model(); if (mm && db) { draftPut(date, snap(mm)); schedule(DELAY); } }); w.append(b); }
+        row.append(w);
+      }
+    } else { const old = row.querySelector('.lx-why'); if (old) old.remove(); }
     foldBlock(row.closest('.lx-block'));
   }
   function foldBlock(blk) {
@@ -415,11 +570,11 @@
       else { x.textContent = saving ? 'saving…' : 'not saved yet'; x.className = 'lx-ok'; }
     }
   }
-  const snap = (m) => ({ date, sets: collect(m), rpe: N(rpeSel), note: $('l-note').value.trim(), done: [...doneSet], skipped: [...skipSet].filter((k) => doneSet.has(k) && !collect(m)[k]), at: new Date().toISOString() });
+  const snap = (m) => ({ date, sets: collect(m), rpe: N(rpeSel), note: $('l-note').value.trim(), done: [...doneSet], skipped: [...skipSet].filter((k) => doneSet.has(k) && !collect(m)[k]), skip_why: Object.fromEntries(Object.entries(skipWhy).filter(([k]) => skipSet.has(k))), at: new Date().toISOString() });
   // Any edit: keep a copy on this phone right away, then save to the store after a short pause.
   function edited() {
     const m = model(); if (!m || !db) return;
-    const v = snap(m); draftPut(date, v); finBtn(false); paintTicks(m); paintSkips(); bar('Saving…'); schedule(DELAY);
+    const v = snap(m); draftPut(date, v); finBtn(false); paintTicks(m); paintSkips(); paintNext(); bar('Saving…'); schedule(DELAY);
   }
   function schedule(ms) { clearTimeout(timer); timer = setTimeout(() => persist(false), ms); }
   function flush() { if (timer) { clearTimeout(timer); timer = null; persist(false); } }
@@ -444,7 +599,7 @@
     const id = g ? String(g.activity_id) : `manual-${d}-strength`;
     const ids = {}; for (const e of m.ex) if (v.sets[e.ex] && e.id) ids[e.ex] = e.id;
     const fin = finish ? at : (prevDoc && prevDoc.finished_at) || null;
-    const doc = { date: d, routine: m.routine.routine, routine_name: m.routine.name, sets: v.sets, ids, rpe: v.rpe, activity_id: g ? id : null, minutes: mins, note: v.note, done: v.done, skipped: v.skipped, saved_at: at, finished_at: fin };
+    const doc = { date: d, routine: m.routine.routine, routine_name: m.routine.name, sets: v.sets, ids, rpe: v.rpe, activity_id: g ? id : null, minutes: mins, note: v.note, done: v.done, skipped: v.skipped, skip_why: v.skip_why || {}, saved_at: at, finished_at: fin };
     try {
       await db.doc('lift_log/' + d).set(doc); logs.set(d, doc); draftDrop(d, at); weekDiscs();
       const rateKey = id + '|' + (v.rpe ?? '');
@@ -518,6 +673,8 @@
       cardState($('l-prog'), st, st === 'error' ? 'The lift routine did not load. Your logged sets are safe.' : 'Progress shows once there is a routine.');
       cardState($('l-rules'), st, st === 'error' ? 'The rules did not load.' : 'The rules come with the routine.'); $('l-rot').hidden = true; return; }
     legacy = m.routine.legacy_ids || {};
+    if (CL() && !rpe3) { rpe3 = true; $('l-rpe').classList.add('lx-opts3'); $('l-rpe-l').textContent = 'How did it feel?'; paintRpe = chips($('l-rpe'), ['3', '4', '6'], ['Easy', 'Steady', 'Hard'], () => rpeSel, (v) => { rpeSel = v; edited(); }); }
+    $('l-copy').hidden = CL();
     renderStatic(m); renderRotation(m);
     const key = JSON.stringify([m.ex, m.phases, date, loaded]);
     if (key !== builtKey) { if (builtKey && db) { const v = snap(m); if (Object.keys(v.sets).length || v.note) draftPut(date, v); } builtKey = key; build(m); }
