@@ -42,8 +42,9 @@
     const hrs = (f) => window.CX.fixed(sum(f, 'duration_min') / 60, 1);
     const nS = (f) => { const n = cnt(f); return [mkSpan(String(n), A, null, null, 'count'), ` session${n === 1 ? '' : 's'}`]; };
     const day = (a) => mkSpan(fDay(P(a.local_start)), A, null, aw(a), 'formatted');
-    const mi = (a) => mkSpan(f1(N(a.distance_mi)), A, 'distance_mi', aw(a));
-    const ft = (a) => mkSpan(Math.round(N(a.ascent_ft) || 0).toLocaleString('en-US'), A, 'ascent_ft', aw(a));
+    const U = window.CX.U; // the person's units (calc.js)
+    const mi = (a) => mkSpan(f1(U.dist(N(a.distance_mi))), A, 'distance_mi', aw(a));
+    const ft = (a) => mkSpan(Math.round(U.elev(N(a.ascent_ft) || 0)).toLocaleString('en-US'), A, 'ascent_ft', aw(a));
     const dur = (a) => [A, null, aw(a), 'h-min'];
     const sportT = (lab, f) => seasonTile(lab, hrs(f), 'h', [A, null, null, 'sum-hours'], nS(f));
     sportGroups(box, [
@@ -53,17 +54,17 @@
         (() => { const a = adhOf(); const s = a && a.k4w < 4; return seasonTile(s ? `Key sessions (since ${fDay(P(window.CX.keyFrom ? window.CX.keyFrom() : KEY_RULE_FROM))})` : 'Key sessions (4 wk)', a ? `${a.k4} of ${a.kN4}` : '—', '', ['week_view', null, null, 'key-done-4wk'], s ? `Key sessions done since ${fDay(P(KEY_RULE_FROM))}` : 'Key sessions done over the last 4 weeks'); })(),
         seasonTile('Block goals closed', String(goals.length), '', ['coach', null, 'kind=level_block', 'count'], goals.length ? mkSpan(goals.slice(-1)[0].outcome, 'coach', 'outcome', `kind=level_block&key=${goals.slice(-1)[0].key}&block_key=${goals.slice(-1)[0].block_key}`) : (() => { const b = kind('block').find((x) => dayN(x.start) <= dayN(TODAY) && dayN(TODAY) <= dayN(x.end)); return b ? ['first block closes ', mkSpan(fDay(P(b.end)), 'coach', null, 'kind=block&start=' + b.start, 'formatted')] : ''; })())] },
       { label: 'Bike', sport: 'bike', tiles: cnt(isRide) ? [
-        seasonTile('Riding', hrs(isRide), 'h', [A, null, null, 'sum-hours'], [...nS(isRide), ' · ', mkSpan(f1(sum(isRide, 'distance_mi')), A, null, null, 'sum-miles'), ' mi']),
-        seasonTile('Longest ride', hm(N(lb.duration_min)), '', dur(lb), [mi(lb), ' mi · ', day(lb), (() => { const r = kind('race').find((x) => x.date === String(lb.local_start).slice(0, 10)); return r ? [' · ', mkSpan(r.name, 'coach', 'name', 'kind=race&date=' + r.date)] : ''; })()])] : [] },
+        seasonTile('Riding', hrs(isRide), 'h', [A, null, null, 'sum-hours'], [...nS(isRide), ' · ', mkSpan(f1(U.dist(sum(isRide, 'distance_mi'))), A, null, null, 'sum-miles'), ' ' + U.distU()]),
+        seasonTile('Longest ride', hm(N(lb.duration_min)), '', dur(lb), [mi(lb), ' ' + U.distU() + ' · ', day(lb), (() => { const r = kind('race').find((x) => x.date === String(lb.local_start).slice(0, 10)); return r ? [' · ', mkSpan(r.name, 'coach', 'name', 'kind=race&date=' + r.date)] : ''; })()])] : [] },
       { label: 'Run', sport: 'run', tiles: cnt(isRoad) ? [
-        seasonTile('Road running', hrs(isRoad), 'h', [A, null, null, 'sum-hours'], [...nS(isRoad), ' · ', mkSpan(f1(sum(isRoad, 'distance_mi')), A, null, null, 'sum-miles'), ' mi']),
-        seasonTile('Longest road run', hm(N(lr.duration_min)), '', dur(lr), [mi(lr), ' mi · ', day(lr)])] : [] },
+        seasonTile('Road running', hrs(isRoad), 'h', [A, null, null, 'sum-hours'], [...nS(isRoad), ' · ', mkSpan(f1(U.dist(sum(isRoad, 'distance_mi'))), A, null, null, 'sum-miles'), ' ' + U.distU()]),
+        seasonTile('Longest road run', hm(N(lr.duration_min)), '', dur(lr), [mi(lr), ' ' + U.distU() + ' · ', day(lr)])] : [] },
       { label: 'Trail', sport: 'trail', tiles: cnt(isTrail) ? [
         seasonTile('Trail running', hrs(isTrail), 'h', [A, null, null, 'sum-hours'], [...nS(isTrail), ' · ', mkSpan(Math.round(sum(isTrail, 'ascent_ft')).toLocaleString('en-US'), A, null, null, 'sum-feet'), ' ft climbed']),
-        seasonTile('Longest trail run', hm(N(lt.duration_min)), '', dur(lt), [mi(lt), ' mi · ', ft(lt), ' ft · ', day(lt)])] : [] },
+        seasonTile('Longest trail run', hm(N(lt.duration_min)), '', dur(lt), [mi(lt), ' ' + U.distU() + ' · ', ft(lt), ' ' + U.elevU() + ' · ', day(lt)])] : [] },
       { label: 'Swim', sport: 'swim', tiles: cnt(isSwim) ? [
-        seasonTile('Swimming', hrs(isSwim), 'h', [A, null, null, 'sum-hours'], [...nS(isSwim), ' · ', mkSpan(Math.round(sum(isSwim, 'distance_mi') * 1760).toLocaleString('en-US'), A, null, null, 'sum-yards'), ' yd']),
-        seasonTile('Longest swim', Math.round(N(ls.distance_mi) * 1760).toLocaleString('en-US'), 'yd', [A, null, aw(ls), 'yards'], [mkSpan(hm(N(ls.duration_min)), ...dur(ls)), ' · ', day(ls)])] : [] }]);
+        seasonTile('Swimming', hrs(isSwim), 'h', [A, null, null, 'sum-hours'], [...nS(isSwim), ' · ', mkSpan(Math.round(U.yd(sum(isSwim, 'distance_mi') * 1760)).toLocaleString('en-US'), A, null, null, 'sum-yards'), ' ' + U.ydU()]),
+        seasonTile('Longest swim', Math.round(U.yd(N(ls.distance_mi) * 1760)).toLocaleString('en-US'), U.ydU(), [A, null, aw(ls), 'yards'], [mkSpan(hm(N(ls.duration_min)), ...dur(ls)), ' · ', day(ls)])] : [] }]);
     $('r-sofar-cap').textContent = 'credit already earned';
     const note = $('r-sofar-note'); note.replaceChildren('Hours and sessions from your Garmin activities since the season start (', mkSpan(fDay(P(start)), 'coach', null, sw, 'season-start'), '); per sport: time, sessions and the longest session since the season start, trail and road runs apart (all-time bests are under Hall of fame); levels climbed: the level each Fitness and Health marker holds now against the level it held on the season start (regained levels count; markers that slipped are not subtracted); block goals from the record. Walks and sauna are not counted as training.');
   }

@@ -49,6 +49,15 @@ DAYS = 14
 EXTRAS = "coach/nutrition_extras.json"
 
 
+
+def _person_tz():
+    """Today on the person's own clock: profile.json `timezone`, else the original athlete's (6.93.0)."""
+    from zoneinfo import ZoneInfo
+    try:
+        return ZoneInfo(json.load(open("coach/athlete/profile.json")).get("timezone") or "America/New_York")
+    except Exception:  # noqa: BLE001
+        return ZoneInfo("America/New_York")
+
 def extras_for(rules_hit, catalog, day=None):
     return [{"item": x["item"], "kind": x.get("kind", ""), "timing": x.get("timing", ""), "why": x.get("why", ""),
              "evidence": x.get("evidence", "")}
@@ -214,9 +223,9 @@ def build(today, root=".", now=None):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--date", help="first day (default today, America/New_York)")
+    ap.add_argument("--date", help="first day (default today on the person's own clock, profile.json timezone)")
     a = ap.parse_args()
     from zoneinfo import ZoneInfo
-    d = _d(a.date) if a.date else datetime.now(ZoneInfo("America/New_York")).date()
+    d = _d(a.date) if a.date else datetime.now(_person_tz()).date()
     for r in build(d):
         print(json.dumps(r))

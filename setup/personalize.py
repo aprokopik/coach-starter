@@ -265,7 +265,17 @@ def build(a, today):
         if "stronger" in goal_ids(a) and "strength" not in care:
             care.append("strength")
         words = {"running": ["run"], "trail": ["trail", "ultra"], "cycling": ["ride", "cycl", "bik", "tri"], "swimming": ["swim"]}
+        # A triathlete trains one sport of three legs: running, cycling and swimming chosen together with a triathlon on
+        # the race list become one Triathlon group in race order (swim, bike, run), its race named once, as the
+        # original coach's own layout has it (stranger test finding 7, 6.92.0).
+        legs = ("swimming", "cycling", "running")
+        tri = all(c in care for c in legs) and any("tri" in str(r.get("sport", "")).lower() for r in a.get("races", []))
         for c in care:
+            if tri and c in legs:
+                if c == next(x for x in care if x in legs):
+                    keys = [m["key"] for leg in legs for m in cat["metrics"] if m["category"] == leg]
+                    plan.append(("tri", "Triathlon", ["tri"], keys))
+                continue
             plan.append((c, cats[c]["label"], words.get(c, []), [m["key"] for m in cat["metrics"] if m["category"] == c]))
     else:
         focus = [f for f in a.get("focus") or [] if f in FOCUS_KEYS]

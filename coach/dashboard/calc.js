@@ -24,7 +24,18 @@
   const round = (x, k = 0) => { x = Number(x); if (!isFinite(x)) return x; const f = 10 ** k; return Math.sign(x) * Math.round(Number((Math.abs(x) * f).toPrecision(15))) / f; };
   const fixed = (x, k = 0) => { const v = Number(x); if (!isFinite(v)) return v.toFixed(k); const r = round(v, k); return (v < 0 && r === 0 ? '-' : '') + r.toFixed(k); };
   const fmt = (spec) => { const f = d3.format(spec), m = /\.(\d+)f$/.exec(spec); return m ? (v) => f(round(v, Number(m[1]))) : f; };
-  window.CX = { N, dayN, isoN, monday, round, fixed, fmt };
+  // Units (Nov 16, 2026): coach.json comes in the person's units (units.py); U converts only what the page computes from
+  // the Garmin files. A metric coach.json has a {kind: 'units', system: 'metric'} row. Calcs pass their coach input (see).
+  const U = (() => {
+    let seen = null, m = false;
+    const see = (rows) => { if (Array.isArray(rows) && rows !== seen) { seen = rows; m = rows.some((r) => r && r.kind === 'units' && r.system === 'metric'); } return m; };
+    const on = () => { try { const d = dash.data('coach'); if (d && d.status === 'ok') see(d.data); } catch (e) { /* not loaded */ } return m; };
+    const c = (f) => (x) => (x == null || !on() ? x : f(x)), l = (a, b) => () => (on() ? b : a);
+    return { see, metric: on, dist: c((x) => x * 1.609344), distU: l('mi', 'km'), pace: c((x) => x / 1.609344), paceU: l('/mi', '/km'),
+      elev: c((x) => x * 0.3048), elevU: l('ft', 'm'), wt: c((x) => x * 0.45359237), wtU: l('lb', 'kg'), speed: c((x) => x * 1.609344),
+      speedU: l('mph', 'km/h'), swimU: l('/100 yd', '/100 m'), yd: c((x) => x * 0.9144), ydU: l('yd', 'm') };
+  })();
+  window.CX = { N, dayN, isoN, monday, round, fixed, fmt, U };
 
   dash.calc('night', {
     title: 'Last night vs your normal',
@@ -77,8 +88,9 @@
   dash.calc('weight_trend', {
     title: 'Weight with rolling averages',
     description: 'Each weigh-in in lb with the mean of all weigh-ins in the trailing 4 and 7 calendar days (that day included).',
-    inputs: ['recovery'],
-    fn: (recovery) => {
+    inputs: ['recovery', 'coach'],
+    fn: (recovery, coach) => {
+      CX.U.see(coach);
       const rows = recovery.filter((r) => r.weight_lb !== '' && r.weight_lb != null && !isNaN(Number(r.weight_lb))).sort((a, b) => (a.date < b.date ? -1 : 1));
       const day = (d) => Date.parse(d + 'T00:00:00Z') / 86400000;
       const avg = (i, days) => {
@@ -86,7 +98,8 @@
         const win = rows.slice(0, i + 1).filter((x) => end - day(x.date) < days).map((x) => Number(x.weight_lb));
         return Math.round(win.reduce((s, v) => s + v, 0) / win.length * 10) / 10;
       };
-      return rows.map((r, i) => ({ date: r.date, weight_lb: Number(r.weight_lb), avg4: avg(i, 4), avg7: avg(i, 7) }));
+      const w = (x) => (CX.U.metric() ? Math.round(CX.U.wt(x) * 10) / 10 : x);
+      return rows.map((r, i) => ({ date: r.date, weight_lb: w(Number(r.weight_lb)), avg4: w(avg(i, 4)), avg7: w(avg(i, 7)) }));
     },
   });
 
@@ -95,6 +108,7 @@
     description: 'Mon–Sun weeks: Garmin hours by discipline (walks and sauna left out), plus strength and not-yet-synced sessions logged on the dashboard, and from rated sessions the effort load (RPE × minutes) and the effort mix: minutes rated easy (Very easy, Easy), steady (Steady) and hard (Hard, Very hard).',
     inputs: ['activities', 'coach'],
     fn: (activities, coach) => {
+      CX.U.see(coach);
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const day = (s) => Date.parse(String(s).slice(0, 10) + 'T00:00:00Z') / 86400000;
       const iso = (n) => new Date(Math.round(n) * 86400000).toISOString().slice(0, 10);
@@ -132,6 +146,7 @@
     description: 'Each planned session matched to the Garmin activity, or the session logged on the dashboard, of the same discipline that day (or its fallback discipline); other sessions are listed as unplanned.',
     inputs: ['coach', 'activities'],
     fn: (coach, activities) => {
+      CX.U.see(coach);
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const day = (s) => Date.parse(String(s).slice(0, 10) + 'T00:00:00Z') / 86400000;
       const iso = (n) => new Date(Math.round(n) * 86400000).toISOString().slice(0, 10);
@@ -153,7 +168,7 @@
         if (sessions.some((s) => s.date === f.date && s.disc === f.discipline && !s.manual)) continue;
         sessions.push({ id: String(f.activity_id), date: f.date, disc: f.discipline, min: val(f.minutes), hr: null, manual: true, start: f.date + ' 23:59' });
       }
-      const text = (ss) => ss.map((s) => [word[s.disc] || 'Session', s.min !== null ? Math.round(s.min) + ' min' : null, s.mi ? fixed(s.mi, 1) + ' mi' : null, s.hr ? 'HR ' + Math.round(s.hr) : null, s.manual ? 'logged' : null].filter(Boolean).join(' · ')).join(' + ');
+      const text = (ss) => ss.map((s) => [word[s.disc] || 'Session', s.min !== null ? Math.round(s.min) + ' min' : null, s.mi ? fixed(U.dist(s.mi), 1) + ' ' + U.distU() : null, s.hr ? 'HR ' + Math.round(s.hr) : null, s.manual ? 'logged' : null].filter(Boolean).join(' · ')).join(' + ');
       const out = [];
       const dates = [...new Set([...plans.map((p) => p.date), ...sessions.map((s) => s.date)])].sort();
       for (const d of dates) {
@@ -270,6 +285,7 @@
     description: 'Mon–Sun weeks per sport from Garmin: hours, distance (miles; swims in yards) and climb (ft), with each week’s longest session. Run includes trail runs, bike includes Zwift, hike/walk combines hikes and walks (the athlete, Oct 18); sauna is left out; strength, and sessions logged on the dashboard before they synced, count toward time only.',
     inputs: ['activities', 'coach'],
     fn: (activities, coach) => {
+      CX.U.see(coach);
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const day = (s) => Date.parse(String(s).slice(0, 10) + 'T00:00:00Z') / 86400000;
       const iso = (n) => new Date(Math.round(n) * 86400000).toISOString().slice(0, 10);
@@ -298,7 +314,7 @@
       }
       const rd = (x, k) => Math.round(x * 10 ** k) / 10 ** k;
       return Object.values(out).sort((a, b) => (a.week < b.week ? -1 : a.week > b.week ? 1 : a.sport < b.sport ? -1 : 1))
-        .map((r) => ({ ...r, hours: rd(r.hours, 2), dist: rd(r.dist, r.sport === 'swim' ? 0 : 2), climb_ft: Math.round(r.climb_ft), longest_min: Math.round(r.longest_min), longest_dist: rd(r.longest_dist, r.sport === 'swim' ? 0 : 2), top_climb_ft: Math.round(r.top_climb_ft) }));
+                .map((r) => { const D = (x) => (r.sport === 'swim' ? CX.U.yd(x) : CX.U.dist(x)); return { ...r, hours: rd(r.hours, 2), dist: rd(D(r.dist), r.sport === 'swim' ? 0 : 2), climb_ft: Math.round(CX.U.elev(r.climb_ft)), longest_min: Math.round(r.longest_min), longest_dist: rd(D(r.longest_dist), r.sport === 'swim' ? 0 : 2), top_climb_ft: Math.round(CX.U.elev(r.top_climb_ft)) }; });
     },
   });
 
@@ -307,6 +323,7 @@
     description: 'Run: flat runs (under 60 ft of climb per mile, 20+ min, 7–16 min/mi, average HR from 15 under to 25 over the run anchor), pace scaled to the run anchor A: pace × (HR − RHR) ÷ (A − RHR). Bike: Zwift rides of 30+ min (average HR from 20 under to 35 over the bike anchor), average power scaled to the bike anchor B: power × (B − RHR) ÷ (HR − RHR). The anchors are the athlete’s own easy heart rates (coach.json hr_anchor row, coach/tools/hr_anchor.py; 150 and 130 for the original athlete). RHR is the mean resting HR of the 15 days centred on the session. avg28 is the mean of the marker over the 28 days up to the session (2+ sessions). Estimated.',
     inputs: ['activities', 'recovery', 'coach'],
     fn: (activities, recovery, coach) => {
+      CX.U.see(coach);
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const anc = (coach || []).find((r) => r.kind === 'hr_anchor') || {};
       const A = val(anc.run) || 150, B = val(anc.bike) || 130;
@@ -325,7 +342,7 @@
           if (!mi || !min || min < 20) continue;
           const pace = min / mi;
           if (pace < 7 || pace > 16 || ft / mi >= 60 || hr < rLo || hr > rHi) continue;
-          out.push({ date: d, marker: 'run', value: rd(pace * (hr - R) / (A - R), 3), anchor: A, raw: rd(pace, 3), hr, rhr: rd(R, 1), miles: rd(mi, 2), id: String(a.activity_id), name: String(a.name || '') });
+          out.push({ date: d, marker: 'run', value: rd(CX.U.pace(pace * (hr - R) / (A - R)), 3), anchor: A, raw: rd(CX.U.pace(pace), 3), hr, rhr: rd(R, 1), miles: rd(CX.U.dist(mi), 2), id: String(a.activity_id), name: String(a.name || '') });
         } else if (/virtual_ride/.test(t) || /zwift/i.test(String(a.name || ''))) {
           const p = val(a.avg_power_w), min = val(a.duration_min);
           if (!p || !min || min < 30 || hr < bLo || hr > bHi) continue;

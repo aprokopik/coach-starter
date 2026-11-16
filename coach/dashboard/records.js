@@ -33,8 +33,9 @@
     const isTrail = (a) => /trail/i.test(String(a.type)), isRoad = (a) => isRun(a) && !isTrail(a) && !/treadmill|indoor|virtual/i.test(String(a.type));
     const lr = best(all.filter(isRoad), (a) => N(a.distance_mi) || 0), lt = best(all.filter(isTrail), (a) => N(a.distance_mi) || 0), lb = best(all.filter(isRide), (a) => N(a.distance_mi) || 0);
     const climbT = best(all.filter(isTrail), (a) => N(a.ascent_ft) || 0), climbB = best(all.filter((a) => isRide(a) && !/virtual|indoor/i.test(String(a.type))), (a) => N(a.ascent_ft) || 0);
-    const ft = (a) => (N(a.ascent_ft) ? [mk(f0(N(a.ascent_ft)), A, 'ascent_ft', aw(a)), ' ft · '] : []);
-    const mi = (a) => mk(f1(N(a.distance_mi)), A, 'distance_mi', aw(a));
+    const U = window.CX.U; // the person's units (calc.js)
+    const ft = (a) => (N(a.ascent_ft) ? [mk(f0(U.elev(N(a.ascent_ft))), A, 'ascent_ft', aw(a)), ' ' + U.elevU() + ' · '] : []);
+    const mi = (a) => mk(f1(U.dist(N(a.distance_mi))), A, 'distance_mi', aw(a));
     const dur = (a) => mk(hm(N(a.duration_min)), A, null, aw(a), 'h-min');
     // fastest pace: road runs of 3 mi or more, so strides and short shakeouts do not count
     const fast = best(all.filter((a) => /^running$/i.test(String(a.type)) && (N(a.distance_mi) || 0) >= 3), (a) => N(a.avg_speed_kmh) || 0);
@@ -53,17 +54,17 @@
         tile('Biggest week', bw ? hm(bw[1]) : '—', '', [A, null, null, 'week-sum'], bw ? ['week of ', mk(fDay(bw[0]), A, null, null, 'week-start')] : ''),
         tile('Best plan streak', st ? String(st.best) : '—', 'd', ['coach', 'best', 'kind=streak'], st ? ['scored since ', mk(fDay(st.start), 'coach', null, 'kind=streak', 'formatted')] : '')] },
       { label: 'Bike', sport: 'bike', tiles: [
-        tile('Longest ride', lb ? f1(N(lb.distance_mi)) : '—', 'mi', lb ? [A, 'distance_mi', aw(lb)] : null, lb ? [...ft(lb), dur(lb), ' · ', when(lb), ...raceOn(lb)] : ''),
-        tile('Most climbing, ride', climbB ? f0(N(climbB.ascent_ft)) : '—', 'ft', climbB ? [A, 'ascent_ft', aw(climbB)] : null, climbB ? [mi(climbB), ' mi outdoors · ', when(climbB)] : ''),
+        tile('Longest ride', lb ? f1(U.dist(N(lb.distance_mi))) : '—', U.distU(), lb ? [A, 'distance_mi', aw(lb)] : null, lb ? [...ft(lb), dur(lb), ' · ', when(lb), ...raceOn(lb)] : ''),
+        tile('Most climbing, ride', climbB ? f0(U.elev(N(climbB.ascent_ft))) : '—', U.elevU(), climbB ? [A, 'ascent_ft', aw(climbB)] : null, climbB ? [mi(climbB), ' ' + U.distU() + ' outdoors · ', when(climbB)] : ''),
         tile('Best ride power', pw ? f0(N(pw.norm_power_w)) : '—', 'W', pw ? [A, 'norm_power_w', aw(pw)] : null, pw ? ['normalized, ', dur(pw), ' · ', when(pw)] : ['no ride of ', rule('an hour', 'records.js: ride power counts rides of 60 min or more'), ' with power yet'])] },
       { label: 'Run', sport: 'run', tiles: [
-        tile('Longest road run', lr ? f1(N(lr.distance_mi)) : '—', 'mi', lr ? [A, 'distance_mi', aw(lr)] : null, lr ? [dur(lr), ' · ', when(lr)] : ''),
-        tile('Fastest road pace', fast ? mss(60 / (N(fast.avg_speed_kmh) / 1.609344)) : '—', '/mi', fast ? [A, null, aw(fast), 'pace'] : null, fast ? [mi(fast), ' mi road run · ', when(fast)] : ['no road run of ', rule('3', 'records.js: fastest pace counts road runs of 3 mi or more'), ' mi yet'])] },
+        tile('Longest road run', lr ? f1(U.dist(N(lr.distance_mi))) : '—', U.distU(), lr ? [A, 'distance_mi', aw(lr)] : null, lr ? [dur(lr), ' · ', when(lr)] : ''),
+        tile('Fastest road pace', fast ? mss(U.pace(60 / (N(fast.avg_speed_kmh) / 1.609344))) : '—', U.paceU(), fast ? [A, null, aw(fast), 'pace'] : null, fast ? [mi(fast), ' ' + U.distU() + ' road run · ', when(fast)] : ['no road run of ', rule('3', 'records.js: fastest pace counts road runs of 3 mi or more'), ' mi yet'])] },
       { label: 'Trail', sport: 'trail', tiles: [
-        tile('Longest trail run', lt ? f1(N(lt.distance_mi)) : '—', 'mi', lt ? [A, 'distance_mi', aw(lt)] : null, lt ? [...ft(lt), dur(lt), ' · ', when(lt), ...raceOn(lt)] : 'no trail run yet'),
-        tile('Most climbing, trail run', climbT ? f0(N(climbT.ascent_ft)) : '—', 'ft', climbT ? [A, 'ascent_ft', aw(climbT)] : null, climbT ? [mi(climbT), ' mi · ', when(climbT)] : '')] },
+        tile('Longest trail run', lt ? f1(U.dist(N(lt.distance_mi))) : '—', U.distU(), lt ? [A, 'distance_mi', aw(lt)] : null, lt ? [...ft(lt), dur(lt), ' · ', when(lt), ...raceOn(lt)] : 'no trail run yet'),
+        tile('Most climbing, trail run', climbT ? f0(U.elev(N(climbT.ascent_ft))) : '—', U.elevU(), climbT ? [A, 'ascent_ft', aw(climbT)] : null, climbT ? [mi(climbT), ' ' + U.distU() + ' · ', when(climbT)] : '')] },
       { label: 'Swim', sport: 'swim', tiles: lsw ? [
-        tile('Longest swim', f0(N(lsw.distance_mi) * 1760), 'yd', [A, null, aw(lsw), 'yards'], [dur(lsw), ' · ', when(lsw)])] : [] }];
+        tile('Longest swim', f0(U.yd(N(lsw.distance_mi) * 1760)), U.ydU(), [A, null, aw(lsw), 'yards'], [dur(lsw), ' · ', when(lsw)])] : [] }];
     if (window.CX.sportGroups) window.CX.sportGroups(box, groups); else box.replaceChildren(...groups.flatMap((g) => g.tiles));
     $('r-rec-cap').textContent = 'personal bests';
     $('r-rec-note').replaceChildren(`From every Garmin activity on record (since `, mk(fDay(recStart), A, null, aw(first), 'formatted'), ', ', mk(recStart.slice(0, 4), A, null, aw(first), 'year'), '); walks and sauna are not counted. Weeks run Monday to Sunday. Trail and road runs are kept apart (treadmill runs count in neither); ride climbing counts outdoor rides only. Fastest pace counts road runs of ', rule('3', 'records.js: fastest pace counts road runs of 3 mi or more'), ' mi or more; ride power is normalized power on rides of ', rule('an hour', 'records.js: ride power counts rides of 60 min or more'), ' or more.');

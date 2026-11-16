@@ -488,7 +488,9 @@
       const before = heads.find((x) => box.contains(x) && ord(keyOf(x)) > ord(group));
       if (before) before.before(g, tile); else { const add = box.querySelector(':scope > .mx-add'); if (add) add.before(g, tile); else box.append(g, tile); }
       heads.push(g); return; }
-    let last = h; for (let n = h.nextElementSibling; n && n.classList.contains('ft-tile'); n = n.nextElementSibling) last = n;
+    // in the group's own order (the athlete's card order, else the coach's rank), so a ladder tile does not trail the rest
+    const co = CX.cardOrder(group), rk = new Map(CX.kind('fit_kpi').map((k) => [k.key, Number(k.rank)])), at = (k) => (co && co.includes(k) ? co.indexOf(k) : 1e3 + (rk.get(k) || 1e3));
+    let last = h; for (let n = h.nextElementSibling; n && n.classList.contains('ft-tile'); n = n.nextElementSibling) { if (at(n.dataset.k) > at(tile.dataset.k)) { n.before(tile); return; } last = n; }
     last.after(tile);
   }
 

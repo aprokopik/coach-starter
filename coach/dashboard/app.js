@@ -2,7 +2,7 @@
 // The Season tab and the Week race-week card are in season.js (loaded right after this file), which reads these helpers from
 // window.CX.app and registers CX.renderRaces and CX.renderRaceWeek; the other tabs' files load after it (index.html, MAINTAIN.md).
 (() => {
-  const { N, dayN, isoN, monday } = window.CX;
+  const { N, dayN, isoN, monday, U } = window.CX; // U: the person's units (calc.js)
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = String(txt); return e; };
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -790,7 +790,7 @@
     box.replaceChildren();
     const by = Object.fromEntries(d.data.map((r) => [r.metric, r]));
     const s = by.sleep_h;
-    if (!VITALS.some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after the next Garmin pull.'); renderCall(by); return; }
+    if (!VITALS.some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
     cardState(sect, null);
     $('n-date').textContent = s ? `Morning of ${fWd(P(s.date))}` : '';
     // stale: the newest night is older than this morning
@@ -1506,19 +1506,19 @@
     // the scorecard status is a Cockpit badge (on plan = Good, off the band = Watch, no plan path = Unknown), glyph and word
     const scw = sc ? mark(badge({ on: 'good', watch: 'watch' }[sc.status] || 'unknown', sc.status_text, 'hp-wbadge'), 'scorecard', null, 'goal=weight', 'status') : null;
     const gw = $('g-weight-now'); gw.replaceChildren();
-    if (last) { gw.append('Now ', mark(el('span', 'ck-fig', f1(last.avg7)), 'weight_trend', 'avg7', 'date=' + last.date), ' lb (', ruleSpan('7-day', 'calc.js weight_trend: 7-day average'), ')'); if (sc && sc.note) gw.append(' · ', mark(el('span', null, sc.note), 'scorecard', 'note', 'goal=weight')); if (scw) gw.append(' ', scw); }
+    if (last) { gw.append('Now ', mark(el('span', 'ck-fig', f1(last.avg7)), 'weight_trend', 'avg7', 'date=' + last.date), ' ' + U.wtU() + ' (', ruleSpan('7-day', 'calc.js weight_trend: 7-day average'), ')'); if (sc && sc.note) gw.append(' · ', mark(el('span', null, sc.note), 'scorecard', 'note', 'goal=weight')); if (scw) gw.append(' ', scw); }
     lineChart(box, rows, {
-      key: 'weight', h: 230, digits: 0, unit: 'lb', xDomain: [from, endD], yDomain: [yLo, yHi], yTicks: d3.ticks(yLo, yHi, 4),
+      key: 'weight', h: 230, digits: 0, unit: U.wtU(), xDomain: [from, endD], yDomain: [yLo, yHi], yTicks: d3.ticks(yLo, yHi, 4),
       title: 'Weight, 7-day average', window: spanName(), marks: { source: 'weight_trend', field: 'avg7', key: 'date' },
       bands: [{ lo: 'p_lo', hi: 'p_hi', tone: 'series-2', opacity: 0.14, personal: false }],
-      boxes: target ? [{ start: target.start, end: target.end, lo: N(target.lo), hi: N(target.hi), label: `${f0(N(target.lo))} to ${f0(N(target.hi))} lb target`, marks: { source: 'coach', where: 'kind=target&key=weight', field: 'hi' } }] : [],
+      boxes: target ? [{ start: target.start, end: target.end, lo: N(target.lo), hi: N(target.hi), label: `${f0(N(target.lo))} to ${f0(N(target.hi))} ${U.wtU()} target`, marks: { source: 'coach', where: 'kind=target&key=weight', field: 'hi' } }] : [],
       strips: strips.map((s) => ({ ...s, tone: 'fg-3' })),
       series: [
         { key: 'avg7', label: '7-day average', tone: 'series-1', connect: true, endFmt: f1 },
         { key: 'weight_lb', label: 'Weigh-in', tone: 'fg-3', dots: true, line: false, end: false },
         { key: 'p_mid', label: 'Plan', short: 'Plan', tone: 'series-2', dashed: true, connect: true },
       ],
-      tipLines: (r) => [r.avg7 !== undefined ? { tone: 'series-1', text: `7-day average: ${f1(r.avg7)} lb` } : null, r.weight_lb !== undefined ? { text: `Weigh-in: ${f1(r.weight_lb)} lb` } : null, r.p_mid !== undefined ? { tone: 'series-2', text: `Plan: ${f1(r.p_mid)} (${f1(r.p_lo)}–${f1(r.p_hi)})` } : null].filter(Boolean),
+      tipLines: (r) => [r.avg7 !== undefined ? { tone: 'series-1', text: `7-day average: ${f1(r.avg7)} ${U.wtU()}` } : null, r.weight_lb !== undefined ? { text: `Weigh-in: ${f1(r.weight_lb)} ${U.wtU()}` } : null, r.p_mid !== undefined ? { tone: 'series-2', text: `Plan: ${f1(r.p_mid)} (${f1(r.p_lo)}–${f1(r.p_hi)})` } : null].filter(Boolean),
     });
     { const lg = $('c-weight-legend'); if (lg) { lg.replaceChildren(); lg.hidden = true; } } // direct labels replace the legend
   }
@@ -1593,7 +1593,7 @@
     const st = dsState('volume');
     if (st) { if (window.CKC) CKC().clear(box); cardState(card, st, st === 'error' ? 'The volume by week did not arrive. Nothing saved is lost.' : ''); return; }
     const vr = rowsOk('volume');
-    if (!vr.length) { CKC().clear(box); cardState(card, 'empty', 'No sessions from Garmin yet. Weeks fill in as activities sync.'); return; }
+    if (!vr.length) { CKC().clear(box); cardState(card, 'empty', 'No sessions yet. Weeks fill in as activities sync.'); return; }
     cardState(card, null);
     const sp = state.vSport, m = state.vMeasure;
     const cur = monday(TODAY);
@@ -1606,7 +1606,7 @@
     const by = {}; for (const r of vr) by[r.week + '|' + r.sport] = r;
     const table = weeks.map((w) => { const o = { week: w, sessions: 0 }; for (const k of sports) { const r = by[w + '|' + k]; o[k] = r ? N(r[field]) || 0 : 0; o.sessions += r && (m === 'time' || o[k] > 0) ? r.sessions : 0; } o.total = sports.reduce((s, k) => s + o[k], 0); return o; });
     const present = sports.filter((k) => table.some((t) => t[k] > 0));
-    const unit = m === 'time' ? 'h' : m === 'climb' ? 'ft' : sp === 'swim' ? 'yd' : 'mi';
+    const unit = m === 'time' ? 'h' : m === 'climb' ? U.elevU() : sp === 'swim' ? U.ydU() : U.distU();
     const fv = m === 'time' ? f1 : m === 'climb' || sp === 'swim' ? fInt : f1;
     const full = table.filter((t) => t.week !== cur);
     const avg = avgOf(full.map((t) => t.total));
@@ -1638,7 +1638,7 @@
       tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: [{ text: `${fv(t.total)} ${unit}${t.week === cur ? ' so far' : ''}` }, ...(sp === 'all' ? present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${fv(t[k])} ${unit}` })) : [])] }; },
     });
     $('c-vol-note').replaceChildren(m === 'dist' ? 'Distance is per sport' + (sp === 'swim' ? ' (swims in yards).' : '.') : m === 'climb' ? 'Climb: elevation gain from Garmin (Zwift counts its virtual climbing).' : 'Mon–Sun weeks; hikes and walks combined; sauna not counted.',
-      ' This week is lighter until it ends. Garmin history starts ', vd(fDay(P(firstW)), 'first-week', 'week=' + firstW), '.');
+      ' This week is lighter until it ends. History starts ', vd(fDay(P(firstW)), 'first-week', 'week=' + firstW), '.');
   }
   // Measure and sport: native radios in Cockpit segmented controls (arrow keys move); the same pairing rules as before
   for (const inp of document.querySelectorAll('#v-sport input')) inp.addEventListener('change', () => { if (!inp.checked) return; state.vSport = inp.value; if (state.vSport === 'all' && state.vMeasure === 'dist') state.vMeasure = 'time'; drawVolume(); ftFocus('#v-sport input:checked'); });
@@ -1652,7 +1652,7 @@
     const st = dsState('coach');
     if (st) { if (window.CKC) box.querySelectorAll('.ck-chart').forEach((c) => CKC().clear(c)); cardState(card, st, st === 'error' ? 'The heart-rate zones did not arrive. Nothing saved is lost.' : ''); return; }
     const rows = kind('hrz'); const zr = kind('zone');
-    if (!rows.length || !zr.length) { cardState(card, 'empty', ['No heart-rate zone data yet. It fills in from Garmin’s ', ruleSpan('2-minute', ZONE_RULE), ' heart rate after each session.']); return; }
+    if (!rows.length || !zr.length) { cardState(card, 'empty', ['No heart-rate zone data yet. It fills in from your watch’s ', ruleSpan('2-minute', ZONE_RULE), ' heart rate after each session.']); return; }
     cardState(card, null);
     const firstZ = rows.reduce((a, r) => (r.date < a ? r.date : a), TODAY);
     const len = SPANS[state.span][0] || TN - dayN(firstZ) + 1; const prevName = SPANS[state.span][1];
@@ -1886,9 +1886,9 @@
     const RULE_8W = 'app.js markerSummary: the 28-day mean now against the 28 days ending 8 weeks earlier';
     const tiles = [];
     const sR = markerSummary(run, 'value', TN);
-    tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: '/mi', delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['flat run', 'flat runs'], none: 'No flat runs yet', asOf: sR ? sR.asOf : null });
+    tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: U.paceU(), delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['flat run', 'flat runs'], none: 'No flat runs yet', asOf: sR ? sR.asOf : null });
     const sB = markerSummary(bike, 'value', TN);
-    tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No Zwift rides yet', asOf: sB ? sB.asOf : null, lastD: bike.length ? Math.max(...bike.map((r) => dayN(r.date))) : null, staleAfter: BIKE_STALE_DAYS });
+    tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No indoor rides with power yet', asOf: sB ? sB.asOf : null, lastD: bike.length ? Math.max(...bike.map((r) => dayN(r.date))) : null, staleAfter: BIKE_STALE_DAYS });
     { const pn = $('f-expand'); if (pn && pn.parentNode === tilesBox) tilesBox.after(pn); }
     tilesBox.replaceChildren();
     for (const t of tiles) {
@@ -1913,7 +1913,7 @@
     }
     for (const m of kind('marker').filter((x) => x.section === 'fitness').sort((a, b) => a.order - b.order)) tilesBox.append(markerTile(m, state.fit, ftPick));
     groupFitness(tilesBox);
-    if (!tilesBox.querySelector('.ft-tile, .mx-map')) { cardState(card, 'empty', 'No fitness markers yet. They fill in as runs and Zwift rides arrive from Garmin.'); return; }
+    if (!tilesBox.querySelector('.ft-tile, .mx-map')) { cardState(card, 'empty', 'No fitness markers yet. They fill in as your sessions sync.'); return; }
     const panel = $('f-expand');
     if (!placeExpand(tilesBox, panel, state.fit)) { state.fit = null; return; }
     if (state.fit === 'run' || state.fit === 'bike') { for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); } $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
@@ -2051,14 +2051,14 @@
   // Bike speed at 130 bpm draws like the power chart (the athlete, Nov 15, 2026: "I also have no data for bike speed at 130 charted"):
   // each flat outdoor ride and its 28-day average, from the figure's rides (bike_speed.py)
   function speedChart(box, m) {
-    const all = String(m.rides || '').split('|').map((s) => s.split(' ')).filter((p) => p.length === 2 && N(p[1]) !== null).map(([date, v]) => ({ date, value: N(v) }));
+    const all = String(m.rides || '').split('|').map((s) => s.split(' ')).filter((p) => p.length === 2 && N(p[1]) !== null).map(([date, v]) => ({ date, value: U.speed(N(v)) }));
     if (!all.length) { box.style.removeProperty('--h'); box.replaceChildren(el('p', 'ck-note', 'No ride history yet.')); return; }
     for (const r of all) { const d = dayN(r.date), w = all.filter((x) => dayN(x.date) > d - 28 && dayN(x.date) <= d); r.avg28 = d3.mean(w, (x) => x.value); }
     const vals = all.flatMap((r) => [r.value, r.avg28]); let lo = d3.min(vals), hi = d3.max(vals); const pad = (hi - lo) * 0.15 || 0.5; lo = Math.max(0, lo - pad); hi += pad;
-    lineChart(box, all, { key: 'fit-bikespeed', h: 190, today: true, main: 1, head: 0, fmt: f1, unit: 'mph', endUnit: 'mph', title: `Bike speed at ${ANC().bike} bpm, 28-day average`,
+    lineChart(box, all, { key: 'fit-bikespeed', h: 190, today: true, main: 1, head: 0, fmt: f1, unit: U.speedU(), endUnit: U.speedU(), title: `Bike speed at ${ANC().bike} bpm, 28-day average`,
       marks: { source: 'coach', field: 'rides', where: 'kind=cat_metric&key=bikespeed', key: 'date' }, yDomain: [lo, hi], yTicks: d3.ticks(lo, hi, 4), xDomain: [all[0].date, TODAY],
       series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE.bike, connect: false, width: 2.5 }, { key: 'value', label: 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
-      tipLines: (r) => [{ text: `${f1(r.value)} mph near ${ANC().bike} bpm` }, { tone: SPORT_TONE.bike, text: `28-day average: ${f1(r.avg28)} mph` }] });
+      tipLines: (r) => [{ text: `${f1(r.value)} ${U.speedU()} near ${ANC().bike} bpm` }, { tone: SPORT_TONE.bike, text: `28-day average: ${f1(r.avg28)} ${U.speedU()}` }] });
   }
   function drawFitChart(run, bike) {
     const box = $('c-fit'); const lg = $('c-fit-legend'); const note = $('f-note');
@@ -2082,12 +2082,12 @@
       if (closeR) { [lo, hi] = stretch(closeR, vals); if (k === 'bike' && lo < 0) lo = 0; }
       const ticks = closeR ? (() => { const step = k === 'run' ? (hi - lo > 4 ? 1 : hi - lo > 2 ? 0.5 : 0.25) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : d3.ticks(lo, hi, 4);
       lineChart(box, rows, {
-        key: 'fit-' + k, h: 190, narrow: pts2.length ? { h: 280 } : undefined, today: true, main: 1, head: 0, fmt: k === 'run' ? mss : f0, unit: k === 'run' ? 'min/mi' : 'W', endUnit: k === 'run' ? '/mi' : 'W',
+        key: 'fit-' + k, h: 190, narrow: pts2.length ? { h: 280 } : undefined, today: true, main: 1, head: 0, fmt: k === 'run' ? mss : f0, unit: k === 'run' ? 'min' + U.paceU() : 'W', endUnit: k === 'run' ? U.paceU() : 'W',
         words: k === 'run' ? ['slower', 'faster'] : undefined, title: k === 'run' ? `Run pace at ${ANC().run} bpm, 28-day average` : `Bike power at ${ANC().bike} bpm, 28-day average`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
         blocks: blockDraw, sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
         series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
         tipLines: (r) => k === 'run'
-          ? [{ text: `${mss(r.raw)}/mi at ${r.hr} bpm, ${f1(r.miles)} mi` }, { text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}/mi` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
+          ? [{ text: `${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, ${f1(r.miles)} ${U.distU()}` }, { text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
           : [{ text: `${r.raw} W at ${r.hr} bpm, ${r.minutes} min` }, { text: `At ${N(r.anchor) || ANC().bike} bpm: ${f0(r.value)} W` }, r.avg28 !== null ? { tone, text: `28-day average: ${f0(r.avg28)} W` } : null].filter(Boolean),
       });
       lg.replaceChildren(); lg.hidden = true; // direct labels replace the legend
@@ -2097,7 +2097,7 @@
         ? `Each run’s pace scaled to the same ${ANC().run} bpm (your easy heart rate) using your resting HR, so easy and hard runs compare. Up is faster. Flat runs only. Heat pushes HR up, so part of a gain after summer is cooler weather. Estimated.`
         : `Each Zwift ride’s average power scaled to the same ${ANC().bike} bpm (your easy heart rate) using your resting HR. Up is more power for the same heart rate. Indoor rides only (no power outdoors). Estimated.`;
       if (cm && latest !== undefined) {
-        const vf = k === 'run' ? (v) => mss(v) + '/mi' : (v) => f0(v) + ' W'; const sg = (g) => (k === 'run' ? `${g >= 0 ? '+' : '−'}${mss(Math.abs(g))}` : `${g >= 0 ? '+' : '−'}${f0(Math.abs(g))} W`);
+        const vf = k === 'run' ? (v) => mss(v) + U.paceU() : (v) => f0(v) + ' W'; const sg = (g) => (k === 'run' ? `${g >= 0 ? '+' : '−'}${mss(Math.abs(g))}` : `${g >= 0 ? '+' : '−'}${f0(Math.abs(g))} W`);
         const better = k === 'run' ? -1 : 1; const edge = cur ? (better === 1 ? cur.hi : cur.lo) : null; const nextBand = cur ? ts.find((t) => (better === 1 ? t.lo === cur.hi : t.hi === cur.lo)) : null;
         const gap = edge !== null && edge !== undefined && nextBand ? `${sg(latest - edge)} vs ${nextBand.label} (${vf(edge)})` : '—';
         $('f-detail').replaceChildren(markerDetail({ ...cm, gap, rank: cur ? cur.label : '' }, { rows: bc.full, note: ruleSpan(calcNote, 'app.js drawFitChart: calculation note (calc.js fitness description)'), goal: bc.goal, nextText: bc.nextText }));
@@ -2254,10 +2254,11 @@
   const inTier = (t, v) => (t.lo === null || v >= t.lo) && (t.hi === null || v < t.hi);
   function valFmt(m, short) {
     const k = m.key, u = short ? '' : (m.unit || '');
-    if (k === 'swim') return (v) => `${mss(v / 60)}${short ? '' : ' /100 yd'}`;
+    if (k === 'swim') return (v) => `${mss(v / 60)}${short ? '' : ' ' + U.swimU()}`;
     if (RT(k)) return (v) => rtime(v);
-    if (k === 'run' || k === 'trailgap') return (v) => `${mss(v)}${short ? '' : '/mi'}`;
+    if (k === 'run' || k === 'trailgap') return (v) => `${mss(v)}${short ? '' : U.paceU()}`;
     if (k === 'trailspeed') return (v) => `${mss(v)}${short ? '' : ' /effort km'}`;
+    if (k === 'trail') return (v) => `${mss(v)}${short ? '' : ' h'}`; // hours as h:mm (stranger test finding 8)
     if (k === 'wkg') return (v) => `${window.CX.fixed(v, 2)}${short ? '' : ' W/kg'}`;
     if (k === 'sleepreg') return (v) => `±${f0(v)}${short ? '' : ' min'}`;
     if (k === 'durability' || k === 'traildur') return (v) => `${f1(v)}%`;
@@ -2267,8 +2268,9 @@
   function deltaFmt(m) {
     const k = m.key, u = m.unit || '';
     if (k === 'swim') return (d) => `${Math.round(d)} s`;
-    if (RT(k) || k === 'run' || k === 'trailgap') return (d) => mss(d) + (RT(k) ? '' : '/mi');
+    if (RT(k) || k === 'run' || k === 'trailgap') return (d) => mss(d) + (RT(k) ? '' : U.paceU());
     if (k === 'trailspeed') return (d) => mss(d) + ' /effort km';
+    if (k === 'trail') return (d) => mss(d) + ' h';
     if (k === 'wkg') return (d) => `${window.CX.fixed(d, 2)} W/kg`;
     if (k === 'sleepreg') return (d) => `${f0(d)} min`;
     if (k === 'durability' || k === 'traildur' || k === 'le8' || k === 'vo2') return (d) => `${f1(d)} points`;
@@ -2389,7 +2391,7 @@
     let lo = Math.floor(d3.min(all) / 200) * 200, hi = Math.ceil(d3.max(all) / 200) * 200; if (hi - lo < 400) { lo -= 200; hi += 200; }
     const last = CLIMB_SPLITS.map((g, i) => { const r = [...runs].reverse().find((q) => q.v[i] !== null); return r ? { v: r.v[i], date: r.date } : null; });
     const fN = (v) => Math.round(v).toLocaleString('en-US');
-    const sentence = `Climbing at ${ANC().run} bpm by grade, run by run, ${spanName()}: ` + CLIMB_SPLITS.map(([, nm], i) => (last[i] ? `${nm} ${fN(last[i].v)} ft/h on ${fDay(P(last[i].date))}` : `${nm} no run yet`)).join('; ') + '. Steeper ground reads higher at the same effort, so compare each grade with its own past.';
+    const sentence = `Climbing at ${ANC().run} bpm by grade, run by run, ${spanName()}: ` + CLIMB_SPLITS.map(([, nm], i) => (last[i] ? `${nm} ${fN(last[i].v)} ${U.elevU()}/h on ${fDay(P(last[i].date))}` : `${nm} no run yet`)).join('; ') + '. Steeper ground reads higher at the same effort, so compare each grade with its own past.';
     const H = 230;
     CKC().custom(box, { key: 'marker-climb-runs', h: H, minW: 280, interactive: false, marks: { source: 'coach', field: 'g1', where: 'kind=mpt&key=climb', key: 'date' }, sentence,
       draw: ({ svg: node, W, T }) => {
@@ -2418,7 +2420,7 @@
         }
         return { H, sentence };
       } });
-    const nb = el('p', 'ck-note ft-basis'); nb.append(ruleSpan(`Each column is one hilly run or hike: a dot per grade, ft per hour at ${ANC().run} bpm. Compare each colour with its own past; steeper ground reads higher at the same effort.`, 'app.js drawClimbRuns: the splits 10 to 15%, 15 to 20% and 20%+ come from trail_effort.SPLITS, each needing 3 min in the run'));
+    const nb = el('p', 'ck-note ft-basis'); nb.append(ruleSpan(`Each column is one hilly run or hike: a dot per grade, ${U.metric() ? 'metres' : 'ft'} per hour at ${ANC().run} bpm. Compare each colour with its own past; steeper ground reads higher at the same effort.`, 'app.js drawClimbRuns: the splits 10 to 15%, 15 to 20% and 20%+ come from trail_effort.SPLITS, each needing 3 min in the run'));
     box.before(nb);
   }
   function drawMarker(m, box, lg, note, withWhy) {
@@ -2476,7 +2478,7 @@
       const parts = [m.chart === 'line' && lineTag ? `Line: ${lineTag}` : !hasRaw && dotTag ? `Dots: ${dotTag}` : null, hasRaw && dotTag ? `Dots: ${dotTag}` : null, hasOff ? 'Grey dots: hard, uneven or outdoor, not scored' : null].filter(Boolean);
       if (parts.length) { const kl = el('p', 'ck-note ft-basis ft-key'); kl.textContent = parts.join(' · '); box.before(kl); }
     }
-    const axisL = m.key === 'trailgap' ? 'min:s per mile' : m.key === 'trailspeed' ? 'min:s per effort km' : RT(m.key) ? (/^(half|marathon|t40k|t90k|t100k|t100mi)$/.test(m.key) ? 'time, h:mm:ss' : m.key === '10k' ? 'time' : 'time, min:s') : m.key === 'swim' ? 'min:s per 100 yd' : undefined;
+    const axisL = m.key === 'trailgap' ? (U.metric() ? 'min:s per km' : 'min:s per mile') : m.key === 'trailspeed' ? 'min:s per effort km' : RT(m.key) ? (/^(half|marathon|t40k|t90k|t100k|t100mi)$/.test(m.key) ? 'time, h:mm:ss' : m.key === '10k' ? 'time' : 'time, min:s') : m.key === 'swim' ? 'min:s per 100 yd' : undefined;
     const lowerBetter = m.key === 'swim' || (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed') || m.key === 'durability' || m.key === 'traildur' || m.key === 'rhr' || m.key === 'sleepreg';
     lineChart(box, rows, {
       key: 'marker-' + m.key, h: 190, narrow: ts.length ? { h: 280 } : undefined, today: false, axisLabel: axisL, nice: !lowerBetter || m.key === 'rhr' || m.key === 'sleepreg', main: 0, head: 0, fmt, unit: m.unit || '', words: (m.key === 'swim' || (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed')) ? ['slower', 'faster'] : undefined, title: m.chart_title || m.label, window: spanName(), marks: { source: 'coach', field: 'value', where: 'kind=mpt&key=' + m.key, key: 'date' },
@@ -2487,7 +2489,7 @@
       tbands: !ts.length ? undefined : zoom === 'close' ? subBands(m, last, (t) => basisOf(t.basis).tone) : tbands, sublines: zoom === 'close' ? undefined : subEdges(m), yMin: ['strength', 'sauna', 'le8', 'sleepreg', 'wkg'].includes(m.key) ? 0 : undefined,
       hbands: (m.key === 'durability' || m.key === 'traildur') && !ts.length ? [[0, 5]] : undefined,
       series: [{ key: 'value', label: m.label, tone: col, dots: !hasRaw, line: m.chart === 'line', connect: m.chart === 'line', r: 3, width: hasRaw ? 2.5 : 2, smooth: hasRaw || m.key === 'rhr', tag: keyed ? undefined : lineTag }, ...(hasRaw ? [{ key: 'raw', label: m.key === 'durability' ? 'Steady session' : 'This run', tone: m.key === 'durability' ? col : 'fg-3', dots: true, line: false, r: m.key === 'durability' ? 3 : 2.5, end: false, tag: keyed ? undefined : dotTag }] : []), ...(hasOff ? [{ key: 'off', label: 'Not scored', tone: 'fg-3', dots: true, line: false, r: 2.5, end: false, tag: keyed ? undefined : 'hard, uneven or outdoor: not scored' }] : [])],
-      tipLines: (r) => [{ text: `${fmt(m.key === 'durability' ? (r.raw !== null ? r.raw : r.off !== null ? r.off : r.value) : r.value)}${m.unit && m.unit !== '/100 yd' ? ' ' + m.unit : m.unit === '/100 yd' ? ' /100 yd' : ''}` }, r.extra ? { text: r.extra } : null].filter(Boolean),
+      tipLines: (r) => [{ text: `${fmt(m.key === 'durability' ? (r.raw !== null ? r.raw : r.off !== null ? r.off : r.value) : r.value)}${m.unit ? ' ' + m.unit : ''}` }, r.extra ? { text: r.extra } : null].filter(Boolean),
       digits: 0,
     });
     if (lg) { lg.replaceChildren(); lg.hidden = true; } // direct labels replace the legend

@@ -18,6 +18,8 @@ themselves (rungs, thresholds, rule text) are in the catalog's `ladders` list, t
 
 Pure functions; catalog.py gathers the files.
 """
+import json
+import os
 import re
 from datetime import date, timedelta
 
@@ -119,8 +121,22 @@ def through(ladder, v):
     return round(max(0.0, min(1.0, (v - lo) / (hi - lo))), 2) if hi > lo else None
 
 
+WALKS_TRAIN = False  # set by levels(): for someone whose own sport is walking, a walk is a training day
+
+
+def walks_are_training(root="."):
+    """True when the person's Fitness tab has a walking group (setup puts one there for someone who walks for fitness)."""
+    try:
+        rows = json.load(open(os.path.join(root, "coach/fitness_layout.json"))).get("rows", [])
+    except (OSError, ValueError, AttributeError):
+        return False
+    return any(r.get("kind") == "fit_group" and r.get("key") == "walking" for r in rows)
+
+
 def _counts(a, typ):
     """Does activity `a` count for habit type `typ`? "train" also leaves out a sauna session, which has no type of its own."""
+    if typ == "train" and WALKS_TRAIN and "walk" in str(a.get("type") or "").lower():
+        return "sauna" not in str(a.get("name") or "").lower()
     if typ not in kind_of(a.get("type")):
         return False
     return not (typ == "train" and "sauna" in str(a.get("name") or "").lower())
@@ -201,6 +217,24 @@ def habit_weeks(h, acts, lift_days, summ, plan, today, profile, weeks=12, share=
     return out
 
 
+# Standard triathlon legs in miles (swim, bike, run), for a race written as one total ("226 km") or by its name
+TRI_STD = {"full": (2.4, 112.0, 26.2), "half": (1.2, 56.0, 13.1), "olympic": (0.93, 24.8, 6.2), "sprint": (0.47, 12.4, 3.1)}
+
+
+def _tri_legs(text, hits):
+    t = text.lower()
+    kind = ("half" if re.search(r"70\.3|half", t) else "full" if re.search(r"140\.6|full|ironman\b(?! 70)", t) else
+            "olympic" if "olympic" in t or "standard" in t else "sprint" if "sprint" in t else None)
+    if not kind and len(hits) == 1:
+        v, unit = float(hits[0][0]), hits[0][1].lower()
+        km = v / MI_PER_KM if unit in ("mi",) else v
+        kind = min(TRI_STD, key=lambda k: abs(sum(TRI_STD[k]) / MI_PER_KM - km)) if km > 15 else None
+    if not kind:
+        return {}
+    sw, bk, rn = TRI_STD[kind]
+    return {"swim": sw, "bike": bk, "run": rn}
+
+
 def _legs(text, sport):
     """Miles per discipline in a race's distance text, only where it reads one way: '1.2 mi swim, 56 mi bike, 13.1 mi run',
     '50K', '100 mi'. A text offering several distances reads as nothing."""
@@ -211,6 +245,10 @@ def _legs(text, sport):
     if out:
         return out
     hits = re.findall(r"(\d+(?:\.\d+)?)\s*(mi|km|k|m)\b", text, flags=re.I)
+    if "triathlon" in sport:
+        tri = _tri_legs(text, hits)
+        if tri:
+            return tri
     if len(hits) != 1 or re.search(r"\bto\b|\bor\b|offered", text, flags=re.I):
         return {}
     v, unit = float(hits[0][0]), hits[0][1].lower()
@@ -247,8 +285,10 @@ def event_needs(races, today, rule, days=365):
     return best
 
 
-def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=()):
+def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=(), walker=False):
     """{metric key: {level, next, rungs, ladder_label, rule, + figure overrides}} for habit, ready and guide metrics."""
+    global WALKS_TRAIN
+    WALKS_TRAIN = bool(walker)
     lad = {l["key"]: l for l in cat.get("ladders", [])}
     since = today - timedelta(weeks=110)
     lift_days = set()
@@ -302,7 +342,7 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
             note = (f"{old['value']} {old.get('unit', '')}".strip() + ". " if old.get("value") else "") + \
                 (f"{skipped} missed week{'s' if skipped != 1 else ''} forgiven inside this run. " if skipped else "") + \
                 (f"{planned} of the last 12 weeks had a plan on record; the others use your minimum." if planned and planned < 12 else "Against your plan." if planned else "") + \
-                (f" A week counts with {int(_num(m['habit'].get('min')) or 1)} or more training days; two sessions on one day count once, walks and sauna do not." if meas == "days" else "")
+                (f" A week counts with {int(_num(m['habit'].get('min')) or 1)} or more training days; two sessions on one day count once, " + ("walks count, sauna does not." if WALKS_TRAIN else "walks and sauna do not.") if meas == "days" else "")
             rungs = "|".join(([f"{mo} months and counting"] if mo > 3 else ["Beyond: the months keep counting"]) + ["3 months", "3 weeks", "3 days", "Starting"])
             out[k] = {**base, "rungs": rungs, "value": str(held), "unit": "weeks held" if held != 1 else "week held", "chip": "3-3-3", "note": note.strip(),
                       "level": f"{mo} months and counting" if mo > 3 else cur, "pct": pct, "next": nx, "weeks": "".join("1" if ok else "0" for _, ok, _w in wk[-12:])}

@@ -232,7 +232,8 @@ def section_freshness(today, data):
     flags = []
     # Daily health comes from the Garmin pull, or for athletes without Garmin from the Apple Health
     # Shortcut (scripts/apple_health.py writes source "apple_health" into the same status file).
-    apple = st.get("source") == "apple_health"
+    # before the first send the status file is empty: the profile's data source says which (A coach for any person)
+    apple = st.get("source") == "apple_health" or (not st.get("source") and read_json("coach/athlete/profile.json", {}).get("data_source") == "apple_health")
     if not today_sleep:
         flags.append("Last night's sleep is missing: the iPhone Shortcut has probably not sent it yet (unlocking the phone after waking, or running 'Send health to coach', sends it). Lowers confidence, never readiness."
                      if apple else
@@ -1377,6 +1378,9 @@ def section_bp_week(today):
 
 
 def bp_week_flags(f):
+    # only for someone who keeps home blood pressure weeks: setup drops the home_bp path when it was not chosen
+    if not any(p.get("id") == "home_bp" for p in read_json("coach/ops/data_paths.json", {}).get("paths", [])):
+        return []
     nw = f.get("bp_week") or {}
     if nw.get("error"):
         return [{"rule": "data quality", "text": f"Home BP cadence failed ({nw['error']}). Say it in the check-in's last line."}]
@@ -1440,6 +1444,10 @@ def build(today):
     import experiments  # noqa: E402  (personal experiments record, roadmap week 3)
     f["experiments"] = experiments.section(today, ROOT)
     f["flags"] = build_flags(f, th)
+    import units  # noqa: E402  (the person's own units in every line the coach reads out; A coach for any person, Nov 16, 2026)
+    u = units.setting(ROOT)
+    f["units"] = u
+    f["flags"] = [{**fl, "text": units.text(fl.get("text"), u)} for fl in f["flags"]]
     return f
 
 

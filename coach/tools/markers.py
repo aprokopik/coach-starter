@@ -43,8 +43,8 @@ BASIS_OVERRIDE = {("consistency", "Better"): "coach", ("consistency", "Best"): "
                   ("durability", "Low decoupling"): "research", ("durability", "Moderate decoupling"): "research", ("durability", "High decoupling"): "research"}
 # What fixes each scale and what moves it (shown as the Anchor line). Scales never move by themselves; every change is logged.
 ANCHOR = {
-    "run": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all 70.3 run splits (Knechtle 2023) as pace per mile, read as 'if you held this pace for the 13.1 mi run leg' for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). Orange lines = the block goal. No coaching-guideline scale exists for pace at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Levels and milestones are read against the current block. Race-day reference: easy pace matching the 70.3 run forecast is 10:00–11:30/mi.",
-    "bike": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all 70.3 bike splits (Knechtle 2023) turned into watts for a flat course through a power model (Estimated) for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Orange lines = the block goal. No coaching-guideline scale exists for power at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast, the FTP test and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Race-day reference: the 70.3 bike forecast becomes a mostly easy ride at about 100–130 W at 130 bpm.",
+    "run": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the general population model for your age and sex (with a triathlon on your race list, also all 70.3 run splits, Knechtle 2023, read as 'if you held this pace for the 13.1 mi run leg'), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). Orange lines = the block goal. No coaching-guideline scale exists for pace at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Levels and milestones are read against the current block. The target line is your own, from your profile, or a plain coach guide.",
+    "bike": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the general population model for your age and sex (with a triathlon on your race list, also all 70.3 bike splits, Knechtle 2023, turned into watts for a flat course through a power model, Estimated), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Orange lines = the block goal. No coaching-guideline scale exists for power at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast, the FTP test and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. The target line is your own, from your profile, or a plain coach guide.",
     "swim": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all IRONMAN 70.3 finishers 2004–2020 (Knechtle 2023, normal approximation from the published mean and SD) for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). The Cutoff risk band uses the race's 1.2 mi and 1:10 cutoff (estimated until the 2027 athlete guide). Judgment: pool pace vs an open-water race pace, and a 70.3 is usually non-wetsuit.",
     "ftp": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Shown in watts at your weight on the test day; they move only when a new FTP result lands.",
     "wkg": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail).",
@@ -296,6 +296,37 @@ def wkg_general(g):
             "source": f"Estimated by the coach from {vo2_norms.SOURCE}", "url": "https://doi.org/10.1016/j.mayocp.2021.08.020", "date": "2026-11", "n": 0, "breakpoints": bp,
             "sex": g["sex"], "age_band": g["band"], "short": f"{g['label']}, general population (modelled)", "estimated": True,
             "note": f"A model: VO2max on cycle tests for {g['label']} turned into the power at VO2max, with FTP taken as {FTP_SHARE * 100:.0f}% of it. Most of these adults do not ride, so read it as where your engine sits among adults of your age and sex."}
+
+
+# Each person's own targets (A coach for any person, 6.89.0): a target that names a race or a forecast lives in
+# profile.json `fitness_targets` (run, bike, swim, wkg), never in this file; without one the tile gets a plain coach guide.
+# The 70.3 comparison is offered only to someone with a triathlon on their race list.
+GENERIC_TARGET = {
+    "run": "Faster at the same heart rate, block over block; each block brief sets the next step (coach guide)",
+    "bike": "More power at the same heart rate, block over block; each block brief sets the next step (coach guide)",
+    "swim": "Faster per 100 at an easy effort, block over block (coach guide)",
+    "wkg": "Set from the next bike test (coach guide)",
+}
+
+
+def own_target(key, root="."):
+    try:
+        t = (json.load(open(os.path.join(root, "coach/athlete/profile.json"))).get("fitness_targets") or {}).get(key)
+    except (OSError, ValueError):
+        t = None
+    return t or GENERIC_TARGET[key]
+
+
+def next_triathlon(today=None, root="."):
+    """The next triathlon on the person's race list (name), or None: the 70.3 comparisons are offered only then."""
+    try:
+        rows = json.load(open(os.path.join(root, "coach/races.json"))).get("rows", [])
+    except (OSError, ValueError, AttributeError):
+        return None
+    t = str(today or date.today())
+    tri = sorted((r for r in rows if r.get("kind") == "race" and "triathlon" in str(r.get("sport", "")).lower()
+                  and r.get("status") != "done" and str(r.get("date", "")) >= t), key=lambda r: r.get("date", ""))
+    return tri[0].get("name") if tri else None
 
 
 def tile_compare(root="."):
@@ -852,6 +883,7 @@ def build(today, rows_so_far):
     N5K, NSW, NWKG, NDUR = (fit_ladder.pick(NR, k, NG) for k in ("5k", "hm703_swim_pace", "wkg", "marathon_decoupling"))
     NRUN, NBIKE = run_pace_norm(fit_ladder.pick(NR, "hm703_run", NG)), bike_w_norm(fit_ladder.pick(NR, "hm703_bike", NG))
     CMP = tile_compare()
+    TRI = next_triathlon(T)  # the 70.3 comparisons only for someone with a triathlon ahead (A coach for any person)
     GEN_ROWS = []
     # W/kg scales for the FTP tile, its W/kg row and the 20-minute best: the general population model first (the default),
     # then every W/kg population on file as a comparison
@@ -1094,7 +1126,7 @@ def build(today, rows_so_far):
                 st = fit_ladder.tiers(NSW, 1, lambda v: f"{mss(v)} /100 yd", floor=SWIM_CUTOFF[1])
                 rk, after = ladder("swim", NSW, sec, st, 1.0, extra=(SWIM_CUTOFF,))
                 word = "women" if NSW.get("sex") == "female" else "men"
-                annot("swim", f"Top half of 70.3 {word} ({mss(half)} /100 yd) by race day; the swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)",
+                annot("swim", f"Top half of 70.3 {word} ({mss(half)} /100 yd) by {TRI or 'your triathlon'}; {own_target('swim')}",
                       f"{sec - half:+.0f} s vs the top-half line · {mss(199 - sec)} per 100 yd inside the cutoff pace", st + [SWIM_CUTOFF], rk,
                       "Compared with IRONMAN 70.3 finishers. Bands are 70.3 swim percentiles (" + NSW['source'].split(':')[0] + ", normal approximation from the published mean and SD; the top 1% and 0.5% from a log-normal tail, Estimated), converted to pace per 100 yd over 2,112 yd; the bottom band is the 70.3 cutoff. Pool moving pace against open-water race times, so rough. One swim on record, 25 yd pool, moving time")
                 after()
@@ -1102,7 +1134,7 @@ def build(today, rows_so_far):
             def swim_general(_n=None):
                 ct = cooper_swim_tiers(NG)
                 nb = next(((l, hi_) for l, lo_, hi_, _x in reversed(ct) if hi_ is not None and hi_ <= sec), None)
-                annot("swim", "The a 70.3 swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)", (f"{sec - nb[1]:.0f} s per 100 yd to {nb[0]} ({mss(nb[1])})" if nb else "in the top category"), ct, tier_of(sec, ct),
+                annot("swim", own_target("swim"), (f"{sec - nb[1]:.0f} s per 100 yd to {nb[0]} ({mss(nb[1])})" if nb else "in the top category"), ct, tier_of(sec, ct),
                       f"Compared with the general population: Cooper's 12-minute swim test categories for {NG['label']} ({COOPER_URL}), as pace per 100 yd. Fitness categories for adults who can swim continuously, not percentiles. Your pace is a whole swim's moving pace, 25 yd pool.", scale="research")
                 msw.pop("splits", None)
             NMS = fit_ladder.pick(NR, "swim1500", NG, "masters")  # masters 1,500 yd times, read as pace per 100 yd
@@ -1112,16 +1144,16 @@ def build(today, rows_so_far):
                 st = fit_ladder.tiers(nm, 1, lambda v: f"{mss(v)} /100 yd")
                 rk, after = ladder("swim", nm, sec, st, 1.0)
                 nb = next(((l, hi_) for l, lo_, hi_, _x in reversed(st) if hi_ is not None and hi_ <= sec), None)
-                annot("swim", "The a 70.3 swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)", (f"{sec - nb[1]:.0f} s per 100 yd to {nb[0]} ({mss(nb[1])})" if nb else "in the top band"), st, rk,
+                annot("swim", own_target("swim"), (f"{sec - nb[1]:.0f} s per 100 yd to {nb[0]} ({mss(nb[1])})" if nb else "in the top band"), st, rk,
                       f"Compared with masters meet swimmers: {NMS['population']}, their 1,500 yd season bests read as pace per 100 yd. {NMS.get('note') or ''} Your pace is a whole swim's moving pace in training against race times, so rough.")
                 after()
                 msw["anchor"] = f"Percentile ladder, edges read from {NMS.get('short') or NMS['population']} (1,500 yd season bests as pace per 100 yd), {_fix}. Slower than the top 55% is an Estimated tail."
-            sw_sc = ([("general", "General population", swim_general)] if cooper_swim_tiers(NG) else []) + [("tri703", "IRONMAN 70.3 finishers", swim_tri)] + ([("masters", "Masters meet swimmers", swim_masters)] if NMS and NMS.get("compare") == "masters" else [])
+            sw_sc = ([("general", "General population", swim_general)] if cooper_swim_tiers(NG) else []) + ([("tri703", "IRONMAN 70.3 finishers", swim_tri)] if TRI or not cooper_swim_tiers(NG) else []) + ([("masters", "Masters meet swimmers", swim_masters)] if NMS and NMS.get("compare") == "masters" else [])
             if CMP.get("swim"):
                 sw_sc.sort(key=lambda x: x[0] != CMP["swim"])
             with_scales("swim", sw_sc, lambda fn: fn())
         else:
-            annot("swim", "a 70.3 swim cutoff pace is about 3:19 /100 yd (1:10 for 2,112 yd)", f"{mss(199 - sec)} per 100 yd inside the cutoff pace", SWIM_COACH_TIERS, tier_of(sec, SWIM_COACH_TIERS),
+            annot("swim", own_target("swim"), f"{mss(199 - sec)} per 100 yd inside the cutoff pace", SWIM_COACH_TIERS, tier_of(sec, SWIM_COACH_TIERS),
                   "Coaching convention, not research." + NO_NORM, scale="coach")
         if msw is not None:
             msw.pop("_pop", None)
@@ -1358,9 +1390,9 @@ def build(today, rows_so_far):
               f"Coggan power profile bands converted to watts at your weight on the test day ({kg_test:.1f} kg, weigh-in {_d(kg_date).strftime('%b %-d')}); fixed until the next test. Competitive-cyclist reference, not age-group. Rests on a ramp FTP the athlete believes is high." + NO_NORM, scale="coach")
     # Pace at 150 bpm and power at 130 bpm are computed on the page (calc 'fitness'); these rows carry their tiers and targets only
     for key, label, unit, tiers, target, src in (
-            ("run", "Run pace at 150 bpm", "/mi", RUN150_TIERS, "Stay inside Forecast pace (10:00–11:30/mi) through the base; under 10:00 by race day (coach guide)",
+            ("run", "Run pace at 150 bpm", "/mi", RUN150_TIERS, own_target("run"),
              "Flat runs, 28-day average of pace scaled to 150 bpm; heat and wind move it. The population bands assume the easy-HR pace held for the whole run leg, which is a floor, not a race prediction. Estimated."),
-            ("bike", "Bike power at 130 bpm", "W", BIKE130_TIERS, "Inside 100–130 W at 130 bpm by race day (coach guide); the next bike test refines these bands",
+            ("bike", "Bike power at 130 bpm", "W", BIKE130_TIERS, own_target("bike"),
              "Zwift rides only, trainer power (calibration unknown), 28-day average of power scaled to 130 bpm. The population bands assume this easy-HR power held for 56 flat miles through a power model: a floor, not a race prediction. Estimated.")):
         marker("calc", 0, key, label, "", unit, "", "", "", "", "Estimated", "line")
         out[-1]["why_hr"] = WHY_150 if key == "run" else WHY_130
@@ -1368,7 +1400,7 @@ def build(today, rows_so_far):
         if nr:  # the athlete's percentile ladder (Nov 8, 2026); block goal lines come from coach/levels.json, built on the page, and the page reads the level
             # Baseline: the general population model; the 70.3 legs are a comparison the Scale panel can switch to (the athlete, Nov 12, 2026)
             gen = easy_general(key, NG, hr=ANC[key])
-            sc = ([("general", "General population", gen)] if gen else []) + [("tri703", "IRONMAN 70.3 finishers", nr)]
+            sc = ([("general", "General population", gen)] if gen else []) + ([("tri703", "IRONMAN 70.3 finishers", nr)] if TRI or not gen else [])
             if CMP.get(key):
                 sc.sort(key=lambda x: x[0] != CMP[key])
             GEN_ROWS.extend([gen] if gen else [])
@@ -1389,7 +1421,7 @@ def build(today, rows_so_far):
     wk = next((r for r in out if r.get("kind") == "marker" and r["key"] == "wkg"), None)
     if wk and wk.get("value") not in ("—", "", None):
         v = float(wk["value"])
-        tgt_w = "Set from the next bike test; a 70.3 needs about 2.0 W/kg held for 56 mi flat, so the floor is already there (Estimated)"
+        tgt_w = own_target("wkg")
         if WKG_SCALES:
             def apply(NWKG):
                 pf = pct_from_front(NWKG, v)
@@ -1406,17 +1438,22 @@ def build(today, rows_so_far):
                   "Coggan power profile (FTP W/kg, men): the reference group is competitive road cyclists from novice to world class, not age-group triathletes, so the labels run hard. Coaching convention. Rests on a ramp FTP the athlete believes is high." + NO_NORM, scale="coach")
         wk.pop("_pop", None)
 
-    # Consistency: training days per Mon-Sun week (any run, ride, swim, hike, strength; walks and sauna left out)
+    # Consistency: training days per Mon-Sun week (any run, ride, swim, hike, strength; walks and sauna left out),
+    # except for someone whose own sport is walking (a walking group on their Fitness tab): their walks are their training
+    try:
+        walker = any(r.get("kind") == "fit_group" and r.get("key") == "walking" for r in json.load(open("coach/fitness_layout.json")).get("rows", []))
+    except (OSError, ValueError, AttributeError):
+        walker = False
     days = {}
     for a in acts:
         t = (a.get("type") or "").lower(); n = (a.get("name") or "").lower()
-        if "walk" in t or "sauna" in n or t in ("", "type"):
+        if ("walk" in t and not walker) or "sauna" in n or t in ("", "type"):
             continue
         d = _d(a["local_start"])
         days.setdefault(_mon(d), set()).add(d)
     for r in feel:
         # a hand-logged walk is a walk: left out like a recorded one (it used to count, which read Oct 19, 2026's week as 3 days)
-        if str(r.get("activity_id", "")).startswith("manual-") and not str(r.get("activity") or "").strip().lower().startswith("walk"):
+        if str(r.get("activity_id", "")).startswith("manual-") and (walker or not str(r.get("activity") or "").strip().lower().startswith("walk")):
             d = _d(r["date"]); days.setdefault(_mon(d), set()).add(d)
     cur = _mon(T)
     weeks = [cur - timedelta(weeks=i) for i in range(12, 0, -1)]  # 12 full weeks before this one
@@ -1434,7 +1471,7 @@ def build(today, rows_so_far):
         marker("fitness", 8, "consistency", "Consistency", f"{good} of {len(counts)}", "weeks",
                f"weeks with 3+ training days · 4+ in {better} · avg {_mean(counts):.1f} days/week", "good" if good >= 0.75 * len(counts) else "ok" if good >= 0.5 * len(counts) else "watch",
                "Showing up most days, week after week, is what builds an endurance base and keeps injury risk down; it predicts progress better than any single big session.",
-               "Mon–Sun weeks; a training day has a run, ride, swim, hike or logged strength (walks and sauna not counted); two sessions on one day count once. 3+ days is the research cutoff for 'regularly active'; 4 and 5 are coach tiers. Measured.",
+               "Mon–Sun weeks; a training day has a run, ride, swim, hike or logged strength (" + ("walks count, since walking is your sport; sauna does not" if walker else "walks and sauna not counted") + "); two sessions on one day count once. 3+ days is the research cutoff for 'regularly active'; 4 and 5 are coach tiers. Measured.",
                "Measured", "bars")
         avgc = _mean(counts)
         annot("consistency", "Good: 3+ days in 9 of 12 weeks (research cutoff). Better: 4. Best: 5 to 6 with at least one low-load day",

@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.89.1",
+ "version": "6.95.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -164,6 +164,7 @@
   "coach/tools/task_watch.py",
   "coach/tools/trail_effort.py",
   "coach/tools/trips.py",
+  "coach/tools/units.py",
   "coach/tools/version.py",
   "coach/tools/vo2_norms.py",
   "coach/tools/vo2max.py",

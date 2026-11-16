@@ -247,32 +247,37 @@ for r in read_csv("coach/weight_reported.csv"):
 # Fitness performance and health/longevity markers (Trends tab), coach/tools/markers.py
 import sys
 from zoneinfo import ZoneInfo
+# Today on the person's own clock: profile.json `timezone` (the original athlete's is America/New_York); 6.93.0
+try:
+    TZ = ZoneInfo(read_json("coach/athlete/profile.json", {}).get("timezone") or "America/New_York")
+except Exception:  # noqa: BLE001 - an unknown zone name keeps the original clock
+    TZ = ZoneInfo("America/New_York")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import markers  # noqa: E402
 import hr_anchor  # noqa: E402
 # The heart rates the easy-effort markers are read at, this athlete's own (the athlete, Nov 14, 2026); calc.js reads this row
-hr_anchor.use(".", datetime.now(ZoneInfo("America/New_York")).date())
-rows.append(hr_anchor.row(".", datetime.now(ZoneInfo("America/New_York")).date()))
-rows.extend(markers.build(datetime.now(ZoneInfo("America/New_York")).date(), rows))
+hr_anchor.use(".", datetime.now(TZ).date())
+rows.append(hr_anchor.row(".", datetime.now(TZ).date()))
+rows.extend(markers.build(datetime.now(TZ).date(), rows))
 # Habits to build, the rows the Today card shows (the athlete, Nov 15, 2026); profile.json habits is their one home (BLOCK-BRIEF.md 2.5)
 _hab = (json.load(open(os.path.join("coach", "athlete", "profile.json"), encoding="utf-8")).get("habits") or {})
 if _hab.get("rows"):
     rows.append({"kind": "habits", "rows": "|".join(_hab["rows"]), "confirmed": _hab.get("confirmed", "")})
 # Block brief for the Fitness tab's This block card (the athlete, Nov 1, 2026; coach/engine/BLOCK-BRIEF.md)
 import brief  # noqa: E402
-rows.extend(brief.rows_for_dashboard(datetime.now(ZoneInfo("America/New_York")).date(), [r for r in rows if r.get("kind") == "marker"]))
+rows.extend(brief.rows_for_dashboard(datetime.now(TZ).date(), [r for r in rows if r.get("kind") == "marker"]))
 import streak  # noqa: E402
 rows.append(streak.build())
 # The three outcomes, one row per finished Sunday to Saturday week (roadmap week 2, Measure; 6.8.0)
 import outcomes  # noqa: E402
-rows.extend(outcomes.history(datetime.now(ZoneInfo("America/New_York")).date()))
+rows.extend(outcomes.history(datetime.now(TZ).date()))
 # Health Pillars (Health tab) and the Check-ins tab's survey definitions (the athlete, Nov 1, 2026)
 import pillars  # noqa: E402
-rows.extend(pillars.build(datetime.now(ZoneInfo("America/New_York")).date(), rows))
+rows.extend(pillars.build(datetime.now(TZ).date(), rows))
 # The metric catalog with each metric's state for this athlete (the athlete, Nov 12, 2026; 6.30.0): locked tiles and Add a metric
 # Lab results with trend and retest date, and the health gate (roadmap week 5, Medicine in the loop; 6.42.0)
 import labs  # noqa: E402
-rows.extend(labs.build(datetime.now(ZoneInfo("America/New_York")).date(), "."))
+rows.extend(labs.build(datetime.now(TZ).date(), "."))
 import catalog  # noqa: E402
 rows.extend(catalog.rows("."))
 _ci = read_json("coach/checkins.json", {"surveys": [], "questions": []})
@@ -281,24 +286,33 @@ _ci = read_json("coach/checkins.json", {"surveys": [], "questions": []})
 _prof = read_json("coach/athlete/profile.json", {})
 _mods = (_prof.get("goals") or {}).get("modules")
 _setup_on = _mods is not None and not (_prof.get("setup") or {}).get("closed")
-rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", []) if s.get("id") != "setup" or _setup_on)
+# The home blood pressure week survey shows only to someone who keeps those weeks (setup drops the home_bp path
+# when it was not chosen; same rule as morning_facts.bp_week_flags; 6.90.0)
+_off = set() if any(p.get("id") == "home_bp" for p in read_json("coach/ops/data_paths.json", {}).get("paths", [])) else {"half"}
+rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])
+            if (s.get("id") != "setup" or _setup_on) and s.get("id") not in _off)
 rows.extend({"kind": "ci_q", **q} for q in _ci.get("questions", [])
-            if (q.get("survey") != "setup" or _setup_on) and (not q.get("module") or q["module"] in (_mods or [])))
+            if (q.get("survey") != "setup" or _setup_on) and q.get("survey") not in _off
+            and (not q.get("module") or q["module"] in (_mods or [])))
 # When the next home BP week is due: 6 months after a Good week, 3 after Watch or Act (the athlete, Nov 10, 2026; 6.4.0)
 import bp_cadence  # noqa: E402
-rows.append({"kind": "bp_week", **bp_cadence.from_repo(".", datetime.now(ZoneInfo("America/New_York")).date())})
+rows.append({"kind": "bp_week", **bp_cadence.from_repo(".", datetime.now(TZ).date())})
 # Weekly summary rows for a connected project's Sunday review (roadmap week 3, One contract; 6.12.0).
 # Written only when coach/connections.json names a reader; fields fixed in coach/ops/contract.json.
 import summary  # noqa: E402
-rows.extend(summary.build(datetime.now(ZoneInfo("America/New_York")).date(), rows))
+rows.extend(summary.build(datetime.now(TZ).date(), rows))
 # When today changes (6.64.0, Closed loops): the last week of day-of changes; Today shows today's replan note
 import day_change  # noqa: E402
-rows.extend(day_change.rows(datetime.now(ZoneInfo("America/New_York")).date()))
+rows.extend(day_change.rows(datetime.now(TZ).date()))
 import checkin_tasks  # noqa: E402
 rows.extend(checkin_tasks.rows())  # the Check-ins card (tasks.js): which check-ins the coach sends, and when
 # Meal guide rows for a connected meal planner, today and 13 days ahead (the athlete, Nov 3 and Nov 11, 2026; week 3 PR 2)
 import meal_guide  # noqa: E402
-rows.extend(meal_guide.build(datetime.now(ZoneInfo("America/New_York")).date()))
+rows.extend(meal_guide.build(datetime.now(TZ).date()))
+
+# Units (A coach for any person, Nov 16, 2026): numbers and words in the person's own units, at this one edge.
+import units  # noqa: E402
+rows = units.rows(rows)
 
 os.makedirs("coach/dashboard", exist_ok=True)
 with open("coach/dashboard/coach.json", "w") as fh:
