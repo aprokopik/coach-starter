@@ -741,9 +741,13 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .rt-n.is-done:not(.is-first)::after { background: #ffd27a; box-shadow: 0 0 8px #ffd27a; }
 .ck .rt-dot { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: #ffe9a6; cursor: pointer; }
 .ck .rt-dot[aria-expanded="true"] { box-shadow: 0 0 0 2px #ffd27a; }
+/* option 2 White hot core, full brightness, whole glow 80% across (the athlete, Nov 16, 2026) */
+.ck .rt-sun { width: 12px; height: 12px; border-radius: 50%; background: #fffdf5; box-shadow: 0 0 5px 2px #ffe7a8, 0 0 14px 7px rgba(255, 200, 90, .6), 0 0 28px 12px rgba(255, 170, 50, .25); }
+.ck .rt-sun.is-top { width: 16px; height: 16px; box-shadow: 0 0 6px 4px #ffe7a8, 0 0 20px 11px rgba(255, 200, 90, .75), 0 0 42px 19px rgba(255, 170, 50, .35); animation: rt-tw 2.4s ease-in-out infinite; }
+.ck .rt-sun.is-booked { width: 16px; height: 16px; background: none; border: 2px dashed #c9a24f; box-shadow: 0 0 8px 2px rgba(255, 200, 90, .25); animation: none; }
+@keyframes rt-tw { 50% { box-shadow: 0 0 8px 5px #ffe7a8, 0 0 25px 13px rgba(255, 200, 90, .85), 0 0 50px 22px rgba(255, 170, 50, .4); } }
+@media (prefers-reduced-motion: reduce) { .ck .rt-sun.is-top { animation: none; } }
 .ck .rt-star { width: 12px; height: 12px; border-radius: 50%; background: #2f2b6b; box-shadow: 0 0 0 1px #6e66c8; }
-.ck .rt-n.is-open .rt-star { width: 18px; height: 18px; background: #fff; box-shadow: 0 0 0 3px #a99bff, 0 0 18px 6px rgba(169, 155, 255, .8); animation: rt-tw 2s ease-in-out infinite; }
-@keyframes rt-tw { 50% { box-shadow: 0 0 0 5px #a99bff, 0 0 26px 10px rgba(169, 155, 255, .6); } }
 .ck .rt-part { position: absolute; margin: 22px 0 0 22px; width: 14px; height: 14px; color: #ffd27a; fill: none; stroke: currentColor; stroke-width: 2.4; }
 .ck .rt-ghost .rt-dot { border: 2px dashed #7d75d6; color: #c8bfff; font: 700 16px/1 ui-monospace, Menlo, Consolas, monospace; }
 .ck .rt-ghost .rt-lab { font-style: italic; color: #c8bfff; }
@@ -751,7 +755,6 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .rt-pin { display: flex; align-items: center; gap: 2px; font-size: 11px; line-height: 1.2; color: #ffd27a; white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; }
 .ck .rt-pin .ck-i { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
 .ck .rt-prop { margin: 0; }
-@media (prefers-reduced-motion: reduce) { .ck .rt-n.is-open .rt-star { animation: none; } }
 /* Season so far and Hall of fame tiles: 2 across, an odd last tile spans the row; the sport band is the Fitness tile band */
 .ck .sn-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
 .ck .sn-grp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: var(--ck-s2) 0 0; padding: 0 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }

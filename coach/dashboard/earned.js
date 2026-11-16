@@ -61,10 +61,10 @@
     try { Promise.resolve(db.doc('badges/earned').set({ items, saved_at: new Date().toISOString() })).catch(() => { /* drawn from the record again next open */ }); } catch (e) { /* same */ }
   }
 
-  // ---------- the art (round 3, from the athlete's notes on the options page, Nov 16, 2026: the Star map gold, medals for races):
+  // ---------- the art (round 3, from the athlete's notes on the options page, Nov 16, 2026: the Star map gold):
   // original, drawn here. A skill badge is a cut gem; its colour and glow climb with the level's place on its own ladder
   // (silver for a level, gold for a stage, as on the congrats screen; the glow and one dot per tier climb with the level), a sparkle once earned. A finished race
-  // distance is a gold medal on a ribbon in its sport colour. The basis (research, race target, coach) is said in the badge's line.
+  // distance is a sun (below). The basis (research, race target, coach) is said in the badge's line.
   const tierOf = (b) => (b.stageUp ? 4 : b.of > 1 ? Math.round((4 * (b.lv - 1)) / (b.of - 1)) : 0);
   // two metals, as on the congrats screen (the athlete, Nov 16, 2026: "keep silver and gold colors like we use in the pop up"):
   // a new level is silver, a new stage is gold (the level up screen's dark tokens; the panel is dark in both themes)
@@ -89,15 +89,9 @@
     return s;
   }
   const lockedArt = (size) => art({}, size, true);
-  function medal(sport, rib, size) { // a finished race distance
-    const s = sv('svg', { viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': 'true' }); const { id, d } = glow(s, 1.6);
-    const rg = sv('radialGradient', { id: id + 'r', cx: 0.35, cy: 0.3 }); rg.append(sv('stop', { offset: 0, 'stop-color': '#fff3d6' }), sv('stop', { offset: 0.45, 'stop-color': '#f0b54a' }), sv('stop', { offset: 1, 'stop-color': '#a8700c' })); d.append(rg);
-    s.append(sv('path', { d: 'M20 2h10l6 24H26z', fill: rib }), sv('path', { d: 'M44 2H34l-6 24h10z', fill: '#3b6dff' }));
-    const g = sv('g', { filter: `url(#${id})` }); g.append(sv('circle', { cx: 32, cy: 40, r: 20, fill: `url(#${id}r)` }));
-    for (const [x, y] of ring(16, 20, 32, 40)) g.append(sv('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 1.4, fill: '#fff2b8' }));
-    g.append(sv('circle', { cx: 32, cy: 40, r: 13.5, fill: '#2a1a00', stroke: '#ffe9a6', 'stroke-width': 1.5 })); s.append(g, glyph(sport, 25, 33, 14, '#ffe9a6'));
-    return s;
-  }
+  // a race distance as a sun, drawn in style.css (the athlete, Nov 16, 2026)
+  const sun = (kind) => A().el('span', 'rt-sun is-' + kind);
+
 
   // ---------- the shelf: a fourth choice in the season summary, by sport, a row per skill ----------
   const GROUPS = [['run', 'Run', 'run'], ['bike', 'Bike', 'bike'], ['swim', 'Swim', 'swim'], ['health', 'Heart and health', 'hr'], ['habits', 'Strength and habits', 'streak'], ['other', 'Other', 'badge']];
@@ -208,26 +202,32 @@
     const cap = $('r-rt-cap'); const nDone = T.nodes.filter((n) => T.st.get(n.id).s === 'done').length; if (cap) cap.textContent = `${nDone} of ${T.nodes.length} done`;
     const STW = { done: 'Done', open: 'Open', locked: 'Locked' }; const cols = el('div', 'rt-cols'); let open = null;
     const tap = (id) => () => { ui.node = ui.node === id ? null : id; render(); const f = document.querySelector(`#r-rt .rt-n[data-id="${id}"] .rt-dot`); if (f) f.focus({ preventScroll: true }); };
-    for (const [line, name, ic, rib] of LINES) {
+    for (const [line, name, ic] of LINES) {
       const ns = T.nodes.filter((n) => n.line === line); if (!ns.length) continue;
       const wrap = el('div', 'rt-c'); wrap.style.display = 'grid'; const ol = el('ol', 'rt-col'); ol.setAttribute('aria-label', `${name}, shortest first`);
-      ns.forEach((n, i) => {
-        const x = T.st.get(n.id); const li = el('li', `rt-n is-${x.s}${i ? '' : ' is-first'}`); const pin = T.pinned.get(n.id); li.dataset.id = n.id;
+      // only suns, booked outlines and one dotted ring for the next distance (the athlete, Nov 16, 2026)
+      const topDone = ns.map((n) => T.st.get(n.id).s).lastIndexOf('done');
+      const shown = ns.filter((n) => T.st.get(n.id).s === 'done' || T.pinned.has(n.id)); const hi = shown.length ? ns.indexOf(shown[shown.length - 1]) : -1;
+      shown.forEach((n, k) => {
+        const i = ns.indexOf(n); const x = T.st.get(n.id); const li = el('li', `rt-n is-${x.s}${k ? '' : ' is-first'}`); const pin = T.pinned.get(n.id); li.dataset.id = n.id;
         const b = el('button', 'rt-dot'); b.type = 'button'; b.setAttribute('aria-expanded', String(ui.node === n.id));
-        b.setAttribute('aria-label', `${n.label}: ${STW[x.s]}${x.how === 'training' ? ', covered in training' : x.how === 'race' ? ', raced' : x.how === 'legs' ? ', every leg covered' : ''}${pin ? `, ${pin.name} ${fDay(pin.date)}` : ''}`);
-        if (x.s === 'done') b.append(medal(ic, rib, 40)); else { b.append(el('span', 'rt-star')); if (x.how === 'legs') b.append(icon('check', 'ck-i rt-part')); }
-        b.addEventListener('click', tap(n.id)); li.append(b, el('span', 'rt-lab', String(n.short || n.label).replace(/­/g, '')));
+        b.setAttribute('aria-label', `${n.label}: ${x.s === 'done' ? 'Done' : 'Booked'}${x.how === 'training' ? ', covered in training' : x.how === 'race' ? ', raced' : ''}${pin ? `, ${pin.name} ${fDay(pin.date)}` : ''}`);
+        b.append(sun(x.s !== 'done' ? 'booked' : i === topDone ? 'top' : 'done'));
+        b.addEventListener('click', tap(n.id)); li.append(b, el('span', 'rt-lab', String(n.short || n.label).replace(/\u00ad/g, '')));
         if (pin) { const f = el('span', 'rt-pin'); f.append(icon('flag'), fDay(pin.date)); li.append(f); }
         ol.append(li); if (ui.node === n.id) open = n;
       });
-      const gid2 = 'beyond-' + line; const gh = el('li', 'rt-n rt-ghost'); gh.dataset.id = gid2; const gb = el('button', 'rt-dot', '+'); gb.type = 'button'; gb.setAttribute('aria-expanded', String(ui.node === gid2));
-      gb.setAttribute('aria-label', `Past the ${name} list: a longer race on your calendar adds its own step here`); gb.addEventListener('click', tap(gid2)); gh.append(gb, el('span', 'rt-lab', T.beyond[line] || 'Longer')); ol.append(gh); if (ui.node === gid2) open = { ghost: line, name };
+      const nx = ns[hi + 1]; const gid2 = nx ? nx.id : 'beyond-' + line; const gh = el('li', 'rt-n rt-ghost' + (shown.length ? '' : ' is-first')); gh.dataset.id = gid2;
+      const gb = el('button', 'rt-dot', '+'); gb.type = 'button'; gb.setAttribute('aria-expanded', String(ui.node === gid2)); gb.addEventListener('click', tap(gid2));
+      gb.setAttribute('aria-label', nx ? `${nx.label}: next distance on ${name}` : `Past the ${name} list: a longer race on your calendar adds its own step here`);
+      gh.append(gb, el('span', 'rt-lab', nx ? String(nx.short || nx.label).replace(/\u00ad/g, '') : T.beyond[line] || 'Longer')); ol.append(gh);
+      if (ui.node === gid2) open = nx || { ghost: line, name };
       const c = el('div', 'rt-cap'); const nd = ns.filter((n) => T.st.get(n.id).s === 'done').length; c.append(icon(ic), name, el('span', 'ck-sub', `${nd}/${ns.length}`));
       wrap.append(ol, c); cols.append(wrap);
     }
     body.append(cols);
     if (open) body.append(open.ghost ? el('p', 'rt-det', `Past the list. Put a longer ${open.name.toLowerCase()} race on your calendar (or finish one) and it climbs onto this column as its own step${T.beyond[open.ghost] ? `, ${T.beyond[open.ghost]} for example` : ''}.`) : nodeDetail(open, T, el, fDay, N, mark));
-    body.append(el('p', 'ck-sub rt-prop', `Every finished distance earns a medal; tap one for the detail.${T.meta.confirmed ? '' : ' Gates proposed by your coach, waiting for your OK.'}`));
+    body.append(el('p', 'ck-sub rt-prop', `Each distance you have done is a sun, your furthest the brightest; a small dashed gold ring is a race you have booked; the big dotted ring is your next distance. Tap one for the detail.${T.meta.confirmed ? '' : ' Gates proposed by your coach, waiting for your OK.'}`));
     box.replaceChildren(body);
   }
   function nodeDetail(n, T, el, fDay, N, mark) {
