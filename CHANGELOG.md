@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.119.2 (2026-11-16)
+- Dashboard fix, alpha `float_chat` (the kit maker, Nov 16, 2026, phone screenshot: "Chat bubble not sticky"). The Talk to the coach button scrolled with the page on iPhone. Root cause: it was `position: fixed` inside `.cx`, which is a size container (`container: cx / inline-size`). WebKit uses a container as the containing block for fixed children, so the button was pinned to the page, not the screen. Desktop Chromium keeps it fixed, which is why the local render looked right. The button and its tip now sit in a zero height sticky dock at the end of `.cx`, the way the tab bar sticks. New `coach/tests/test_chat_button.py` keeps `position: fixed` out of page rules (the level up confetti is the one listed exception) and checks the dock is sticky. No size budget change.
+
 ## 6.119.1 (2026-11-16)
 - Dashboard, alpha `lift_time`: the Time you have box on the Lifts tab drops the blue wash it borrowed from the plan-day note and gets a plain outline (the kit maker, Nov 16, 2026: "why is this blue?").
 - Dashboard, alpha `lift_clean` (the kit maker's notes on the built page, Nov 16, 2026): the Routines page gains a Made for you, today shelf ("i dont see any made for me today alternatives"): Short version, Upper body and Legs and lower leg, built from the current routine's own lifts, so Use today runs them at once for that day only; the Rules card goes ("do we still need rules at the bottom"), with the stop-signal rule kept as one Watch line above How did it feel (the rules stay in the routine for the coach).

@@ -4,6 +4,7 @@
 // Claude's own comment box (comments, composer only) but not send to Claude or ask Claude itself, so a tap opens that box
 // at the button; the athlete types and taps Send to Claude; a coach chat watching the dashboard answers in the same thread
 // (coach/ops/DASHBOARD-CHAT.md). Nothing is written by the page.
+// 6.119.2: a sticky dock at the end of #cx holds it (fixed scrolled with the page on iPhone).
 (() => {
   const CX = window.CX;
   const alpha = (id) => !!(CX.app && CX.app.kind('alpha').some((b) => b.id === id));
@@ -23,7 +24,8 @@
     btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>';
     tip = document.createElement('p'); tip.className = 'cx-chat-tip'; tip.setAttribute('role', 'status'); tip.hidden = true;
     btn.addEventListener('click', open);
-    root.append(tip, btn);
+    const dock = document.createElement('div'); dock.className = 'cx-chat-dock';
+    dock.append(tip, btn); root.append(dock);
   }
   dash.onData(mount);
 })();
