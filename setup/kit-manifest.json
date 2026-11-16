@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.88.0",
+ "version": "6.89.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -143,6 +143,7 @@
   "coach/tools/ladders.py",
   "coach/tools/levels.py",
   "coach/tools/lifts.py",
+  "coach/tools/loop.py",
   "coach/tools/markers.py",
   "coach/tools/meal_guide.py",
   "coach/tools/morning_facts.py",
