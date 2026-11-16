@@ -381,6 +381,31 @@
         <div class="ci-surveys" id="ci-surveys" data-body hidden></div>
       </section>
     </div>
+    <!-- Check-in settings (6.87.0; the athlete, Nov 16, 2026: "you should be able to modify and enable/disable from the dashboard",
+         layout A, one list, with Add new): tasks.js. One row per check-in the coach sends: its name, a time and an on/off
+         switch. Each tap saves checkin_task/<id>; off counts from that tap (each check-in reads it first), a new time and a new
+         check-in from the coach's next run (RUNBOOK "Check-in settings"). Hidden with no store or no checkin_task rows. -->
+    <section class="ck-tile ct" id="ct" aria-labelledby="ct-h" hidden>
+      <div class="ck-tile-head"><h2 class="ck-h3" id="ct-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-checkin"/></svg> When your coach checks in</h2></div>
+      <ul class="ct-list" id="ct-list"></ul>
+      <button class="ck-disc ct-add-btn" type="button" id="ct-add-btn" aria-expanded="false" aria-controls="ct-add" data-ck="disc"><span>Add a check-in</span><svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg></button>
+      <div class="ck-disc-panel ct-add" id="ct-add" hidden>
+        <fieldset class="ct-f">
+          <legend class="ct-l">Which one?</legend>
+          <div class="qc-chips" id="ct-kinds"></div>
+        </fieldset>
+        <div class="ct-own" id="ct-own" hidden>
+          <label class="ct-l" for="ct-name">Name</label>
+          <input class="ck-input" id="ct-name" type="text" maxlength="40" autocomplete="off">
+          <label class="ct-l" for="ct-what">What should your coach ask or tell you?</label>
+          <input class="ck-input" id="ct-what" type="text" maxlength="120" autocomplete="off">
+        </div>
+        <label class="ct-l" for="ct-time">Time</label>
+        <input class="ck-input ct-time" id="ct-time" type="time" step="300">
+        <div class="ck-btn-row"><button class="ck-btn ck-btn--primary" type="button" id="ct-save" disabled>Add</button></div>
+      </div>
+      <p class="ct-st" id="ct-st" role="status"></p>
+    </section>
   </section>
 
   <!-- WEEK (Cockpit, Phase 5): in the page and on screen, the week title and range with its arrows, then the key sessions
@@ -734,3 +759,4 @@
 <script src="checkins.js"></script>
 <script src="block.js"></script>
 <script src="change.js"></script>
+<script src="tasks.js"></script>

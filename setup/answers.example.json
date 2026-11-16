@@ -18,7 +18,7 @@
  "races": [
   {"name": "City Half Marathon", "date": "2027-04-18", "sport": "Run", "distance": "13.1 mi", "location": "Chicago, IL", "status": "planned", "priority": "A", "goal": "Finish strong and healthy", "url": "", "limit": ""}
  ],
- "schedule": {"hours_per_week": [4, 6], "strength_per_week": 2, "swims_per_month": 0, "blocked_days": "Tuesdays", "checkin_time": "7:00 AM", "sleep_hours": [7, 8]},
+ "schedule": {"hours_per_week": [4, 6], "strength_per_week": 2, "swims_per_month": 0, "blocked_days": "Tuesdays", "checkin_time": "7:00 AM", "checkins": [{"kind": "morning", "time": "7:00 AM"}], "sleep_hours": [7, 8]},
  "physiology": {"hr_max": null, "easy_hr_run": null, "easy_hr_bike": null},
  "equipment": ["Garmin Forerunner 265", "home dumbbells"],
  "not_measured": ["SpO2", "blood pressure", "body fat", "power"],

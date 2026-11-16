@@ -34,6 +34,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `block.js` | This block card (Fitness) and the Season status panels |
 | `openlog.js` | Open timing: when the page files ran, each dataset arrived and readiness showed, saved to the store as `open_log/<day>` (DASHBOARD.md) |
 | `change.js` | Today changed? on the plan card: reason, Plan B (Min), the store document `day_change` and the replan line |
+| `tasks.js` | When your coach checks in, on the Check-ins tab: one row per check-in with a time and an on/off switch, Add a check-in, the store document `checkin_task` |
 
 Load order: openlog.js (first, so it times everything after it), calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
@@ -111,6 +112,7 @@ RUNBOOK step 4 (Data) lists these on the dashboard store each morning:
 | `lift_log` | Lifts tab | `coach/tools/lifts.py ingest` |
 | `lift_tap` | Today, Morning check ("Lifted yesterday?") | copied to `coach/lift_taps.csv` |
 | `day_change` | Today, plan card (Today changed?) | `coach/tools/day_change.py ingest`, then the replan (RUNBOOK "Today changed") |
+| `checkin_task` | Check-ins, When your coach checks in | `coach/tools/checkin_tasks.py ingest` in every check-in, then the task change (RUNBOOK "Check-in settings") |
 | `lift_choice` | Lifts tab, New block card | `lifts.py accept` or `keep` |
 | `brief_choice` | Fitness tab, This block card | `brief.py accept` or `change` |
 

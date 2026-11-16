@@ -2502,7 +2502,7 @@
     state.dark = themeIsDark();
     renderHeader();
     if (state.page === 'today') { renderToday(); if (window.CX.renderCiStrip) window.CX.renderCiStrip(); }
-    else if (state.page === 'checkins') { renderCiStale(); if (window.CX.renderCheckins) window.CX.renderCheckins(); }
+    else if (state.page === 'checkins') { renderCiStale(); if (window.CX.renderCheckins) window.CX.renderCheckins(); if (window.CX.renderTasks) window.CX.renderTasks(); }
     else if (state.page === 'week') renderWeek();
     else if (state.page === 'goals') renderGoals();
     else if (state.page === 'trends') renderTrends();

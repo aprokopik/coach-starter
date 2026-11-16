@@ -410,6 +410,27 @@ once they are seen at least 3 times (for example: legs the morning after a long 
     return {"hr_max": hr_max, "screen_flagged": [i["question"] for i in flagged]}
 
 
+def checkin_time(a):
+    """The morning check-in's time: the athlete's own setting once it exists (coach/athlete/checkins.json, changed on
+    the dashboard), else the onboarding answer. One home, so a kit update never puts an old time back."""
+    sys.path.insert(0, str(ROOT / "coach/tools"))
+    import checkin_tasks
+    t = next((t for t in checkin_tasks.read(str(ROOT / checkin_tasks.PATH)) if t["id"] == "morning"), None)
+    return checkin_tasks.clock(t["time"]) if t else a.get("schedule", {}).get("checkin_time", "7:45 AM")
+
+
+def seed_checkins(a, running):
+    """coach/athlete/checkins.json from the Card 3 answer (schedule.checkins), once; never rewrites it.
+    running: a coach set up before this file existed (--refresh), whose morning task is already scheduled."""
+    sys.path.insert(0, str(ROOT / "coach/tools"))
+    import checkin_tasks
+    sch = a.get("schedule", {})
+    path = str(ROOT / checkin_tasks.PATH)
+    picks = sch.get("checkins") or [{"kind": "morning", "time": sch.get("checkin_time", "7:45 AM")}]
+    if checkin_tasks.seed(picks, path) and running:
+        checkin_tasks.done("morning", path, str(ROOT / checkin_tasks.DATA_PATHS))
+
+
 def kit_owned(a, today):
     """The athlete's settings inside kit-owned files: the feeds in data_paths.json and the pull schedules.
     Run at onboarding and again after every kit update (--refresh), which replaces these files."""
@@ -428,11 +449,11 @@ def kit_owned(a, today):
     if not opts.get("research_scan", True):
         off.add("research_scan")
     dp["paths"] = [p for p in dp["paths"] if p["id"] not in off]
-    when = f"{sch.get('checkin_time', '7:45 AM')} {tz}"
+    when = f"{checkin_time(a)} {tz}"
     for p in dp["paths"]:
         if p["id"] == "morning_checkin":
             p["what"] = f"Daily morning check-in (scheduled task, {when})"
-            p["at"] = sch.get("checkin_time", "7:45 AM")  # the dashboard's "next" times read this
+            p["at"] = checkin_time(a)  # the dashboard's "next" times read this
             p["route"] = "scheduled task made at onboarding, prompt coach/ops/TASK-PROMPT-morning.md, steps coach/ops/RUNBOOK.md"
         elif p["id"] == "race_watch":
             p["what"] = "Race calendar watch (scheduled task, Sundays early morning, silent)"
@@ -513,7 +534,7 @@ def fill_placeholders(a):
     tz = ath["timezone"]
     subs = {"{{ATHLETE}}": ath["name"].strip(), "{{GITHUB_OWNER}}": gh["owner"], "{{REPO}}": gh["repo"],
             "{{TIMEZONE}}": tz, "{{PRONOUNS}}": ath["pronouns"],
-            "{{CHECKIN_TIME}}": a.get("schedule", {}).get("checkin_time", "7:45 AM")}
+            "{{CHECKIN_TIME}}": checkin_time(a)}
     if links.get("dashboard_url"):
         subs["{{DASHBOARD_URL}}"] = links["dashboard_url"]
     if links.get("season_url"):
@@ -587,6 +608,7 @@ def main(argv):
     if "--refresh" in argv:
         # After a kit update: put the athlete's settings back into the kit's own files. Personal files
         # (profile, current state, log, plans, data) are left exactly as they are.
+        seed_checkins(a, True)
         kit_owned(a, today)
         left = fill_placeholders(a)
         added = ensure_sections()
@@ -598,6 +620,7 @@ def main(argv):
         for k, files in sorted(left.items()):
             print(f"Still to fill: {k} in {', '.join(sorted(set(files))[:3])}")
         return 0
+    seed_checkins(a, False)
     info = build(a, today)
     left = fill_placeholders(a)
     subprocess.run([sys.executable, str(ROOT / "coach/tools/build_season.py")], cwd=ROOT, capture_output=True)

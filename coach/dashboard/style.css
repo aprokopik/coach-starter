@@ -1339,3 +1339,28 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ck-chart-sw.wk-ref-sw { height: 0; border: 0; border-top: 2px dashed var(--ck-fg); border-radius: 0; }
 /* 6.84.1: no scroll anchoring on the page's own nodes (a redraw re-anchored the app's scroll box near its end on the athlete's phone) */
 .cx { overflow-anchor: none; }
+
+/* Check-in settings (tasks.js, 6.87.0): one row per check-in, a time field and a switch, each a 44 px target */
+.ck .ct { margin-top: var(--ck-s4); }
+.ck .ct[hidden] { display: none; }
+.ck .ct-list { list-style: none; margin: 0; padding: 0; }
+.ck .ct-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--ck-s3); padding: var(--ck-s2) 0; border-bottom: 1px solid var(--ck-line); }
+.ck .ct-t { display: grid; gap: 2px; min-width: 0; }
+.ck .ct-t b { font-size: var(--ck-t3); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .ct-t span { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ct-row.off .ct-t b { color: var(--ck-fg-2); }
+.ck .ck-input.ct-time { width: auto; min-width: 0; min-height: var(--ck-tap); padding: 0 var(--ck-s2); font-variant-numeric: tabular-nums; }
+.ck .ct-sw { flex: none; position: relative; width: 52px; height: var(--ck-tap); padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: var(--ck-r2, 8px); }
+.ck .ct-sw::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 30px; transform: translateY(-50%); border-radius: 15px; background: var(--ck-surface-2); border: 1.5px solid var(--ck-edge); box-sizing: border-box; }
+.ck .ct-sw span { position: absolute; top: 50%; left: 5px; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; background: var(--ck-fg-2); transition: transform .15s; }
+.ck .ct-sw[aria-checked=true]::before { background: var(--ck-accent); border-color: var(--ck-accent); }
+.ck .ct-sw[aria-checked=true] span { transform: translateX(22px); background: var(--ck-on-accent); }
+@media (prefers-reduced-motion: reduce) { .ck .ct-sw span { transition: none; } }
+.ck .ct-add { display: grid; gap: var(--ck-s2); padding: 0 0 var(--ck-s3); min-width: 0; }
+.ck .ct-add[hidden], .ck .ct-own[hidden] { display: none; }
+.ck .ct-own { display: grid; gap: var(--ck-s2); }
+.ck .ct-f { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: var(--ck-s2); }
+.ck .ct-l { padding: 0; font-size: var(--ck-t2); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }
+.ck .ct-add .ct-time { justify-self: start; }
+.ck .ct-st { margin: 0; padding: var(--ck-s2) 2px 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .ct-st:empty { display: none; }

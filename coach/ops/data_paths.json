@@ -262,6 +262,26 @@
    "owner": "the athlete"
   },
   {
+   "id": "checkin_task",
+   "what": "Check-in settings (Check-ins tab, When your coach checks in: on or off, a time, Add a check-in), or a change told in chat",
+   "route": "dashboard store checkin_task, copied by every check-in with checkin_tasks.py ingest (RUNBOOK Check-in settings); chat: checkin_tasks.py set or add",
+   "writes": [
+    "coach/athlete/checkins.json"
+   ],
+   "cadence": "when a check-in is changed",
+   "evidence": {
+    "kind": "json_rows_max",
+    "file": "coach/dashboard/coach.json",
+    "field": "saved_at",
+    "where": {
+     "kind": "checkin_task"
+    }
+   },
+   "alert": false,
+   "fallback": "every check-in runs at the time its scheduled task has",
+   "owner": "the athlete"
+  },
+  {
    "id": "lifts",
    "what": "Lift log (Lifts tab)",
    "route": "dashboard store lift_log, ingested by lifts.py in the morning run",
