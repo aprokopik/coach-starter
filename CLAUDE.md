@@ -28,7 +28,7 @@ The athlete can change anything about how their coach works. Keep every change w
 
 ## Scheduled tasks
 
-Every coach task (morning check-in, an evening check-in, race watch, research scan, or any new one the athlete asks for) must be a Claude Code scheduled task with this repository selected. A task with no repository is a chat task: it cannot save anything, and the athlete's answers stay stuck in that chat. When you create or change a task, select the repository; if you cannot create it yourself, walk the athlete through claude.ai/code/routines screen by screen (New task, the prompt, Schedule, Advanced settings, Repository, Create, Run now). If you see a coach task tagged Chat on that page, help the athlete move it.
+Every coach task (morning check-in, an evening check-in, race watch, research scan, or any new one the athlete asks for) must be a Claude Code scheduled task with this repository selected. A task with no repository is a chat task: it cannot save anything, and the athlete's answers stay stuck in that chat. When you create or change a task, select the repository; if you cannot create it yourself, walk the athlete through claude.ai/code/routines screen by screen (New task, the prompt, Schedule, Advanced settings, Repository, Create, Run now). If you see a coach task tagged Chat on that page, help the athlete move it. When the athlete asks for an evening check-in, make it from `coach/ops/TASK-PROMPT-evening.md` (one-line prompt that points to the file) as a Code task, never a hand-written prompt in a chat.
 
 ## Updates
 
