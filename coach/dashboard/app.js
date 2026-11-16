@@ -1915,7 +1915,7 @@
   // inside the Level chip, the stage in use filled; its name is in the badge's label and title, not on the tile
   function stageChip(m) { const cur = scalesOf(m).find((s) => s.id === m.compare); const n = cur ? Number(cur.stage) || 1 : 1; if (n < 2) return null;
     const have = new Set(scalesOf(m).map((x) => Number(x.stage) || 1)); const who = String(cur.short || cur.label || cur.stage_label || 'a harder group').replace(/^IRONMAN /, '');
-    const b = mark(el('span', 'mx-stage ft-stage'), 'coach', null, 'kind=marker&key=' + m.key, 'stage'); b.setAttribute('role', 'img'); b.setAttribute('aria-label', `Stage ${n} of 3: compared with ${who}`); b.title = `Stage ${n} of 3, compared with ${who}. 1 everyone, 2 your race or sport, 3 elite.`;
+    const b = mark(el('span', 'mx-stage ft-stage' + (alpha('stage_coins') ? ' mx-coin' : '')), 'coach', null, 'kind=marker&key=' + m.key, 'stage'); b.setAttribute('role', 'img'); b.setAttribute('aria-label', `Stage ${n} of 3: compared with ${who}`); b.title = `Stage ${n} of 3, compared with ${who}. 1 everyone, 2 your race or sport, 3 elite.`;
     for (const k of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (k === n ? ' is-cur' : have.has(k) ? '' : ' is-none'), String(k)); d.setAttribute('aria-hidden', 'true'); b.append(d); }
     return b; }
   // the badge and the Level chip share one line (the athlete, Nov 15, 2026: "If you are at stages can we abv. To lvl and get all on one

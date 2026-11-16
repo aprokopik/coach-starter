@@ -285,9 +285,10 @@
   }
   // performance stages (the athlete, Nov 12, 2026: not steps on the Map, "a small badge on performance that has 1, 2, 3, an
   // overlapped badge"): three overlapped discs, the stage in use filled, a stage with no scale on file dashed
+  const alpha = (id) => !!(CX.app && CX.app.kind && CX.app.kind('alpha').some((x) => x.id === id));
   function stageBadge(key) {
     const si = CX.stageInfo ? CX.stageInfo(key) : null; if (!si) return null;
-    const b = el('span', 'mx-stage'); b.setAttribute('role', 'img'); const names = { 1: 'general population', 2: 'your race or sport', 3: 'elite' };
+    const b = el('span', 'mx-stage' + (alpha('stage_coins') ? ' mx-coin' : '')); b.setAttribute('role', 'img'); const names = { 1: 'general population', 2: 'your race or sport', 3: 'elite' };
     b.setAttribute('aria-label', `Stage ${si.cur} of 3: ${si.label}`); b.title = `Stage ${si.cur} of 3, compared with ${si.label}. 1 ${names[1]}, 2 ${names[2]}, 3 ${names[3]}.`;
     for (const n of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (n === si.cur ? ' is-cur' : si.have.includes(n) ? '' : ' is-none'), String(n)); d.setAttribute('aria-hidden', 'true'); b.append(d); }
     return b;
