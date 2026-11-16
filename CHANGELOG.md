@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.117.0 (2026-11-16)
+- Dashboard, alpha (`week_review`, the kit maker only): Next week on Today. On the plan check day (profile.json `plan_check_day`, Friday) a card under This week draws next Monday to Sunday like the This week path (key sessions numbered, the Week tab's sport symbols and minutes under each day, dashed while pencilled; symbols on the kit maker's ask, Nov 16; a day you flag turns blue with a short word under it, Can't, Short, Travel or Move, their pick Nov 16) with three taps: Looks good, Change a day (pick days, then Can't train, Short on time, Travel or Move this session, plus an optional line) and Busy week. It shows Friday, Saturday and Sunday, answered or not (the kit maker, Nov 16: "only populate in today tab on a friday/sat/sunday"); Monday to Thursday it stays hidden. the kit maker, Nov 16, 2026, on the Release Board: "send user visual not text"; their pick, option 1 of five: "show up on the today card on the friday before the next monday starting week". New `coach/dashboard/review.js`, store document `week_review/<next Monday>`, `coach/tools/week_review.py` (ingest, pending, done, add) and `coach/week_reviews.csv`; build rows kind `plan_check` and `week_review`. The daytime refresh and the morning run move the pencilled rows (RUNBOOK "Next week review", owner only) and the card then reads "Updated <time>: <note>". With the card on, Friday's check-in points to it instead of asking in text.
+
 ## 6.116.0 (2026-11-16)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 

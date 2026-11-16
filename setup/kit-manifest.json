@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.116.0",
+ "version": "6.117.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -78,6 +78,7 @@
   "coach/dashboard/pillars.js",
   "coach/dashboard/plan.js",
   "coach/dashboard/records.js",
+  "coach/dashboard/review.js",
   "coach/dashboard/season.html",
   "coach/dashboard/season.js",
   "coach/dashboard/src/build-cockpit.sh",
@@ -178,6 +179,7 @@
   "coach/tools/vo2_norms.py",
   "coach/tools/vo2max.py",
   "coach/tools/waiting.py",
+  "coach/tools/week_review.py",
   "scripts/apple_health.py",
   "scripts/backfill_garmin.py",
   "scripts/body_comp.py",

@@ -1468,3 +1468,29 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .wk-kv{display:grid;grid-template-columns:5.5em 1fr;gap:var(--ck-s3)}.ck .wk-kv-k{color:var(--ck-fg-2)}.ck .wk-kv-v{min-width:0}
 .ck .wk-more{display:grid;gap:4px;padding:0 var(--ck-s2) var(--ck-s2) 40px;font-size:var(--ck-t2);line-height:var(--ck-l2)}.ck .wk-more>summary{min-height:36px;display:flex;align-items:center;cursor:pointer;color:var(--ck-fg-2)}
 .ck .sn-more{padding:0}.ck .sn-more>.sn-facts{padding-top:2px}
+
+/* Next week on Today (review.js, alpha week_review, Nov 16, 2026): the This week path, pencilled, with one tap to answer */
+.ck .td-nwk { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ck-s3); }
+.ck .td-nwk > *, .ck .td-nw-chg > * { min-width: 0; }
+.ck .td-nw-chg .td-chg-why { grid-template-columns: minmax(0, 1fr); }
+.ck .td-nwk p { white-space: normal; text-wrap: wrap; }
+.ck .td-nw-dates { margin: 0; font-size: var(--ck-t4); line-height: var(--ck-l4); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .td-nw-pen { font-weight: var(--ck-w-bold); color: var(--ck-fg); }
+.ck .td-nwk.wk-pencil .td-node:not(.is-key):not(.is-flag) { border-style: dashed; }
+.ck .td-nw-min { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); min-height: var(--ck-l1); }
+.ck .td-node.is-flag { border: 2px solid var(--ck-accent); background: var(--ck-accent-wash); color: var(--ck-accent); }
+.ck .td-nw-min.is-flag { color: var(--ck-accent); font-weight: var(--ck-w-bold); }
+.ck .td-nw-sg { display: flex; gap: 1px; justify-content: center; min-height: 16px; }
+.ck .td-nw-sg .ck-i { width: 16px; height: 16px; }
+.ck .td-nw-sum { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .td-nw-act { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ck-s2); }
+.ck .td-nw-act.is-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ck .td-nw-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ck-s3); }
+.ck .wk-nw { margin-top: var(--ck-s3); }
+.ck .td-nw-act .ck-btn { min-height: var(--ck-tap); padding: 0 6px; font-size: var(--ck-t2); white-space: normal; text-align: center; justify-content: center; }
+.ck .td-nw-dayt { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); overflow-wrap: anywhere; }
+.ck .td-nw-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.ck .td-nw-day { padding: 0; border-radius: var(--ck-r2); }
+.ck .td-nw-day.is-flag:not(.sel) { border: 2px solid var(--ck-accent); background: var(--ck-accent-wash); color: var(--ck-accent); }
+.ck .td-nw-chg { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ck-s3); }
+.ck .td-nwk[hidden] { display: none; }

@@ -599,6 +599,7 @@
     renderNight();
     renderWatch();
     if (window.CX.renderChange) window.CX.renderChange(); // change.js: Today changed?, after the size is drawn
+    if (window.CX.renderReview) window.CX.renderReview(); // review.js: Next week on the plan check day (alpha week_review)
   }
   // Race tile: days to the next race, the next A race in weeks when it is a different race, and the next key session
   // (never a rest day). Every figure is computed from the race and day rows and says so (data-derived).
@@ -1304,6 +1305,7 @@
     const pen = !!meta && String(meta.status || '') === 'pencilled';
     $('w-list').classList.toggle('wk-pencil', pen);
     if (pen) { const tag = el('p', 'wk-pentag'); tag.append(icon('edit', 'ck-i'), ' ', mark(el('b', null, 'Pencilled'), 'coach', null, ww, 'pencilled-week'), ' · '); const cd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(String(meta.check_day || '')); const chk = cd >= 0 ? dayN(wk) - 7 + cd : null; if (chk !== null && chk >= TN) tag.append('the coach checks it with you ', mark(el('span', null, fWd(P(isoN(chk)))), 'coach', null, ww, 'plan-check-day'), ' and '); tag.append('it firms up ', mark(el('span', null, fWd(P(isoN(dayN(wk) - 1)))), 'coach', null, ww, 'firms-up-sunday'), '. Days can still move; tests and races keep their dates.'); wf.append(tag); }
+    if (window.CX.renderWeekReview) window.CX.renderWeekReview(wk); // review.js: change a pencilled week by tap (alpha week_review)
     renderWeekStale(wk);
     if (window.CX.renderRaceWeek) window.CX.renderRaceWeek(wk); // season.js
     drawLoad();
@@ -2581,7 +2583,7 @@
   }
   window.CX.render = render;
   // the helpers season.js (loaded next) reads
-  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, plainEl, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, stamp, state, truthy };
+  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, plainEl, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, sportIcon, stamp, state, truthy };
   Object.assign(window.CX, { stageInfo, lineChart, legend, inSpan, spanStart, spanName, drawWeight, sportCol, sportTok, sportGroups, seasonTile, blockContext, kind, ck: { icon, badge, neutralChip, mark, ruleSpan, cardState, dsState },
     weekSoFar: (w) => { const d = TN - dayN(w) + 1; return d >= 1 && d < 7 ? { x: w, days: d, of: 7 } : null; } }); // the open week of a per-week bar chart
   // Check-ins due on Today (Phase 6): checkins.js renderStrip writes the due count into #t-ci's data-n, the names into

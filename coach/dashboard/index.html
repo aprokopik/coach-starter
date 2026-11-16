@@ -254,6 +254,15 @@
         </div>
       </article>
 
+      <!-- Next week (review.js, alpha week_review, 6.117.0) -->
+      <article class="ck-tile td-nwk" id="t-nw" aria-labelledby="t-nw-h" hidden>
+        <div class="ck-tile-head">
+          <h2 class="ck-eyebrow td-eb" id="t-nw-h">Next week</h2>
+          <span class="td-path-n" id="t-nw-tag"></span>
+        </div>
+        <p class="td-nw-dates" id="t-nw-dates"></p>
+      </article>
+
       <div class="td-watchslot" id="t-watchslot" hidden>
         <div class="ck-notice" data-s="watch" id="t-watchnote" role="status" data-source="night" data-derived="watch-notice" hidden>
           <span class="ck-notice-w"><svg class="ck-g" aria-hidden="true"><use href="#cx-watch"/></svg>Watch</span>
@@ -440,6 +449,8 @@
           <div class="ck-state" data-state="loading" data-slot aria-busy="true"><span class="ck-vh">Loading</span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel" aria-hidden="true"></span><span class="ck-skel ck-skel--md" aria-hidden="true"></span></div>
           <div class="wk-body" data-body hidden>
             <div class="ck-note" id="w-focus" data-source="coach" hidden></div>
+            <!-- Change a pencilled week by tap (review.js, alpha week_review) -->
+            <div class="td-nwk wk-nw" id="w-nw" hidden></div>
             <div class="wk-days" id="w-days" data-source="week_view"></div>
           </div>
         </article>
@@ -768,4 +779,5 @@
 <script src="checkins.js"></script>
 <script src="block.js"></script>
 <script src="change.js"></script>
+<script src="review.js"></script>
 <script src="tasks.js"></script>

@@ -310,6 +310,11 @@ rows.extend(summary.build(datetime.now(TZ).date(), rows))
 # When today changes (6.64.0, Closed loops): the last week of day-of changes; Today shows today's replan note
 import day_change  # noqa: E402
 rows.extend(day_change.rows(datetime.now(TZ).date()))
+# Next week's review on Today (alpha week_review; the athlete's pick, option 1 of five, Nov 16, 2026): the plan check day and next
+# week's answer, so review.js shows the card on that day and, after a tap, what the coach moved
+import week_review  # noqa: E402
+rows.append({"kind": "plan_check", "day": _check_day})
+rows.extend(week_review.rows(datetime.now(TZ).date()))
 import checkin_tasks  # noqa: E402
 rows.extend(checkin_tasks.rows())  # the Check-ins card (tasks.js): which check-ins the coach sends, and when
 # Meal guide rows for a connected meal planner, today and 13 days ahead (the athlete, Nov 3 and Nov 11, 2026; week 3 PR 2)
