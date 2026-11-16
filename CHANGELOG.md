@@ -2,6 +2,13 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.109.0 (2026-11-16)
+- Engine: block rotations can change sets, not only swap exercises; the New block card button reads "Use the changes". A rotation row's `sets` items raise a slot's sets at the block start, or, with `after`, once that lift has that many logged sessions (`lifts.py due` names it, `lifts.py raise <ex>` applies it). The Lifts tab's New block card lists set changes beside swaps.
+- Engine: alpha features (the kit maker, Nov 16, 2026: the athlete tests new features first, for a day to a week or more, before they reach the kit). coach/ops/alpha.json is the one list of features in alpha; it never ships in the kit. build_dashboard writes a kind alpha row per entry, and a page feature in alpha stays off without its row (lifts.js alpha(id)); alpha guide text sits inside owner-only markers. Kilograms on the Lifts tab (6.108.0) and set changes in block rotations start in alpha.
+
+## 6.108.0 (2026-11-16)
+- Dashboard: lift loads in kilograms for a person whose units are metric. The Lifts tab takes and shows kg (set boxes, last sets, next step, best sets, the estimated best single chart); every load is still stored in pounds (lift_log, strength_log.csv, lift_history.json, one home), converted only on the page and rounded to 0.5 kg. Imperial changes nothing.
+
 ## 6.107.1 (2026-11-16)
 - Dashboard: the Fitness Map holds a tapped metric in place on the phone too (the kit maker, Nov 16: "I still get a jump when I tap on the fitness map on a metric"). 6.104.0 corrected the jump by scrolling the window, but on claude.ai the page scrolls inside a host box, so that correction did nothing there; it now scrolls whichever box holds the Map, the same way the Scorecard tile hold does (app.js).
 - Dashboard: every open or close tap on every tab now holds the tapped row in place (the kit maker, Nov 16: "Im also getting jumping on this page when opening a workout" on Week). The Scorecard tile hold from Nov 15 covered only Fitness tiles; `app.js` now applies it to anything with aria-expanded (Week workouts and days, Today, Check-in, Map metrics, Health, Season) and to the Map's switches, in the box that scrolls; the Map's own hold from 6.104.0 goes, as this covers it. A tap that scrolls on purpose (Health pillars and Season race cards open at the top) is left alone.

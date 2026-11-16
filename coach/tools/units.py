@@ -125,7 +125,7 @@ def row(r, units, unit=None):
     u = r.get("unit", unit)
     conv = UNIT.get(u)
     if str(r.get("key") or "").startswith("lift"):
-        conv = None  # lift loads stay as logged on the Lifts tab (pounds) until that tab takes kilograms
+        conv = None  # lift loads stay in pounds in the data (one home); the Lifts tab shows and takes kilograms itself (lifts.js toU/fromU)
     out = {}
     for k, v in r.items():
         if isinstance(v, str) and v[:1] in "[{" and v[-1:] in "]}":

@@ -360,10 +360,42 @@ def cmd_due(args):
         elif r["status"] == "proposed":
             out.append(f"{label} starts {b['start']} ({days} days): proposal waiting on the athlete (Lifts tab card, or one chat question when he is present)")
         if r["status"] == "accepted" and days <= 0:
-            pending = [s for s in r.get("chosen", r.get("swaps", [])) if cur.get(s["ex"]) != s["to"]]
+            pending = [s for s in r.get("chosen", r.get("swaps", [])) if cur.get(s["ex"]) != s["to"]] + r.get("sets", [])
             if pending:
                 out.append(f"{label} started {b['start']}: apply the accepted swaps (lifts.py apply {r['block_key']}) and name them in the check-in")
+    out += [f"{x}: lifts.py raise {ex}" for ex, x in raises_due(slots)]
     print("\n".join(out) if out else "nothing due")
+    return 0
+
+
+def raises_due(slots):
+    """Slots whose waiting set raise (sets_up) has its logged sessions since it was set: [(ex, line)]."""
+    hist = {r["id"]: r for r in read_json(HISTORY, {"rows": []}).get("rows", [])}
+    out = []
+    for s in slots:
+        up = s.get("sets_up")
+        if isinstance(up, str):
+            up = json.loads(up)
+        if not up:
+            continue
+        days = [x.split(" ")[0] for x in str((hist.get(s.get("id")) or {}).get("series") or "").split("|") if x]
+        n = sum(1 for d in days if d >= up.get("from", ""))
+        if n >= up["after"]:
+            out.append((s["ex"], f"{s.get('name', s['ex'])} has {n} logged sessions since {up.get('from')}: raise it to {up['to']} sets and name it in the check-in"))
+    return out
+
+
+def cmd_raise(args):
+    """Apply a waiting set raise once its logged sessions are in (lifts.py due names it)."""
+    sdoc = read_json(STRENGTH)
+    row = next((x for x in sdoc["rows"] if x.get("kind") == "lift_ex" and x["ex"] == args[0]), None)
+    if row is None or not row.get("sets_up"):
+        print("no waiting set raise for that slot"); return 1
+    up = row.pop("sets_up")
+    up = json.loads(up) if isinstance(up, str) else up
+    row["sets"] = up["to"]
+    write_json(STRENGTH, sdoc)
+    print(f"{args[0]} {row.get('name', args[0])}: now {up['to']} sets")
     return 0
 
 
@@ -412,7 +444,7 @@ def cmd_accept(args):
         print("nothing to accept: propose first" if r else "no rotation row for that block"); return 1
     only = set((opt(args, "--only", "") or "").split(",")) - {""}
     chosen = [s for s in r["swaps"] if not only or s["ex"] in only]
-    if not chosen:
+    if not chosen and not r.get("sets"):
         print("--only matched no swap"); return 1
     r["status"], r["decided_on"], r["by"], r["chosen"] = "accepted", today(), opt(args, "--by", "chat"), chosen
     write_json(ROTATION, doc)
@@ -464,6 +496,17 @@ def cmd_apply(args):
                         new[d] = ex[d]
         row.clear(); row.update(new)
         applied.append(f"{s['ex']} {lib.get(s['from'], {}).get('name', s['from'])} → {ex['name']}")
+    # set changes (6.109.0, the athlete's Dec 21 plan): "sets" items raise a slot's sets now, or once it has `after` logged sessions
+    for c in r.get("sets", []):
+        row = next((x for x in sdoc["rows"] if x.get("kind") == "lift_ex" and x["ex"] == c["ex"]), None)
+        if row is None:
+            print(f"slot {c['ex']} is gone: set change skipped"); continue
+        if c.get("after"):
+            row["sets_up"] = {"to": c["to"], "after": c["after"], "from": today()}
+            applied.append(f"{c['ex']} {row.get('name', c['ex'])} to {c['to']} sets after {c['after']} logged sessions")
+        else:
+            row["sets"] = c["to"]
+            applied.append(f"{c['ex']} {row.get('name', c['ex'])} to {c['to']} sets")
     write_json(STRENGTH, sdoc)
     r["status"], r["applied_on"] = "applied", today()
     write_json(ROTATION, doc)
@@ -485,6 +528,10 @@ def proposal_rows():
             swaps.append({"ex": s["ex"], "from": s["from"], "to": s["to"], "why": s.get("why", ""),
                           "from_name": lib.get(s["from"], {}).get("name", s["from"]), "to_name": lib.get(s["to"], {}).get("name", s["to"]),
                           "to_note": (hist.get(s["to"]) or {}).get("note", "Not logged yet."), "from_note": (hist.get(s["from"]) or {}).get("note", "")})
+        names = {x.get("ex"): x.get("name", x.get("ex")) for x in read_json(STRENGTH, {"rows": []}).get("rows", []) if x.get("kind") == "lift_ex"}
+        for c in r.get("sets", []):
+            swaps.append({"ex": c["ex"], "from": "", "to": "", "why": c.get("why", ""), "from_name": names.get(c["ex"], c["ex"]),
+                          "to_name": f"{c['to']} sets" + (f" after {c['after']} logged sessions" if c.get("after") else ""), "to_note": "", "from_note": ""})
         out.append({"kind": "lift_proposal", "block_key": r["block_key"], "block": b.get("label", r["block_key"]), "block_name": b.get("name", ""),
                     "start": b.get("start"), "focus": r.get("focus", ""), "status": r["status"], "decided_on": r.get("decided_on"), "swaps": swaps})
     return out
@@ -551,7 +598,7 @@ def cmd_start(args):
 
 if __name__ == "__main__":
     cmds = {"library": cmd_library, "start": cmd_start, "ingest": cmd_ingest, "history": cmd_history, "list": cmd_list, "due": cmd_due, "propose": cmd_propose,
-            "accept": cmd_accept, "keep": cmd_keep, "apply": cmd_apply}
+            "accept": cmd_accept, "keep": cmd_keep, "apply": cmd_apply, "raise": cmd_raise}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(__doc__); sys.exit(2)
     sys.exit(cmds[sys.argv[1]](sys.argv[2:]))

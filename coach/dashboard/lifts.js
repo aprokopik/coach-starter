@@ -58,9 +58,15 @@
       lib: [...r.filter((x) => x.kind === 'lift_lib').reduce((a, x) => a.set(x.id, x), new Map()).values()].filter((x) => !x.hidden && x.lifts).sort((a, b) => (N(a.order) ?? 99) - (N(b.order) ?? 99)) };
   }
   const hasLoad = (e) => e.load === 'lb' || e.load === 'lb_added';
+  // kg for a metric person (6.108.0): loads stay lb in the data, converted only here
+  const alpha = (id) => !!(window.CX.app && window.CX.app.kind('alpha').some((b) => b.id === id));
+  const KG = () => !!(window.CX.U && window.CX.U.metric()) && alpha('lift_kg'), wU = () => (KG() ? 'kg' : 'lb');
+  const toU = (lb) => (KG() && lb !== null && lb !== undefined ? Math.round(lb * 0.45359237 * 2) / 2 : lb);
+  const fromU = (v) => (KG() && v !== null && v !== undefined ? Math.round((v / 0.45359237) * 100) / 100 : v);
+  const setU = (t) => (KG() ? String(t || '').replace(/(\+?)(\d+(?:\.\d+)?)×/g, (x, p, n) => `${p}${toU(+n)}×`) : t);
   const side = (e) => (e.per_side ? (e.unit === 's' ? ' /side' : ' /leg') : '');
   const doseTxt = (e) => `${e.sets} × ${N(e.lo) === N(e.hi) ? e.lo : e.lo + '–' + e.hi}${e.unit === 's' ? ' s' : ''}${side(e)}${e.extra ? ' ' + e.extra : ''}`;
-  const loadTxt = (e, lb) => (e.load === 'lb_added' ? (lb > 0 ? `+${lb}` : 'BW') : `${lb}`);
+  const loadTxt = (e, lb) => (e.load === 'lb_added' ? (lb > 0 ? `+${toU(lb)}` : 'BW') : `${toU(lb)}`);
   const setTxt = (e, st) => `${hasLoad(e) && N(st.lb) !== null ? loadTxt(e, N(st.lb)) + '×' : ''}${N(st.reps) ?? '?'}${e.unit === 's' ? ' s' : ''}`;
   const exWhere = (e) => `kind=lift_ex&routine=${e.routine}&ex=${e.ex}`;
   const phaseAt = (m, d) => m.phases.find((p) => d >= p.start && d <= p.end) || null;
@@ -81,7 +87,7 @@
     if (mode === 'upper' && e.legs) return H(false, null, 'Not in this phase yet');
     const full = last.sets.length >= N(e.sets) && last.sets.every((st) => N(st.reps) !== null && N(st.reps) >= N(e.hi));
     if (full) {
-      if (hasLoad(e)) { const top = Math.max(...last.sets.map((st) => N(st.lb) ?? 0)); return H(true, 'Next', `${loadTxt(e, top + (N(e.step) || 5))} lb, back to ${e.lo}${e.unit === 's' ? ' s' : ''}`); }
+      if (hasLoad(e)) { const top = Math.max(...last.sets.map((st) => N(st.lb) ?? 0)); return H(true, 'Next', `${loadTxt(e, top + (N(e.step) || 5))} ${wU()}, back to ${e.lo}${e.unit === 's' ? ' s' : ''}`); }
       return H(true, 'Next', e.next_hard || 'make it harder');
     }
     return H(false, 'Next', `same ${hasLoad(e) ? 'load' : 'setup'}, aim for ${e.hi}${e.unit === 's' ? ' s' : ''}`, ' on every set');
@@ -95,10 +101,7 @@
   let paintRpe = () => {};
 
   const extraSets = new Map(); // extra set rows added with + set, per exercise, for the day being logged
-  // Lift day (layout 1 "Today's lifts first", provisional until the athlete picks, Nov 16, 2026): the day's strength plan row (week.json,
-  // the one home for what a session holds) sets which lifts are open. Its `lifts` field lists exercise codes ("1b;2b;2c;3b") and
-  // `lifts_busy` the short version; a row without them reads its title (upper body: every lift that does not load the legs).
-  // Lifts outside the plan fold into one line the person can open. Nothing is decided here; the tab only reads the row.
+  // Lift day: the day's strength plan row (week.json `lifts`, `lifts_busy`) sets which lifts are open; the rest fold.
   let dayView = 'plan', dayFor = '';
   const codes = (v) => String(v || '').split(/[;,\s]+/).filter(Boolean);
   function dayPlan(m) {
@@ -149,7 +152,7 @@
         row.append(mk('span', 'lx-id', e.ex, 'coach', 'ex', ew), main, end);
         if (gt) { const tg = mk('div', 'lx-gate' + (gt.off ? '' : ' ok'), gt.t, 'coach', null, 'kind=lift_phase&routine=' + e.routine + '&mode=upper', 'phase-gate'); row.append(tg); }
         const last = lastBefore(e.id || e.ex, date); const h = gt ? null : hint(e, last, mode);
-        // two short lines (the athlete, Nov 5, point 4): "Last Oct 30 · +5×8, +5×6", then the next step as a chip "Next · same load, aim for 8"
+        // two short lines (the athlete, Nov 5): last sets, then the next step as a chip
         if (last) {
           const ln = mk('div', 'ck-row-s lx-last', null, null, null, null, 'store:lift_log/' + last.date + ' sets');
           ln.append('Last ' + fD(last.date) + ' · '); ln.append(el('b', null, last.sets.map((st) => setTxt(e, st)).join(', ')));
@@ -169,8 +172,8 @@
           const prev = last && last.sets[i] ? last.sets[i] : null; const mine = cur[i] || {};
           if (hasLoad(e)) {
             const w = el('input', 'ck-input lx-in'); w.type = 'number'; w.inputMode = 'decimal'; w.step = 'any'; w.min = '0'; w.dataset.ex = e.ex; w.dataset.i = i; w.dataset.f = 'lb';
-            w.placeholder = prev && N(prev.lb) !== null ? String(prev.lb) : (e.load === 'lb_added' ? '+lb' : 'lb'); w.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.load === 'lb_added' ? 'added lb' : 'lb'}`);
-            if (N(mine.lb) !== null) w.value = mine.lb; g.append(w);
+            w.placeholder = prev && N(prev.lb) !== null ? String(toU(N(prev.lb))) : (e.load === 'lb_added' ? '+' + wU() : wU()); w.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.load === 'lb_added' ? 'added ' + wU() : wU()}`);
+            if (N(mine.lb) !== null) w.value = toU(N(mine.lb)); g.append(w);
           }
           const r = el('input', 'ck-input lx-in'); r.type = 'number'; r.inputMode = 'numeric'; r.step = '1'; r.min = '0'; r.dataset.ex = e.ex; r.dataset.i = i; r.dataset.f = 'reps';
           r.placeholder = prev && N(prev.reps) !== null ? String(prev.reps) : (e.unit === 's' ? 'sec' : 'reps'); r.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.unit === 's' ? 'seconds' : 'reps'}`);
@@ -231,10 +234,7 @@
     box.append(ds, cnt);
     head.parentNode.insertBefore(box, $('l-status'));
   }
-  // Routine picker (6.102.0, the athlete, Nov 16, 2026: "a drop down library of routines, preselect what you think I will or should do").
-  // The library is coach/routines.json (lift_lib rows); the routine a person is on is strength.json's lift_routine, preselected and
-  // marked Recommended with its pick_why. Choosing another shows what it needs and holds; "Ask to switch" saves store doc
-  // lift_pref/routine, a request the coach checks (routine change checks, the person's likes and can't-dos) at the next check-in.
+  // Routine picker (6.102.0): library coach/routines.json; the current routine is preselected; a pick is a request (lift_pref/routine).
   let pickPending = null, pickView = '';
   function renderPicker(m) {
     const box = $('l-pick'); if (!box) return; box.hidden = m.lib.length < 2; if (box.hidden) return;
@@ -292,7 +292,7 @@
   const SW = { progressing: 'Progressing', holding: 'Holding', new: 'First session', back: 'Coming back', stalled: 'Stalled', down: 'Down' };
   let opened = '', pinned = null;
   const svgEl = (t, a) => { const e = document.createElementNS('http://www.w3.org/2000/svg', t); for (const k in a) e.setAttribute(k, a[k]); return e; };
-  const pts = (h) => String((h && h.series) || '').split('|').filter(Boolean).map((x) => { const [d, v] = x.split(' '); return [d, N(v)]; }).filter((x) => x[1] !== null);
+  const pts = (h) => String((h && h.series) || '').split('|').filter(Boolean).map((x) => { const [d, v] = x.split(' '); const n = N(v); return [d, n !== null && h.basis === 'e1rm' && KG() ? Math.round(n * 0.45359237 * 10) / 10 : n]; }).filter((x) => x[1] !== null);
   function sline(p, w, h, big) {
     const s = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, class: big ? 'lx-sch' : 'lx-spk', role: 'img' });
     if (!p.length) return s;
@@ -337,17 +337,17 @@
     const row = (e) => {
       const h = history(e.id || e.ex), hr = m.hist.get(e.id) || {}, p = pts(hr), st = hr.status || 'none', ew = exWhere(e), on = opened === e.ex;
       const li = el('li', 'lx-srow'); const b = el('button', 'lx-sbtn'); b.type = 'button'; b.setAttribute('aria-expanded', String(on));
-      const nm = el('span', 'lx-snm'); nm.append(mk('span', null, e.name, 'coach', 'name', ew), el('span', 'ck-sub', hr.best_set ? `best ${hr.best_set}, ${fD(hr.best_date)}` : 'Not logged yet'));
+      const nm = el('span', 'lx-snm'); nm.append(mk('span', null, e.name, 'coach', 'name', ew), el('span', 'ck-sub', hr.best_set ? `best ${setU(hr.best_set)}, ${fD(hr.best_date)}` : 'Not logged yet'));
       b.append(nm, sline(p, 64, 26, false), mk('span', 'lx-sw ' + st, SW[st] || 'Not logged yet', 'coach', 'status', 'kind=lift_hist&id=' + e.id));
       b.addEventListener('click', () => { opened = on ? '' : e.ex; renderProgress(m); const nb = document.querySelector(`#l-progbody .lx-sbtn[data-ex="${e.ex}"]`); if (nb) nb.focus(); });
       b.dataset.ex = e.ex; li.append(b);
       if (on) {
         const o = el('div', 'lx-sopen');
-        if (p.length) { const c = sline(p, 320, 140, true); c.setAttribute('aria-label', `${e.name}, ${hr.basis === 'e1rm' ? 'estimated best single in lb' : hr.basis}: ` + p.map((q) => `${fD(q[0])} ${q[1]}`).join(', ')); o.append(el('p', 'ck-sub', hr.basis === 'e1rm' ? 'Estimated best single, lb' + (e.load === 'lb_added' ? ', body weight included' : '') : 'Best set, ' + (hr.basis || 'reps')), c); }
+        if (p.length) { const c = sline(p, 320, 140, true); c.setAttribute('aria-label', `${e.name}, ${hr.basis === 'e1rm' ? 'estimated best single in ' + wU() : hr.basis}: ` + p.map((q) => `${fD(q[0])} ${q[1]}`).join(', ')); o.append(el('p', 'ck-sub', hr.basis === 'e1rm' ? 'Estimated best single, ' + wU() + (e.load === 'lb_added' ? ', body weight included' : '') : 'Best set, ' + (hr.basis || 'reps')), c); }
         if (h.length) { const hl = mk('ol', 'lx-phist', null, null, null, null, 'store:lift_log last four sessions'); hl.setAttribute('aria-label', 'Last sessions, oldest first');
           for (const x of h.slice(-4)) { const t = [...x.sets].sort((a, c) => ((N(c.lb) ?? 0) - (N(a.lb) ?? 0)) || ((N(c.reps) ?? 0) - (N(a.reps) ?? 0)))[0]; const q = el('li'); q.append(el('span', null, fD(x.date)), ' ', el('b', null, setTxt(e, t))); hl.append(q); } o.append(hl);
           const hn = hint(e, h[h.length - 1], mode); if (hn) { const nx = mk('p', 'lx-nx' + (hn.up ? ' up' : ''), null, 'coach', null, ew, 'next-step'); if (hn.up) nx.append(icon('trend-up')); nx.append(el('span', null, hn.t)); o.append(nx); } }
-        if (hr.note && (hr.gap || hr.stalled)) o.append(mk('p', 'ck-sub', hr.note, 'coach', 'note', 'kind=lift_hist&id=' + e.id));
+        if (hr.note && (hr.gap || hr.stalled)) o.append(mk('p', 'ck-sub', setU(hr.note), 'coach', 'note', 'kind=lift_hist&id=' + e.id));
         if (!p.length && !h.length) o.append(el('p', 'ck-sub', 'Log it on this tab and its line starts here.'));
         const isPin = pins.includes(e.id), pb = el('button', 'ck-btn lx-spin', isPin ? 'Remove from top' : 'Show at top'); pb.type = 'button'; pb.setAttribute('aria-pressed', String(isPin));
         pb.addEventListener('click', () => setPin(m, e.id, !isPin)); o.append(pb);
@@ -368,7 +368,7 @@
       const nIn = document.querySelectorAll(`#l-ex input[data-ex="${e.ex}"][data-f="reps"]`).length;
       for (let i = 0; i < nIn; i++) {
         const q = (f) => { const x = document.querySelector(`#l-ex input[data-ex="${e.ex}"][data-i="${i}"][data-f="${f}"]`); return x ? N(x.value) : null; };
-        const reps = q('reps'), lb = hasLoad(e) ? q('lb') : null;
+        const reps = q('reps'), lb = hasLoad(e) ? fromU(q('lb')) : null;
         if (reps === null && lb === null) continue;
         const st = { reps }; if (hasLoad(e)) st.lb = lb ?? (e.load === 'lb_added' ? 0 : null); arr.push(st);
       }
@@ -496,7 +496,7 @@
     const bA = $('l-rotyes'), bK = $('l-rotkeep');
     bA.setAttribute('aria-pressed', String(decided === 'accept')); bK.setAttribute('aria-pressed', String(decided === 'keep'));
     const st = $('l-rotstatus');
-    st.textContent = decided === 'accept' ? (p.status === 'applied' ? 'In your routine now.' : `Saved: the new exercises start ${fD(p.start)}.`)
+    st.textContent = decided === 'accept' ? (p.status === 'applied' ? 'In your routine now.' : `Saved: the changes start ${fD(p.start)}.`)
       : decided === 'keep' ? 'Saved: your routine stays as it is.' : 'Your logged sets stay with each exercise either way, so a lift that comes back is compared with its own best.';
     const pick = async (choice) => {
       if (!db) { st.textContent = 'Saving is not available in this view; reply to the check-in instead.'; return; }
@@ -543,7 +543,7 @@
     for (const e of m.ex) {
       const last = lastBefore(e.id || e.ex, date); if (!last) continue;
       last.sets.forEach((st, i) => {
-        for (const f of ['lb', 'reps']) { const x = document.querySelector(`#l-ex input[data-ex="${e.ex}"][data-i="${i}"][data-f="${f}"]`); if (x && N(st[f]) !== null && x.value === '') x.value = st[f]; }
+        for (const f of ['lb', 'reps']) { const x = document.querySelector(`#l-ex input[data-ex="${e.ex}"][data-i="${i}"][data-f="${f}"]`); if (x && N(st[f]) !== null && x.value === '') x.value = f === 'lb' ? toU(N(st[f])) : st[f]; }
       });
     }
     status(''); edited(); bar('Copied last session; edit what changed. Saving…');

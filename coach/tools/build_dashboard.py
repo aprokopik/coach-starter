@@ -294,6 +294,10 @@ rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])
 rows.extend({"kind": "ci_q", **q} for q in _ci.get("questions", [])
             if (q.get("survey") != "setup" or _setup_on) and q.get("survey") not in _off
             and (not q.get("module") or q["module"] in (_mods or [])))
+# Alpha features (the athlete, Nov 16, 2026): coach/ops/alpha.json is their one home and never ships in the kit, so only the
+# original athlete gets kind alpha rows; a page feature in alpha stays off without its row (lifts.js alpha(id)).
+rows.extend({"kind": "alpha", "id": b.get("id"), "name": b.get("name")}
+            for b in read_json("coach/ops/alpha.json", {}).get("rows", []) if b.get("status") == "alpha")
 # When the next home BP week is due: 6 months after a Good week, 3 after Watch or Act (the athlete, Nov 10, 2026; 6.4.0)
 import bp_cadence  # noqa: E402
 rows.append({"kind": "bp_week", **bp_cadence.from_repo(".", datetime.now(TZ).date())})
