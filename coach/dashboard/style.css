@@ -1313,7 +1313,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 /* Today's call, the athlete's Sprint Review (Nov 15, 2026): no SD figure on the compact line (the word carries it), and the bell curve
    in the opened view */
 .ck #t-hero .td-nm-v, .ck #t-hero .td-nm-u { display: none; }
-.ck .td-bell ~ .td-g-fig, .ck .td-g-fig { display: none; } /* the SD figure sat over the dial; the bell curve and the word carry it (the athlete, Nov 15) */
+.ck .td-bell ~ .td-g-fig, .ck .td-g-fig { display: none; } /* the bell curve and word carry it (the athlete, Nov 15) */
 .ck .td-bell-band { fill: color-mix(in srgb, var(--ck-good) 22%, transparent); }
 .ck .td-bell-line { fill: none; stroke: var(--ck-fg-2); stroke-width: 2; }
 .ck .td-bell-base { stroke: var(--ck-line); stroke-width: 1; }
@@ -1421,3 +1421,24 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ct-add .ct-time { justify-self: start; }
 .ck .ct-st { margin: 0; padding: var(--ck-s2) 2px 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .ct-st:empty { display: none; }
+/* Tile detail: chart key and labelled lines (6.98.0) */
+.ck .ft-ckey,.ck .ft-howl,.ck .ft-reached{display:grid;gap:4px;margin:0;font-size:var(--ck-t2);line-height:var(--ck-l2);color:var(--ck-fg-2)}
+.ck .ft-howl{padding-left:18px}.ck .ft-reached{color:var(--ck-fg)}
+.ck .ft-krow{display:grid;grid-template-columns:22px 1fr;gap:var(--ck-s2);align-items:center;margin:0}
+.ck .ft-sw{display:block;width:20px;height:0;--sw:var(--ck-fg-3)}
+.ck .ft-sw--band{height:12px;border-radius:2px;background:var(--sw);opacity:.45}
+.ck .ft-sw--base,.ck .ft-sw--line{border-top:3px solid var(--sw)}.ck .ft-sw--dash{border-top:3px dashed var(--sw)}
+.ck .ft-sw--dot{width:8px;height:8px;border-radius:50%;background:var(--ck-fg-3);justify-self:center}
+.ck .ft-kv{display:grid;grid-template-columns:minmax(5.5em,32%) 1fr;gap:6px var(--ck-s3);margin:0;font-size:var(--ck-t2);line-height:var(--ck-l2)}
+.ck .ft-kv dt{color:var(--ck-fg-2)}.ck .ft-kv dd{margin:0;min-width:0;color:var(--ck-fg)}
+.ck .ft-kv .ft-meter{display:block;margin:4px 0 2px}
+/* Fitness List cards (6.98.0, the athlete Nov 16); detail on open */
+.ck .ft-tiles--list{grid-template-columns:minmax(0,1fr)!important;gap:4px}
+.ck .ft-tiles--list>.ft-tile:not([hidden]){display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:2px 10px;align-items:center;min-height:0;height:auto;padding-block:6px}
+.ck .ft-tiles--list>.ft-tile>.ck-tile-head{grid-area:1/1/2/3;margin:0;padding:0 7.5em 0 0;align-items:center}.ck .ft-tiles--list .ft-label{min-height:0}.ck .ft-tiles--list :is(.ft-chev,.ft-chip-k,.ft-subl,.mx-focus){display:none}
+.ck .ft-tiles--list>.ft-tile>.ft-fig{grid-area:1/2;font-size:18px;line-height:1.1;justify-self:end;margin:0}
+.ck .ft-tiles--list>.ft-tile>:is(.ft-chip,.ft-lvrow,.ft-badge){grid-column:1;justify-self:start;margin:0;max-width:100%;font-size:var(--ck-t1,13px)}
+.ck .ft-tiles--list>.ft-tile>.ft-steps{grid-column:2;width:100%;margin:0}
+.ck .ft-tiles--list>.ft-tile>.ft-barname{grid-column:1/-1;margin:0}
+.ck .ft-tiles--list>.ft-tile:has(>.ft-barname)>.ft-fig{display:none}
+.ck .ft-tiles>.ck-seg.mx-lay{grid-column:1/-1;justify-self:end;width:9.5rem}.ck .mx-lay .ck-seg-opt{min-height:30px;padding:2px;font-size:var(--ck-t1,13px)}

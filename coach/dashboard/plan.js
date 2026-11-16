@@ -10,11 +10,12 @@
   const CX = window.CX;
   const A = () => CX.app;
   const WEEKS = 3; // the last two finished weeks and this one
+  // `counts` is the row's line under What counts (6.99.0: one short line per row shown, OUT_RULE has the code side)
   const ROWS = [
-    { id: 'key', label: 'Key sessions' },
-    { id: 'plan', label: 'Days on plan', done: 'on_plan', n: 'scored' },
-    { id: 'easy', label: 'Easy days kept easy', done: 'easy_kept', n: 'easy_done' },
-    { id: 'lift', label: 'Lifts done', done: 'lifts_done', n: 'lifts_target', n0: 'lifts_planned' },
+    { id: 'key', label: 'Key sessions', counts: 'The session at any size (Min, Plan or Max) or a swap. A key rest day counts when you rest.' },
+    { id: 'plan', label: 'Days on plan', done: 'on_plan', n: 'scored', counts: 'Rest, or the session at Min, Plan or Max, against the plan that stood at the end of the day.' },
+    { id: 'easy', label: 'Easy days kept easy', done: 'easy_kept', n: 'easy_done', counts: 'Not longer than Max. Average HR at or under 150 running, 135 riding.' },
+    { id: 'lift', label: 'Lifts done', done: 'lifts_done', n: 'lifts_target', n0: 'lifts_planned', counts: 'Any logged lift (watch, Lifts tab, session form or morning tap), planned or not, out of 2 a week, more when the plan has more. Grey: still to do this week.' },
   ];
   const WHERE = { key: 'key sessions in Week totals', plan: 'days on plan in the Sunday check-in', easy: 'easy days in the Sunday check-in', lift: 'lifts on the Lifts tab' }; // the rows a habits card leaves out
   const KEY_DONE_RULE = 'app.js weekAdh: keys done (done, fallback, swapped, or a key rest day rested) of the week\'s key slots, three from KEY_RULE_FROM';
@@ -123,6 +124,7 @@
     if (TAP) key.append(el('span', 'pl-k pl-k-tap', 'Tap a cell for why'));
     body.append(grid, key, why);
     if (pick.length) { const hn = el('p', 'ck-note'); hn.append('Agreed ', mark(el('span', null, fDay(P(hab.confirmed))), 'coach', 'confirmed', 'kind=habits'), ' with your coach; new ones come with each block brief.'); const rest = ROWS.filter((x) => !pick.includes(x.id)).map((x) => WHERE[x.id]); if (rest.length) hn.append(' Also tracked: ', rest.join(', '), '.'); body.append(hn); }
-    const r = $('t-adh-rule'); r.replaceChildren('Each step is one planned item: filled done, outlined missed, dotted still to come. ' + (TAP ? 'Tap a cell for the reason. ' : '') + 'Key sessions: the session at any size (Min, Plan or Max) or a swap; a key rest day counts when you rest. Days on plan: rest, or the session at Min, Plan or Max, scored against the plan that stood at the end of the day. Easy days kept easy: not longer than Max, average heart rate at or under the easy limit (150 running, 135 riding). Lifts done: every lift on the watch, the Lifts tab, the session form or the morning tap, planned or not, out of 2 a week (more when the plan has more); lifts still to do this week are grey. ', ruleSpan('Weeks run Monday to Sunday', OUT_RULE), '.');
+    const r = $('t-adh-rule'); const dl = el('dl', 'ft-kv'); for (const x of pick.length ? ROWS.filter((y) => pick.includes(y.id)) : ROWS) CX.app.kvRow(dl, x.label, x.counts);
+    CX.app.kvRow(dl, 'Weeks', ruleSpan('Monday to Sunday', OUT_RULE)); r.replaceChildren(dl);
   };
 })();

@@ -343,9 +343,9 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
                 (f"{skipped} missed week{'s' if skipped != 1 else ''} forgiven inside this run. " if skipped else "") + \
                 (f"{planned} of the last 12 weeks had a plan on record; the others use your minimum." if planned and planned < 12 else "Against your plan." if planned else "") + \
                 (f" A week counts with {int(_num(m['habit'].get('min')) or 1)} or more training days; two sessions on one day count once, " + ("walks count, sauna does not." if WALKS_TRAIN else "walks and sauna do not.") if meas == "days" else "")
-            rungs = "|".join(([f"{mo} months and counting"] if mo > 3 else ["Beyond: the months keep counting"]) + ["3 months", "3 weeks", "3 days", "Starting"])
+            rungs = "|".join(([f"{mo} months"] if mo > 3 else ["Past 3 months"]) + ["3 months", "3 weeks", "3 days", "Starting"])
             out[k] = {**base, "rungs": rungs, "value": str(held), "unit": "weeks held" if held != 1 else "week held", "chip": "3-3-3", "note": note.strip(),
-                      "level": f"{mo} months and counting" if mo > 3 else cur, "pct": pct, "next": nx, "weeks": "".join("1" if ok else "0" for _, ok, _w in wk[-12:])}
+                      "level": f"{mo} months" if mo > 3 else cur, "pct": pct, "next": nx, "weeks": "".join("1" if ok else "0" for _, ok, _w in wk[-12:])}
         elif m["ladder"] == "ready":
             f = fig.get(k)
             v = _num((f or {}).get("value"))
@@ -365,10 +365,10 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
             if not nxt:
                 nx = f"Covers what {ev} calls for: a long session of {nd['need']:g} mi" + (f" and {nd['week']:g} mi a week" if nd.get("week") else "")
             elif short == "week":
-                nx = f"{at * nd['week'] - wkv:.1f} mi a week more to {nxt.replace('your event', ev)} (your weeks are the limit: {wkv:.1f} of {nd['week']:g} mi)"
+                nx = f"{at * nd['week'] - wkv:.1f} mi a week more to {nxt} for {ev} (your weeks are the limit: {wkv:.1f} of {nd['week']:g} mi)"
             else:
-                nx = f"{at * nd['need'] - v:.1f} mi longer to {nxt.replace('your event', ev)} (your long session is the limit: {v:g} of {nd['need']:g} mi)"
-            out[k] = {**base, "level": cur.replace("your event", ev) if cur else "", "event": ev, "need": nd["need"], "pct": through(L, sh), "next": nx,
+                nx = f"{at * nd['need'] - v:.1f} mi longer to {nxt} for {ev} (your long session is the limit: {v:g} of {nd['need']:g} mi)"
+            out[k] = {**base, "level": cur or "", "event": ev, "need": nd["need"], "pct": through(L, sh), "next": nx,
                       "note": (f.get("note", "") + f" Usual week {wkv:.1f} mi; {ev} calls for {nd['week']:g}.").strip() if week_share is not None else f.get("note", "")}
         elif m["ladder"] == "reps":
             # key lifts (key_lifts.py): the figure brings its own load level, rep steps and load ladder
@@ -397,7 +397,7 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
             if v is None:
                 continue
             if b is None or not b:
-                out[k] = {**base, "level": "Setting your baseline", "next": (f or {}).get("wait") or "A level appears once there are four weeks of readings"}
+                out[k] = {**base, "level": "Setting baseline", "next": (f or {}).get("wait") or "A level appears once there are four weeks of readings"}
                 continue
             pct = (v - b) / b * 100 * (m.get("better", 1))
             cur, nxt, at = rung(L, pct)

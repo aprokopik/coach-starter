@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.96.1",
+ "version": "6.99.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -115,6 +115,7 @@
   "coach/research/PROTOCOL.md",
   "coach/tests/frozen.py",
   "coach/tests/live/test_live_data.py",
+  "coach/tests/live_guard.py",
   "coach/tests/test_apple_health.py",
   "coach/tests/test_build_season.py",
   "coach/tests/test_heartbeat.py",

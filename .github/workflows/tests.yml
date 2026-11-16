@@ -3,6 +3,13 @@ name: Coach tests
 # Runs the deterministic coach tests on every pull request and on every push to main, data commits included
 # (6.2.2: the old paths filter skipped data pushes, so main sat red from Nov 9 with nobody told).
 # The unit tests read frozen fixtures only (coach/tests/frozen.py), so a data commit cannot turn them red.
+#
+# GitHub Actions minutes (6.96.2, Nov 16, 2026): the month's 2,000 included minutes were 90% gone by Nov 16,
+# three quarters of them on this workflow. So: (1) the suite runs once, under live_guard.py, instead of
+# twice (the live data guard used to rerun everything in a child); (2) a newer push to the same pull
+# request cancels the older run; (3) a push to main that changes only live data files (frozen.is_live:
+# BP rows, weigh-ins, check-ins) skips the unit tests, which cannot change on data, and still runs the
+# live data checks, so a broken data file is still reported the same day.
 on:
   pull_request:
   push:
@@ -11,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   unit:
@@ -21,8 +32,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Unit and regression tests
-        run: python -m unittest discover -s coach/tests -v
+      - name: Data only push?
+        id: scope
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null \
+             && git diff --name-only "$BEFORE" HEAD > "$RUNNER_TEMP/changed.txt"; then
+            python3 - "$RUNNER_TEMP/changed.txt" <<'PY' >> "$GITHUB_OUTPUT"
+          import sys
+          sys.path.insert(0, "coach/tests")
+          import frozen
+          paths = [p.strip() for p in open(sys.argv[1]) if p.strip()]
+          data_only = bool(paths) and all(frozen.is_live(p) for p in paths)
+          print("data_only=" + ("1" if data_only else ""))
+          print(f"{len(paths)} changed, data only: {data_only}", file=sys.stderr)
+          PY
+          else
+            echo "could not compare with the previous commit, running everything"
+          fi
+      - name: Unit and regression tests (once, under the live data guard)
+        if: steps.scope.outputs.data_only != '1'
+        run: python coach/tests/live_guard.py
       # Today's athlete files (key sessions, shared race page, briefs, lift rotation). A failure means a data
       # file needs fixing, not the code, so it is reported here and never blocks a merge.
       - name: Live data checks

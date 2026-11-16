@@ -3,6 +3,7 @@
 Runs the rest of the suite in a child process with an audit hook on every file open. Any open of a LIVE
 repo file (frozen.is_live) from test code fails this test and names the file and the test. The kit builder
 is exempt: reading the repo to make a scrubbed copy is its job, and its output keeps no values.
+CI runs the suite once under live_guard.py instead (6.96.2), which is this same check in one pass.
 Live-data checks that are meant to read today's files live in coach/tests/live/ and run as their own step.
 """
 import json
@@ -16,30 +17,11 @@ sys.path.insert(0, HERE)
 import frozen  # noqa: E402
 
 CHILD = r'''
-import json, os, sys, traceback, unittest
-root, here = sys.argv[1], sys.argv[2]
-sys.path.insert(0, here)
-import frozen
-hits = {}
-def hook(event, args):
-    if event != "open" or not args or not isinstance(args[0], (str, bytes, os.PathLike)):
-        return
-    p = os.path.abspath(os.fsdecode(args[0]))
-    if not p.startswith(root + os.sep) or os.path.isdir(p):
-        return
-    rel = os.path.relpath(p, root)
-    if not frozen.is_live(rel):
-        return
-    stack = traceback.extract_stack()
-    if any(os.sep + "kit" + os.sep in f.filename for f in stack):
-        return
-    who = [f"{os.path.basename(f.filename)}:{f.name}" for f in stack if os.path.basename(f.filename).startswith("test_")]
-    hits.setdefault(rel.replace(os.sep, "/"), set()).add(who[-1] if who else "?")
-os.chdir(root)
-sys.addaudithook(hook)  # before discovery, so reads at import time count too
-suite = unittest.defaultTestLoader.discover(here, top_level_dir=here)
-result = unittest.TextTestRunner(stream=open(os.devnull, "w")).run(suite)
-print(json.dumps({"hits": {k: sorted(v) for k, v in hits.items()}, "ran": result.testsRun}))
+import json, os, sys
+sys.path.insert(0, sys.argv[2])
+import live_guard
+result, hits = live_guard.run(stream=open(os.devnull, "w"))
+print(json.dumps({"hits": hits, "ran": result.testsRun}))
 '''
 
 
@@ -54,6 +36,7 @@ class NoLiveData(unittest.TestCase):
                     "coach/norms.json", "coach/tests/fixtures/repo/coach/plan.json", "coach/dashboard/app.js"):
             self.assertFalse(frozen.is_live(rel), rel)
 
+    @unittest.skipIf(os.environ.get("COACH_LIVE_GUARD") == "outer", "CI runs the suite once under live_guard.py, which is this check")
     def test_no_test_opens_live_data(self):
         env = dict(os.environ, COACH_LIVE_GUARD="child")
         r = subprocess.run([sys.executable, "-c", CHILD, frozen.ROOT, HERE], capture_output=True, text=True, env=env, timeout=600)

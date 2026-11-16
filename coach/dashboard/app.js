@@ -1917,7 +1917,7 @@
     const panel = $('f-expand');
     if (!placeExpand(tilesBox, panel, state.fit)) { state.fit = null; return; }
     if (state.fit === 'run' || state.fit === 'bike') { for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); } $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
-    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { note: m.why && !m0.pair ? mark(el('span', null, m.why), 'coach', 'why', 'kind=marker&key=' + m.key) : null })); }
+    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false, true); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { why: m.why && !m0.pair ? m.why : null })); }
   }
   // A marker row with pair names a second marker for the same tile (the athlete, Nov 8, 2026: the Aerobic engine tile, VO2max per sport). The open
   // tile gets a switch above its chart (Run / Bike, from each row's sport_label) and shows one sport at a time, with that sport's own ladder.
@@ -2030,7 +2030,7 @@
       return { block: cur.block, block_key: cur.block_key, start: cur.start, end: cur.end, status: cur.status, baseline: base, target: T, strong: S, latest, phase, pct, text,
                short: T === null ? 'Hold' : phase === 'strong' ? 'Strong reached' : phase === 'to strong' ? `Target met · to Strong ${vf(S)}` : `Target ${vf(T)}` };
     })() : null;
-    const nextText = next ? `Next block ${next.block} (from ${fDay(P(next.start))}): ` + (N(next.target) === null ? 'hold' : `Target ${vf(N(next.target))}, Strong ${vf(N(next.strong))}`) + ' (provisional; set from the measured baseline on its first day)' : '';
+    const nextText = next ? `${next.block}, from ${fDay(P(next.start))}: ` + (N(next.target) === null ? 'hold' : `Target ${vf(N(next.target))}, Strong ${vf(N(next.strong))}`) + ' (provisional)' : ''; // 6.98.0: what provisional means is in LEVELS_HELP
     return { cm: { ...cm }, goal, nextText, series: inBlock.map((p) => ({ date: p.date, value: p.value })), full: series.map((p) => ({ date: p.date, value: p.value })), blocks, cur, baselineOf, tiersFor, lb };
   }
   function blockDrawFor(bc, fmt) {
@@ -2084,7 +2084,7 @@
       lineChart(box, rows, {
         key: 'fit-' + k, h: 190, narrow: pts2.length ? { h: 280 } : undefined, today: true, main: 1, head: 0, fmt: k === 'run' ? mss : f0, unit: k === 'run' ? 'min' + U.paceU() : 'W', endUnit: k === 'run' ? U.paceU() : 'W',
         words: k === 'run' ? ['slower', 'faster'] : undefined, title: k === 'run' ? `Run pace at ${ANC().run} bpm, 28-day average` : `Bike power at ${ANC().bike} bpm, 28-day average`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
-        blocks: blockDraw, sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
+        blocks: blockDraw.map((b) => ({ ...b, goal: undefined })), sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
         series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
         tipLines: (r) => k === 'run'
           ? [{ text: `${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, ${f1(r.miles)} ${U.distU()}` }, { text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
@@ -2094,13 +2094,13 @@
       if (blockDraw.length) box.append(zoomBar(k, renderFitness));
       note.textContent = '';
       const calcNote = k === 'run'
-        ? `Each run’s pace scaled to the same ${ANC().run} bpm (your easy heart rate) using your resting HR, so easy and hard runs compare. Up is faster. Flat runs only. Heat pushes HR up, so part of a gain after summer is cooler weather. Estimated.`
-        : `Each Zwift ride’s average power scaled to the same ${ANC().bike} bpm (your easy heart rate) using your resting HR. Up is more power for the same heart rate. Indoor rides only (no power outdoors). Estimated.`;
+        ? `Each flat run’s pace, scaled to ${ANC().run} bpm with your resting heart rate. Heat raises heart rate, so part of a gain after summer is cooler weather. Estimated.`
+        : `Each Zwift ride’s average power, scaled to ${ANC().bike} bpm with your resting heart rate. Indoor rides only: no power outdoors. Estimated.`;
       if (cm && latest !== undefined) {
         const vf = k === 'run' ? (v) => mss(v) + U.paceU() : (v) => f0(v) + ' W'; const sg = (g) => (k === 'run' ? `${g >= 0 ? '+' : '−'}${mss(Math.abs(g))}` : `${g >= 0 ? '+' : '−'}${f0(Math.abs(g))} W`);
         const better = k === 'run' ? -1 : 1; const edge = cur ? (better === 1 ? cur.hi : cur.lo) : null; const nextBand = cur ? ts.find((t) => (better === 1 ? t.lo === cur.hi : t.hi === cur.lo)) : null;
         const gap = edge !== null && edge !== undefined && nextBand ? `${sg(latest - edge)} vs ${nextBand.label} (${vf(edge)})` : '—';
-        $('f-detail').replaceChildren(markerDetail({ ...cm, gap, rank: cur ? cur.label : '' }, { rows: bc.full, note: ruleSpan(calcNote, 'app.js drawFitChart: calculation note (calc.js fitness description)'), goal: bc.goal, nextText: bc.nextText }));
+        $('f-detail').replaceChildren(markerDetail({ ...cm, gap, rank: cur ? cur.label : '' }, { rows: bc.full, how: calcNote, goal: bc.goal, nextText: bc.nextText, line: "Line: 28-day average", lineColor: tokv(SPORT_TONE[k]), dot: `Dots: each ${k === 'run' ? 'run' : 'ride'}, scaled to ${ANC()[k]} bpm` }));
       }
     }
   }
@@ -2182,12 +2182,6 @@
   const basisOf = (b) => BASIS[b] || BASIS.coach;
   function tiersOf(m) { return String(m.tiers || '').split(';').filter(Boolean).map((t) => { const [label, lo, hi, note, basis] = t.split('|'); return { label, lo: lo === '' ? null : +lo, hi: hi === '' ? null : +hi, note, basis: basis || m.basis || 'coach' }; }); }
   function basisTag(b) { const t = el('span', 'ft-btag', basisOf(b).label); t.style.color = basisOf(b).color(); /* the tag names a chart band: the band's own token */ return t; }
-  function basisLegend(ts) { const seen = [...new Set(ts.map((t) => t.basis))]; return seen.map((b) => ({ label: basisOf(b).label + ' bands', color: basisOf(b).color() })); }
-  function tierLines(m) {
-    const ts = tiersOf(m); const out = [];
-    for (let i = 0; i < ts.length - 1; i++) if (ts[i].hi !== null) out.push({ v: ts[i].hi, label: m.key === 'swim' ? ts[i + 1].label : ts[i + 1].label });
-    return out;
-  }
   const ZOOMS = [['close', 'Close up'], ['near', 'Nearby levels'], ['all', 'All levels']];
   function zoomOf(key) { return state.zoom[key] || 'near'; }
   function tierInclude(ts, vmin, vmax, zoom) {
@@ -2253,7 +2247,7 @@
   function subEdges(m) { const main = new Set(tiersOf(m).flatMap((t) => [t.lo, t.hi])); return subtiersOf(m).flatMap((t) => [t.lo, t.hi]).filter((v) => v !== null && !main.has(v)); }
   const inTier = (t, v) => (t.lo === null || v >= t.lo) && (t.hi === null || v < t.hi);
   function valFmt(m, short) {
-    const k = m.key, u = short ? '' : (m.unit || '');
+    const k = m.key, u = short ? '' : (m.unit || (k === 'ftp' ? 'W' : '')); // the FTP row carries no unit
     if (k === 'swim') return (v) => `${mss(v / 60)}${short ? '' : ' ' + U.swimU()}`;
     if (RT(k)) return (v) => rtime(v);
     if (k === 'run' || k === 'trailgap') return (v) => `${mss(v)}${short ? '' : U.paceU()}`;
@@ -2266,7 +2260,7 @@
     return (v) => `${f1(v)}${u ? ' ' + u : ''}`;
   }
   function deltaFmt(m) {
-    const k = m.key, u = m.unit || '';
+    const k = m.key, u = m.unit || (k === 'ftp' ? 'W' : '');
     if (k === 'swim') return (d) => `${Math.round(d)} s`;
     if (RT(k) || k === 'run' || k === 'trailgap') return (d) => mss(d) + (RT(k) ? '' : U.paceU());
     if (k === 'trailspeed') return (d) => mss(d) + ' /effort km';
@@ -2291,7 +2285,8 @@
     return { latest, cur, band, pct: pt.pct, notional: pt.notional, next, reached, dist: next ? Math.abs(next.v - latest) : null };
   }
   function pctFromFront(norm, v) {
-    const bp = [...norm.breakpoints].map((b) => [N(b[0]), N(b[1])]).sort((a, b) => a[0] - b[0]); const better = Number(norm.better) || 1;
+    const raw = typeof norm.breakpoints === 'string' ? JSON.parse(norm.breakpoints) : norm.breakpoints; // the runtime returns nested fields as JSON text (6.98.0: read raw, the percentile came out as 100th)
+    const bp = [...raw].map((b) => [N(b[0]), N(b[1])]).sort((a, b) => a[0] - b[0]); const better = Number(norm.better) || 1;
     if (better === -1) {
       if (v <= bp[0][0]) return bp[0][1] * (bp[0][0] ? v / bp[0][0] : 1);
       for (let i = 0; i < bp.length - 1; i++) if (v >= bp[i][0] && v <= bp[i + 1][0]) return bp[i][1] + (v - bp[i][0]) / (bp[i + 1][0] - bp[i][0]) * (bp[i + 1][1] - bp[i][1]);
@@ -2308,75 +2303,114 @@
   }
   // one line of the detail: a bold label and its content (marked by the caller)
   const dLine = (label, ...content) => { const r = el('p', 'ft-dl'); if (label) r.append(el('b', null, label)); r.append(...content.flat()); return r; };
+  // What levels, steps and block lines are, said once for every ranked tile (6.98.0); markers.py ANCHOR keeps only what is special to a tile
+  const LEVELS_HELP = [
+    'Levels run from Bottom 10% to Top 0.5% of the group named in Compared with, the same way on every ranked tile.',
+    'Each level has equal steps; a higher step is nearer the next level. Levels carry the evidence, steps pace your progress (coach estimate).',
+    'Levels stay fixed until their source is refreshed or your age group changes. Past the last published point the edges are Estimated.',
+    'The lowest and highest levels have no outer edge, so progress through them is read as if they were as wide as the level next door.',
+    'Block lines: Baseline is your 28-day average on the block’s first day. Target and Strong are where the coach expects you to finish, set at the start and never moved.',
+    'A new block starts from a new baseline. Earlier blocks stay on the chart; later ones are provisional until they start.',
+  ];
+  const sentences = (s) => String(s || '').split(/(?<=[.!?])\s+(?=[A-Z(])/).map((x) => x.trim()).filter(Boolean);
+  function kvRow(dl, label, ...content) { const dt = el('dt', null, label); const dd = el('dd'); dd.append(...content.flat()); dl.append(dt, dd); return dd; }
+  function keyRow(box, kind_, color, ...content) { const r = el('p', 'ft-krow'); const sw = el('i', 'ft-sw ft-sw--' + kind_); if (color) sw.style.setProperty('--sw', color); r.append(sw); const t = el('span'); t.append(...content.flat()); r.append(t); box.append(r); return r; }
+  // Tile detail (6.98.0, the athlete Nov 15: labelled lines plus the chart key): key, labelled lines, then folds (DASHBOARD.md Fitness 4)
   function markerDetail(m, ctx) {
     const wrap = el('div', 'ft-det');
     const mw = 'kind=marker&key=' + m.key; const md = (txt, d, where) => mark(el('span', null, txt), 'coach', null, where || mw, d); const mf = (f) => mark(el('span', null, m[f]), 'coach', f, mw);
-    const main = section('Progress details'); const d = main.body;
     let rows = ctx && ctx.rows ? ctx.rows : kind('mpt').filter((p) => p.key === m.key && N(p.value) !== null).sort((a, b) => (a.date < b.date ? -1 : 1)).map((p) => ({ date: p.date, value: N(p.value), extra: p.extra }));
     if (['consistency', 'strength', 'sauna'].includes(m.key)) {
       const full = rows.filter((r) => !/so far/.test(String(r.extra || '')));
       rows = full.map((r, i) => ({ date: r.date, value: avgOf(full.slice(Math.max(0, i - 3), i + 1).map((x) => x.value)) }));
     }
     const vf = valFmt(m), sf = valFmt(m, true), df = deltaFmt(m); const mi = milestoneInfo(m, rows);
-    // The scale (basis, anchor, bands, population bands, source) folds away under one disclosure (the athlete, Oct 23); the current standing stays in view
-    const tagWrap = el('span'); if (m.basis && tiersOf(m).length) { tagWrap.append(basisTag(m.basis)); if (tiersOf(m).some((t) => t.basis !== m.basis)) tagWrap.append(' with ', ...[...new Set(tiersOf(m).filter((t) => t.basis !== m.basis).map((b) => b.basis))].map((b) => basisTag(b)), ' bands'); }
-    const scale = section('Scale', tagWrap.childNodes.length ? tagWrap : null); const sc = scale.dt, scb = scale.body;
-    const curV = rows.length ? rows[rows.length - 1].value : null; // the Step up offer is gone: stages follow fitness (6.41.0)
-    const sp = scalePicker(m, curV); if (sp) { scb.append(sp); if (state.scaleOpen === m.key) { sc.open = true; state.scaleOpen = null; } }
-    if (ctx && ctx.note) scb.append(dLine(null, ctx.note));
-    if (m.anchor) scb.append(dLine('Anchor: ', mf('anchor')));
-    // plain reading (Nov 15, 2026): "effort km" is coach shorthand; say once what it counts (trail_effort.py effort_pace, ITRA: km + gain / 100 m)
-    if (m.key === 'trailspeed' || /effort km/.test(String(m.unit || ''))) d.append(dLine('Effort km: ', 'each km run, plus 1 km for every 100 m climbed, so a hilly run and a flat one compare.'));
-    const goal = ctx && ctx.goal ? ctx.goal : (kind('level_block').some((x) => x.key === m.key) ? (blockContext(m.key, rows) || {}).goal : null);
-    if (goal) {
-      const gw = `kind=level_block&key=${m.key}&block_key=${goal.block_key}`;
-      const g = el('div', 'ft-prog'); g.append(dLine('Block goal: ', basisTag('race'), ' ', md(`${goal.block} (${fDay(P(goal.start))}–${fDay(P(goal.end))})${goal.status === 'proposed' ? ' · proposed, awaiting your confirmation' : goal.status === 'provisional' ? ' · provisional until the block starts' : ''}`, 'block', gw)));
-      if (goal.pct !== null) { const bar = el('span', 'ck-zone-track ft-meter ft-meter--race'); bar.append(el('i', 'ck-zone-fill')); CKC().meter(bar, { frac: goal.pct, sentence: `Block goal: ${goal.text}`, marks: { source: 'coach', where: gw, derived: 'goal-progress' } }); g.append(bar); }
-      g.append(dLine(null, md(goal.text, 'goal-progress', gw), ctx && ctx.nextText ? ['. ', md(ctx.nextText, 'next-block', 'kind=level_block&key=' + m.key)] : '')); d.append(g);
-    } else if (m.target) d.append(dLine('Target: ', mf('target')));
-    if (m.more) d.append(dLine('By grade: ', mf('more')));
-    if (m.why_hr) d.append(dLine(`Why ${String(m.why_hr).split(' ')[0]} bpm: `, mf('why_hr')));
-    if (m.gap && m.gap !== '—') d.append(dLine('Gap: ', md(m.gap, 'gap')));
-    if (m.population) d.append(dLine('Population: ', mf('population')));
-    if (m.pop_norm && rows.length) {
-      const nr = kind('norm').find((x) => x.key === m.pop_norm);
-      if (nr) { const pf = pctFromFront(nr, rows[rows.length - 1].value); const ord = (n) => { n = Math.round(n); const s = (10 <= n % 100 && n % 100 <= 20) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'); return n + s; }; d.append(dLine('Population: ', md(`About ${ord(100 - pf)} percentile of ${nr.population} if held for the whole leg (${Math.round(pf)}% better; n about ${Number(nr.n).toLocaleString()}). ${nr.note || ''}`, 'percentile', 'kind=norm&key=' + m.pop_norm))); }
-    }
+    const ts = tiersOf(m); const latest = rows.length ? rows[rows.length - 1].value : null;
     const rankExtra = String(m.rank || '').includes(' (') ? ' (' + String(m.rank).split(' (').slice(1).join(' (') : '';
-    const levelText = mi && mi.cur ? mi.cur.label + rankExtra : m.rank;
-    if (levelText) d.append(dLine('Level: ', md(levelText, 'level')));
-    if (mi && mi.pct !== null && mi.band) {
-      const pw = el('div', 'ft-prog'); const bar = el('span', 'ck-zone-track ft-meter'); bar.append(el('i', 'ck-zone-fill'));
-      const nextBand = tiersOf(m).find((t) => (Number(m.better) || 1) === 1 ? t.lo === mi.band.hi : t.hi === mi.band.lo);
-      CKC().meter(bar, { frac: Math.max(0, Math.min(1, mi.pct)), sentence: `${Math.round(mi.pct * 100)}% of the way through ${mi.band.label}`, marks: { source: 'coach', where: mw, derived: 'band-progress' } });
-      pw.append(bar, dLine(null, md(`${Math.round(mi.pct * 100)}% of the way through ${mi.band.label}${nextBand ? ' toward ' + nextBand.label : ''}${mi.notional ? ' (open-ended band, measured as if as wide as its neighbour)' : ''}`, 'band-progress'))); d.append(pw);
+    const levelText = mi && mi.cur ? (mi.cur.parent || mi.cur.label) : String(m.rank || '').split(' (')[0]; // the level name; its step is said once, in Now
+    const goal = ctx && ctx.goal ? ctx.goal : (kind('level_block').some((x) => x.key === m.key) ? (blockContext(m.key, rows) || {}).goal : null);
+    const gw = goal ? `kind=level_block&key=${m.key}&block_key=${goal.block_key}` : null;
+
+    const key = el('div', 'ft-ckey'); key.setAttribute('aria-label', 'Chart key');
+    if (ts.length && levelText) keyRow(key, 'band', basisOf(m.basis).color(), 'Bands: levels');
+    if (goal) {
+      const race = basisOf('race').color(); const fin = fDay(P(goal.end));
+      if (goal.baseline !== null && goal.baseline !== undefined) keyRow(key, 'base', race, md(`Baseline ${vf(goal.baseline)}`, 'baseline', gw), ': block start');
+      if (goal.target !== null && goal.target !== undefined) keyRow(key, 'dash', race, goal.strong !== null && goal.strong !== undefined ? 'Target and Strong' : 'Target', `: block goal by ${fin}`); // their values are in This block
     }
+    if (ctx && ctx.line) keyRow(key, 'line', ctx.lineColor || null, ctx.line);
+    if (ctx && ctx.dot) keyRow(key, 'dot', null, ctx.dot);
+    if (goal || (ctx && (ctx.line || ctx.dot))) wrap.append(key); // a bands-only key repeats the chart's own legend
+
+    // at rest only Next and This block (the athlete, Nov 15: "way too much showing by default"); Now and the rest open under More detail
+    const dl = el('dl', 'ft-kv'), dl2 = el('dl', 'ft-kv');
+    if (latest !== null && levelText) {
+      const dd = kvRow(dl2, 'Now', md(`${vf(latest)} · ${levelText}${mi && mi.cur && mi.cur.step ? `, step ${mi.cur.step} of ${mi.cur.of}` : ''}${m.population || m.pop_norm ? '' : rankExtra}`, 'level'));
+      if (mi && mi.pct !== null && mi.band) {
+        const bar = el('span', 'ck-zone-track ft-meter'); bar.append(el('i', 'ck-zone-fill'));
+        const nextBand = ts.find((t) => (Number(m.better) || 1) === 1 ? t.lo === mi.band.hi : t.hi === mi.band.lo);
+        CKC().meter(bar, { frac: Math.max(0, Math.min(1, mi.pct)), sentence: `${Math.round(mi.pct * 100)}% of the way through ${mi.band.label}`, marks: { source: 'coach', where: mw, derived: 'band-progress' } });
+        dd.append(bar, md(`${Math.round(mi.pct * 100)}% of the way${nextBand ? '' : ' through ' + mi.band.label}`, 'band-progress')); // Next names the next level
+      }
+    } else if (levelText) kvRow(dl2, 'Level', md(levelText + rankExtra, 'level'));
     if (mi) {
       const wk = ['consistency', 'strength', 'sauna'].includes(m.key); const nv = wk ? (v) => `${f1(v)} ${m.key === 'consistency' ? 'days' : 'sessions'}/week` : vf, nd = wk ? (v) => `${f1(v)} per week` : df;
-      d.append(dLine('Next milestone: ', mi.next ? md(`${mi.next.label} at ${nv(mi.next.v)} · ${nd(mi.dist)} away${wk ? ' (4-week average)' : ''}`, 'milestone') : 'top of the scale reached'));
-      if (mi.reached.length) {
-        const r2 = dLine('Reached: '); const rs = el('span'); mark(rs, 'coach', null, mw, 'milestones-reached');
-        const last = mi.reached.slice(-6);
-        last.forEach((e, i) => { if (i) rs.append(' → '); rs.append(`${e.label} · ${fDay(P(e.date))}${e.held ? '' : ' (slipped)'}`); if (e.held && dayN(e.date) > TN - 7) rs.append(' ', el('span', 'ck-chip ft-new', 'New')); });
-        r2.append(rs); d.append(r2);
+      kvRow(dl, 'Next', mi.next ? md(`${nv(mi.next.v)} for ${mi.next.label}, ${nd(mi.dist)} away${wk ? ' (4-week average)' : ''}`, 'milestone') : 'Top of the scale reached');
+    }
+    if (goal) {
+      const st = goal.status === 'proposed' ? ' · proposed, waiting for your OK' : goal.status === 'provisional' ? ' · provisional until it starts' : '';
+      const dd = kvRow(dl, 'This block', md(goal.text + st, 'goal-progress', gw)); kvRow(dl2, 'Block', md(`${goal.block}, ${fDay(P(goal.start))}–${fDay(P(goal.end))}`, 'block', gw));
+      if (goal.pct !== null) { const bar = el('span', 'ck-zone-track ft-meter ft-meter--race'); bar.append(el('i', 'ck-zone-fill')); CKC().meter(bar, { frac: goal.pct, sentence: `Block goal: ${goal.text}`, marks: { source: 'coach', where: gw, derived: 'goal-progress' } }); dd.append(bar); }
+      if (ctx && ctx.nextText) kvRow(dl2, 'Next block', md(ctx.nextText, 'next-block', 'kind=level_block&key=' + m.key));
+    } else if (m.target) kvRow(dl2, 'Target', mf('target'), m.gap && m.gap !== '—' ? [' · ', md(m.gap, 'gap')] : '');
+    const how = ctx && ctx.how ? ctx.how : m.how; const howS = sentences(how);
+    if (howS.length) kvRow(dl2, 'Measured', ctx && ctx.how ? ruleSpan(howS[0], 'app.js drawFitChart: calculation note (calc.js fitness description)') : md(howS[0], 'how'));
+    const whyS = sentences(ctx && ctx.why); if (whyS.length) kvRow(dl2, 'What it shows', md(whyS[0], 'why'));
+    if (m.why_hr) kvRow(dl2, `Why ${String(m.why_hr).split(' ')[0]} bpm`, mf('why_hr'));
+    // plain reading (Nov 15, 2026): "effort km" is coach shorthand; say once what it counts (trail_effort.py effort_pace, ITRA: km + gain / 100 m)
+    if (m.key === 'trailspeed' || /effort km/.test(String(m.unit || ''))) kvRow(dl2, 'Effort km', 'Each km run, plus 1 km for every 100 m climbed, so hilly and flat runs compare');
+    if (m.more) kvRow(dl2, 'By grade', mf('more'));
+    const anc = sentences(m.anchor); const ancRace = anc.find((x) => /^Race day:/.test(x)); const ancMore = anc.slice(1).filter((x) => x !== ancRace);
+    if (anc.length) kvRow(dl2, 'Compared with', md(anc[0].replace(/^Levels come from /, '').replace(/^./, (c) => c.toUpperCase()), 'anchor'));
+    if (ancRace) kvRow(dl2, 'Race day', md(ancRace.replace(/^Race day:\s*/, '').replace(/^./, (c) => c.toUpperCase()), 'anchor'));
+    if (m.population) kvRow(dl2, 'Percentile', mf('population'));
+    else if (m.pop_norm && latest !== null) {
+      const nr = kind('norm').find((x) => x.key === m.pop_norm);
+      if (nr) {
+        const pf = pctFromFront(nr, latest); const ord = (n) => { n = Math.round(n); const s = (10 <= n % 100 && n % 100 <= 20) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'); return n + s; };
+        const leg = /^hm703/.test(String(nr.key)) && !/if held/.test(String(nr.short || '')) ? ' if held for the whole leg' : '';
+        kvRow(dl2, 'Percentile', md(`About ${ord(100 - pf)} of ${nr.short || nr.population}${leg} (${Math.round(pf)}% ahead of you)`, 'percentile', 'kind=norm&key=' + m.pop_norm));
       }
     }
-    const ts = tiersOf(m);
+    if (dl.children.length) wrap.append(dl);
+
+    const moreS = [...whyS.slice(1), ...howS.slice(1)];
+    if (moreS.length || dl2.children.length) { const f = section('More detail'); if (dl2.children.length) f.body.append(dl2); if (moreS.length) { const ul = el('ul', 'ft-howl'); moreS.forEach((x) => ul.append(el('li', null, x))); mark(ul, 'coach', null, mw, 'why-how-rest'); f.body.append(ul); } wrap.append(f.dt); }
+
+    const tagWrap = el('span'); if (m.basis && ts.length) { tagWrap.append(basisTag(m.basis)); if (ts.some((t) => t.basis !== m.basis)) tagWrap.append(' with ', ...[...new Set(ts.filter((t) => t.basis !== m.basis).map((b) => b.basis))].map((b) => basisTag(b)), ' bands'); }
+    const scale = section('Scale', tagWrap.childNodes.length ? tagWrap : null); const sc = scale.dt, scb = scale.body;
+    const sp = scalePicker(m, latest); if (sp) { scb.append(sp); if (state.scaleOpen === m.key) { sc.open = true; state.scaleOpen = null; } }
     if (ts.length) {
       const ul = el('ul', 'ft-tiers'); mark(ul, 'coach', null, mw, 'tiers'); const curBand = mi && mi.band ? mi.band.label : String(m.rank || '').split(' (')[0];
       const subs = subtiersOf(m);
       for (const t of ts) {
-        const here = t.label === curBand; const li = el('li', here ? 'is-here' : null); li.append(el(here ? 'b' : 'span', null, t.label)); li.append(' ', basisTag(t.basis)); if (t.note) li.append(': ' + t.note);
+        const here = t.label === curBand; const li = el('li', here ? 'is-here' : null); li.append(el(here ? 'b' : 'span', null, t.label)); if (t.basis !== m.basis) li.append(' ', basisTag(t.basis)); if (t.note) li.append(': ' + (/percentile of/.test(t.note) ? t.note.split(':')[0] : t.note));
         const mine = subs.filter((x) => x.parent === t.label && x.label !== t.label);
         if (mine.length) { const sl = el('span', 'ft-subs'); sl.append(mine.map((x) => `step ${x.step} ${sf(x.lo)}–${sf(x.hi)}${mi && mi.cur && mi.cur.label === x.label ? ' (you)' : ''}`).join(' · ')); li.append(sl); }
         ul.append(li);
       }
       scb.append(ul);
-      scb.append(dLine(null, m.splits ? 'Steps (1, 2, 3 and on) are equal parts inside each level, and the upper levels have more, smaller steps because gains come slower there; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress (coach estimate).' : `Steps (1 to ${Number(m.split) || 3}) are equal parts inside each level; a higher step is nearer the next level. The levels carry the evidence, the steps pace your progress.`));
     }
-    if (m.how) scb.append(dLine(null, mf('how')));
-    if (d.children.length) wrap.append(main.dt);
+    if (mi && mi.reached.length) {
+      const r2 = el('div', 'ft-reached'); r2.append(el('b', null, 'Milestones reached'));
+      const ul = el('ul', 'ft-howl'); mark(ul, 'coach', null, mw, 'milestones-reached');
+      mi.reached.slice(-6).forEach((e) => { const li = el('li', null, `${e.label} · ${fDay(P(e.date))}${e.held ? '' : ' (slipped)'}`); if (e.held && dayN(e.date) > TN - 7) li.append(' ', el('span', 'ck-chip ft-new', 'New')); ul.append(li); });
+      r2.append(ul); scb.append(r2);
+    }
+    if (ancMore.length) { const ul = el('ul', 'ft-howl'); mark(ul, 'coach', null, mw, 'anchor'); ancMore.forEach((x) => ul.append(el('li', null, x))); const r = el('div', 'ft-reached'); r.append(el('b', null, 'About these levels'), ul); scb.append(r); }
+    if (m.pop_norm && !m.population) { const nr = kind('norm').find((x) => x.key === m.pop_norm); if (nr && nr.note) scb.append(dLine('About the comparison: ', md(`${nr.note} n about ${Number(nr.n).toLocaleString('en-US')}.`, 'percentile', 'kind=norm&key=' + m.pop_norm))); }
     if (scb.children.length) wrap.append(sc);
+    if (ts.length) { const h = section('How levels and steps work'); const ul = el('ul', 'ft-howl'); LEVELS_HELP.forEach((x) => ul.append(el('li', null, x))); ul.setAttribute('data-rule', 'app.js LEVELS_HELP: the one home for what levels, steps and block lines are'); h.body.append(ul); wrap.append(h.dt); }
     return wrap;
   }
   // Climbing, run by run (the athlete, Nov 12, 2026: "use C run by run"): one column per hilly run or hike with a dot for each grade split
@@ -2423,7 +2457,7 @@
     const nb = el('p', 'ck-note ft-basis'); nb.append(ruleSpan(`Each column is one hilly run or hike: a dot per grade, ${U.metric() ? 'metres' : 'ft'} per hour at ${ANC().run} bpm. Compare each colour with its own past; steeper ground reads higher at the same effort.`, 'app.js drawClimbRuns: the splits 10 to 15%, 15 to 20% and 20%+ come from trail_effort.SPLITS, each needing 3 min in the run'));
     box.before(nb);
   }
-  function drawMarker(m, box, lg, note, withWhy) {
+  function drawMarker(m, box, lg, note, withWhy, ownKey) { // ownKey: markerDetail draws the block key under the chart (Fitness tab, 6.98.0)
     const allPts = kind('mpt').filter((p) => p.key === m.key && N(p.value) !== null).sort((a, b) => (a.date < b.date ? -1 : 1));
     const pts = inSpan(allPts);
     box.querySelectorAll(':scope > .ft-zoom, :scope > .ft-clipnote').forEach((n) => n.remove()); // a chart with its own layout (climb, consistency) must not keep the previous tile's range bar above it
@@ -2485,7 +2519,7 @@
       yFixed: closeR ? ((m.key === 'swim' || (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed')) ? [closeR[1], closeR[0]] : closeR) : undefined, clip: !!closeR,
       yDomain: (m.key === 'swim' || (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed')) ? [d3.max([vmax, ...inc]) + (m.key === 'swim' ? 5 : 0.5), d3.min([vmin, ...inc]) - (m.key === 'swim' ? 5 : 0.5)] : undefined,
       yTicks: (m.key === 'swim' || (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed') || closeR) ? (() => { const hi = closeR ? closeR[1] : d3.max([vmax, ...inc]), lo = closeR ? closeR[0] : d3.min([vmin, ...inc]); const span = hi - lo; const step = m.key === 'swim' ? (span > 150 ? 30 : span > 60 ? 20 : span > 24 ? 5 : 2) : (RT(m.key) || m.key === 'trailgap' || m.key === 'trailspeed') ? (span > 12 ? 4 : span > 8 ? 2 : span > 3 ? 1 : 0.5) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : undefined,
-      yInclude: [...inc, ...(blockDraw.length && zoom !== 'close' ? nearLines : [])], blocks: blockDraw.length ? blockDraw : undefined, xDomain: [spanStart(allPts), bxEnd || TODAY], today: !!bxEnd,
+      yInclude: [...inc, ...(blockDraw.length && zoom !== 'close' ? nearLines : [])], blocks: blockDraw.length ? (ownKey ? blockDraw.map((b) => ({ ...b, goal: undefined })) : blockDraw) : undefined, xDomain: [spanStart(allPts), bxEnd || TODAY], today: !!bxEnd,
       tbands: !ts.length ? undefined : zoom === 'close' ? subBands(m, last, (t) => basisOf(t.basis).tone) : tbands, sublines: zoom === 'close' ? undefined : subEdges(m), yMin: ['strength', 'sauna', 'le8', 'sleepreg', 'wkg'].includes(m.key) ? 0 : undefined,
       hbands: (m.key === 'durability' || m.key === 'traildur') && !ts.length ? [[0, 5]] : undefined,
       series: [{ key: 'value', label: m.label, tone: col, dots: !hasRaw, line: m.chart === 'line', connect: m.chart === 'line', r: 3, width: hasRaw ? 2.5 : 2, smooth: hasRaw || m.key === 'rhr', tag: keyed ? undefined : lineTag }, ...(hasRaw ? [{ key: 'raw', label: m.key === 'durability' ? 'Steady session' : 'This run', tone: m.key === 'durability' ? col : 'fg-3', dots: true, line: false, r: m.key === 'durability' ? 3 : 2.5, end: false, tag: keyed ? undefined : dotTag }] : []), ...(hasOff ? [{ key: 'off', label: 'Not scored', tone: 'fg-3', dots: true, line: false, r: 2.5, end: false, tag: keyed ? undefined : 'hard, uneven or outdoor: not scored' }] : [])],
@@ -2522,7 +2556,7 @@
   }
   window.CX.render = render;
   // the helpers season.js (loaded next) reads
-  window.CX.app = { $, CKC, drawMarker, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, stamp, state, truthy };
+  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, stamp, state, truthy };
   Object.assign(window.CX, { stageInfo, lineChart, legend, inSpan, spanStart, spanName, drawWeight, sportCol, sportTok, sportGroups, seasonTile, blockContext, kind, ck: { icon, badge, neutralChip, mark, ruleSpan, cardState, dsState },
     weekSoFar: (w) => { const d = TN - dayN(w) + 1; return d >= 1 && d < 7 ? { x: w, days: d, of: 7 } : null; } }); // the open week of a per-week bar chart
   // Check-ins due on Today (Phase 6): checkins.js renderStrip writes the due count into #t-ci's data-n, the names into

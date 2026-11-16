@@ -43,17 +43,20 @@ BASIS_OVERRIDE = {("consistency", "Better"): "coach", ("consistency", "Best"): "
                   ("durability", "Low decoupling"): "research", ("durability", "Moderate decoupling"): "research", ("durability", "High decoupling"): "research"}
 # What fixes each scale and what moves it (shown as the Anchor line). Scales never move by themselves; every change is logged.
 ANCHOR = {
-    "run": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the general population model for your age and sex (with a triathlon on your race list, also all 70.3 run splits, Knechtle 2023, read as 'if you held this pace for the 13.1 mi run leg'), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). Orange lines = the block goal. No coaching-guideline scale exists for pace at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. Levels and milestones are read against the current block. The target line is your own, from your profile, or a plain coach guide.",
-    "bike": "Three layers (the athlete, Oct 23): blue bands = the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the general population model for your age and sex (with a triathlon on your race list, also all 70.3 bike splits, Knechtle 2023, turned into watts for a flat course through a power model, Estimated), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Orange lines = the block goal. No coaching-guideline scale exists for power at a fixed heart rate. Block levels: each training block gets three lines, fixed for the whole block. Baseline = your 28-day average on the block's first day (measured). Target and Strong = where the coach expects you to come out of the block, set at block start from the race forecast, the FTP test and the baseline, and never moved until the block ends; a new block starts from a new measured baseline. Earlier blocks stay on the chart as history; later blocks are provisional until they start. The target line is your own, from your profile, or a plain coach guide.",
-    "swim": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from all IRONMAN 70.3 finishers 2004–2020 (Knechtle 2023, normal approximation from the published mean and SD) for your sex, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). The Cutoff risk band uses the race's 1.2 mi and 1:10 cutoff (estimated until the 2027 athlete guide). Judgment: pool pace vs an open-water race pace, and a 70.3 is usually non-wetsuit.",
-    "ftp": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Shown in watts at your weight on the test day; they move only when a new FTP result lands.",
-    "wkg": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from the one W/kg distribution in the library (one Zwift event, both sexes; weak) for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail).",
-    "5k": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from 2.2 million US 5K results, 2024 (coach/norms.json) for your sex and age band, fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a log-normal tail). WMA age-grade is given alongside as a second reference.",
-    "durability": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from 82,303 recreational marathoners (Smyth 2022), two published points for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
-    "traildur": "the athlete's percentile ladder (Nov 8, 2026, the same on every ranked Fitness tile): Bottom 10% up to Top 0.5%, more sub-levels where gains slow, edges read from 82,303 recreational marathoners (Smyth 2022), two published points for your sex where published (not yet), fixed until the norm is refreshed or your group changes. Edges past the published points are Estimated (a normal tail). Measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
+    # Short on purpose (the athlete, Nov 15, 2026): who the levels compare you with and what is special about this tile. What levels, steps,
+    # estimated edges and block lines are is said once for every tile on the page (app.js LEVELS_HELP), never repeated here.
+    # Ranked tiles start "Levels come from <group> for your sex...": ANCHOR_SRC swaps the group for the scale in use.
+    "run": "Levels come from all 70.3 run splits (Knechtle 2023) as pace per mile if held for the 13.1 mi run leg, for your sex. No coaching scale exists for pace at a set heart rate. The target line is your own, from your profile, or a plain coach guide.",
+    "bike": "Levels come from all 70.3 bike splits (Knechtle 2023), turned into flat course watts by a power model (Estimated), for your sex. No coaching scale exists for power at a set heart rate. The target line is your own, from your profile, or a plain coach guide.",
+    "swim": "Levels come from all IRONMAN 70.3 finishers 2004–2020 (Knechtle 2023, normal fit to the published mean and SD) for your sex. The Cutoff risk band uses the race's 1.2 mi and 1:10 cutoff (estimated until the 2027 guide). Pool pace is not open water race pace, and a 70.3 is usually non-wetsuit.",
+    "ftp": "Levels come from the one W/kg spread in the library (one Zwift event, both sexes; weak) for your sex where published (not yet). Shown in watts at your test-day weight; they move only when a new FTP result lands.",
+    "wkg": "Levels come from the one W/kg spread in the library (one Zwift event, both sexes; weak) for your sex where published (not yet).",
+    "5k": "Levels come from 2.2 million US 5K results, 2024 for your sex and age band. WMA age grade is given as a second reference.",
+    "durability": "Levels come from 82,303 recreational marathoners (Smyth 2022), two published points, for your sex where published (not yet). Theirs was measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
+    "traildur": "Levels come from 82,303 recreational marathoners (Smyth 2022), two published points, for your sex where published (not yet). Theirs was measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
     "sleepreg": "Coach guide, fixed; replaced if a Sleep Regularity Index becomes computable from the watch.",
-    "vo2": "FRIEND 2022 norms for your age band and sex (coach/tools/vo2_norms.py), fixed; the band moves on with your birth year.",
-    "aerobic": "FRIEND 2022 norms for your age band and sex, treadmill for run and cycle ergometer for bike, fixed; the band moves on with your birth year. The fitness ladder runs past the Health target to the top 10% (the athlete, Nov 8, 2026).",
+    "vo2": "FRIEND 2022 norms for your age band and sex, fixed; the band moves on with your birth year.",
+    "aerobic": "FRIEND 2022 norms for your age band and sex: treadmill for run, cycle ergometer for bike. The band moves on with your birth year. Levels run past the Health target to the top 10%.",
     "vo2bike": "FRIEND 2022 cycle ergometer norms for your age band and sex, fixed; the band moves on with your birth year.",
     "vo2run": "FRIEND 2022 treadmill norms for your age band and sex, fixed; the band moves on with your birth year.",
     "rhr": "Zhang 2016 cut-offs, fixed.",
@@ -61,24 +64,24 @@ ANCHOR = {
     "strength": "WHO 2020 and Momma 2022 cut-offs, fixed.",
     "sauna": "Laukkanen 2015 cut-offs, fixed.",
     "consistency": "Research cut-off (3 days) fixed; the Better and Best tiers are coach guides, fixed.",
-    "trail": "Coach guide in hours of the longest run, fixed; the plan line comes from the block (coach/plan.json long_run_min) and changes only at a block start.",
+    "trail": "Coach guide in hours of the longest run, fixed. The plan line is the block's planned long run and changes only at a block start.",
     "lifts": "Coach guide in percent against your own baseline, fixed; each lift's baseline is its first 2 logged sessions.",
-    "trailspeed": "Coach guide anchored on a 100K with 3,350 m of climbing inside an 18 h cutoff (about 8:05 per effort km for the whole day, aid stops and late fade included), the same anchor and steps as runnable pace (the athlete, Nov 11, 2026), fixed: no population norm exists for trail speed at a set heart rate. ITRA and UTMB indexes rate race results, not training.",
-    "trailgap": "Coach guide anchored on a 100K with an 18 h cutoff (the same anchor as trail speed), fixed: no population norm exists for trail pace at a set heart rate.",
-    "climb150": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: built on mountain running references (1,000 m/h is the strong-amateur vertical-kilometre mark at hard effort; climb rate peaks around 18 to 25% grade); no population norm exists for climbing speed at a set heart rate. Moves only if the athlete agrees a change.",
-    "climb": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: the 10 to 20% steps stand in for all of 10%+; the tile's two bars carry their own bands.",
-    "climbsteep": "Coach guide by grade band (the athlete, Nov 8, 2026), fixed: the top rung sits just under 1,000 m/h, the strong-amateur vertical-kilometre mark at hard effort, here held at easy effort.",
+    "trailspeed": "Coach guide anchored on a 100K with 3,350 m of climbing inside an 18 h cutoff (about 8:05 per effort km for the whole day, aid stops and fade included), fixed. No population norm exists for trail speed at a set heart rate.",
+    "trailgap": "Coach guide anchored on a 100K with an 18 h cutoff (the same anchor as trail speed), fixed. No population norm exists for trail pace at a set heart rate.",
+    "climb150": "Coach guide by grade band, fixed, built on mountain running references: 1,000 m/h is the strong-amateur vertical kilometre mark at hard effort, and climb rate peaks around 18 to 25% grade. No population norm exists for climbing at a set heart rate.",
+    "climb": "Coach guide by grade band, fixed. The 10 to 20% steps stand in for all of 10%+; the tile's two bars carry their own bands.",
+    "climbsteep": "Coach guide by grade band, fixed. The top step sits just under 1,000 m/h, the strong-amateur vertical kilometre mark at hard effort, here held at easy effort.",
 }
 # The scale text when a coach scale stands in (no population norm for this athlete)
 ANCHOR_COACH = {
-    "5k": "WMA age-grade classes stand in until your sex and birth year are in coach/athlete/profile.json; then the percentile ladder for your age group and sex takes over.",
-    "swim": "Age-group triathlon coaching convention for pool pace, with the 70.3 cutoff band; stands in until your sex is in coach/athlete/profile.json.",
-    "run": "Coach guide anchored on the 70.3 run forecast, standing in until your sex is in coach/athlete/profile.json; orange lines = the block goal, fixed for the whole block.",
-    "bike": "Coach guide anchored on the 70.3 bike forecast, standing in until your sex is in coach/athlete/profile.json; orange lines = the block goal, fixed for the whole block.",
+    "5k": "WMA age-grade classes stand in until your sex and birth year are in your profile; then the levels for your age group and sex take over.",
+    "swim": "Age-group triathlon coaching convention for pool pace, with the 70.3 cutoff band; stands in until your sex is in your profile.",
+    "run": "Coach guide anchored on the 70.3 run forecast, standing in until your sex is in your profile.",
+    "bike": "Coach guide anchored on the 70.3 bike forecast, standing in until your sex is in your profile.",
     "ftp": "Coggan bands in watts at your weight on the test day; they move only when a new FTP result lands.",
     "wkg": "Coggan power-profile bands, fixed.",
-    "durability": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide); the 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022, research), measured over about 4 h, so the research bands flatter a 90 min session. No elite-vs-novice table exists in the literature yet: faster marathoners decoupled less and later in that study. Fixed until the norm is refreshed.",
-    "traildur": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide); the 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022, research), measured over about 4 h, so the research bands flatter a 90 min session. No elite-vs-novice table exists in the literature yet: faster marathoners decoupled less and later in that study. Fixed until the norm is refreshed.",
+    "durability": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide). The 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022), measured over about 4 h, so they flatter a 90 min session. No elite vs novice table exists yet.",
+    "traildur": "Under 5% is Friel's coaching convention for 75–120 min sessions (coach guide). The 10% and 20% cuts come from 82,303 recreational marathoners (Smyth 2022), measured over about 4 h, so they flatter a 90 min session. No elite vs novice table exists yet.",
 }
 # Where you stand against a population, only where the library holds the figure
 POPULATION = {
@@ -386,7 +389,7 @@ AG_WMA_TIERS = [("World class", None, _ag_min(90), f"under {mss(_ag_min(90) * 60
                 ("Recreational", _ag_min(60), None, f"over {mss(_ag_min(60) * 60)}: under 60% age-graded, no WMA class")]
 CONS_TIERS = [("Inactive", None, 1, "no training days"),
               ("Maintains", 1, 3, "1–2 days: holds endurance for weeks if intensity stays (TR-16); 'weekend warrior' mortality benefit similar but not significant (dos Santos 2022, JAMA Intern Med)"),
-              ("Good: regularly active", 3, 4, "3+ sessions a week at 150+ min: 15% lower all-cause mortality vs inactive (dos Santos 2022); the research cutoff"),
+              ("Good", 3, 4, "Regularly active: 3+ sessions a week at 150+ min: 15% lower all-cause mortality vs inactive (dos Santos 2022); the research cutoff"),
               ("Better", 4, 5, "4 days: load spread thinner per session, the thing behind the single-run spike rule (IR-01, IR-03); coach guide"),
               ("Best", 5, 7, "5–6 days with at least one low-load day; coach guide"),
               ("Watch", 7, None, "7 days: no low-load day (RULES 4)")]
@@ -445,11 +448,11 @@ def trail_tiers(race):
                 ("Comfortable", e[1], e[2], f"{t(e[1])} to {t(e[2])}: {what} at easy effort with margin"),
                 ("Finisher", e[2], e[3], f"{t(e[2])} to {t(e[3])}: {what} at easy effort, little margin"), ("Cutoff risk", e[3], None, f"over {t(e[3])}{tail}")]
     src = (f"your own race, {r['name']}: {r['effort_km']:g} effort km inside {r['limit_h']:g} h" if race else
-           "a 100K with 3,350 m of climbing inside 18 h, standing in until a trail race of yours has its distance, climbing and time limit in coach/races.json")
-    fixed = "It moves only when that race or its limit changes" if race else "fixed until then"
-    basis = (f"Coach guide anchored on {src} (about {t(need)} per effort km for the whole day, aid stops and late fade included), the same anchor and steps as runnable pace; "
-             f"{fixed}: no population norm exists for trail speed at a set heart rate. ITRA and UTMB indexes rate race results, not training.",
-             f"Coach guide anchored on {src} (the same anchor as trail speed); {fixed}: no population norm exists for trail pace at a set heart rate.")
+           "a 100K with 3,350 m of climbing inside 18 h, standing in until a trail race of yours has its distance, climbing and time limit on file")
+    fixed = "It moves only when that race or its limit changes." if race else "Fixed until then."
+    basis = (f"Coach guide anchored on {src}. That is about {t(need)} per effort km for the whole day, aid stops and fade included. {fixed} "
+             f"No population norm exists for trail speed at a set heart rate.",
+             f"Coach guide anchored on {src}, the same anchor as trail speed. {fixed} No population norm exists for trail pace at a set heart rate.")
     return band(s, " per effort km at 150 bpm", ""), band(g, "/mi grade adjusted at 150 bpm", ""), basis
 
 
@@ -558,8 +561,7 @@ def why_hr(hr, zset, sport_word, measure, path="coach/zones.json"):
     where = (f"{hr} bpm is the top of your {z['name'].lower()} {sport_word} zone (zone {z['zone']}: {z['lo']} to {z['hi']} bpm)" if z and hr == z["hi"]
              else f"{hr} bpm sits in your {z['name'].lower()} {sport_word} zone (zone {z['zone']}: {z['lo']} to {z['hi']} bpm)" if z
              else f"{hr} bpm is the reference easy {sport_word} heart rate")
-    return (f"{where}, an effort you can hold for hours. Comparing at the same heart rate shows fitness apart from how hard you pushed that day: "
-            f"{measure} at {hr} means fitter. Each session is scaled to {hr} from its own average heart rate.")
+    return f"{where}, easy for hours. At one heart rate, {measure} at {hr} means fitter; each session is scaled to {hr}."
 
 
 WHY_150 = why_hr(150, "run", "run", "faster")
@@ -798,7 +800,7 @@ def best_series(eff, today, better=1, window=FIVEK_WINDOW):
 def guide_tiers(base, better, fmt):
     """Coach guide bands around the athlete's own baseline, lowest value first: (label, lo, hi, note)."""
     edge = lambda pct: base * (1 + pct / 100 * better)
-    cuts = [("Below your baseline", None, -3), ("Holding", -3, 3), ("Rising", 3, 10), ("Well up", 10, None)]
+    cuts = [("Below baseline", None, -3), ("Holding", -3, 3), ("Rising", 3, 10), ("Well up", 10, None)]
     rows = []
     for lab, lo, hi in cuts:
         a, b = (None if lo is None else edge(lo)), (None if hi is None else edge(hi))
@@ -950,23 +952,23 @@ def build(today, rows_so_far):
             if sid == "general" and key in ANCHOR_GENERAL:
                 m["anchor"] = ANCHOR_GENERAL[key]
             elif isinstance(norm, dict) and norm.get("population") and m.get("anchor"):  # the Anchor line names the scale in use, never another one
-                m["anchor"] = ANCHOR_SRC.sub(lambda _x: f"edges read from {norm.get('short') or norm['population']}, ", m["anchor"], count=1)
+                m["anchor"] = ANCHOR_SRC.sub(lambda _x: f"Levels come from {norm.get('short') or norm['population']}. ", m["anchor"], count=1)
             snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
         m["compare"] = scales[0][0]
         if len(scales) > 1:
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)
 
     _fix = "fixed until the norm is refreshed or your group changes"
-    ANCHOR_GENERAL = {  # what fixes the general population scale on tiles whose baseline is a table or a model
-        "swim": f"Cooper's 12-minute swim test categories for your age and sex (Cooper 1982), as pace per 100 yd, {_fix}. Five fitness categories, not percentiles.",
-        "run": f"Percentile ladder, edges read from a general population model (Estimated): VO2max norms for your age and sex (FRIEND registry) turned into pace at 150 bpm with the ACSM running equation, assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}. Orange lines = the block goal.",
-        **{k: f"Percentile ladder, edges read from a general population model (Estimated): VO2max norms for your age and sex (FRIEND registry) turned into {w} at 150 bpm with the ACSM {eq}, plus {round((TRAIL_TERRAIN - 1) * 100)}% for trail footing (Pandolf 1977, Soule 1978), assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}."
+    ANCHOR_GENERAL = {  # what fixes the general population scale on tiles whose baseline is a table or a model (short: see ANCHOR)
+        "swim": "Cooper's 12-minute swim test categories for your age and sex (Cooper 1982), as pace per 100 yd. Five fitness categories, not percentiles.",
+        "run": f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into pace at 150 bpm (ACSM running equation). It assumes resting HR {REST_HR} and max HR 220 minus age.",
+        **{k: f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into {w} at 150 bpm (ACSM {eq}). It adds {round((TRAIL_TERRAIN - 1) * 100)}% for trail footing (Pandolf 1977, Soule 1978) and assumes resting HR {REST_HR} and max HR 220 minus age."
            for k, w, eq in (("trailgap", "trail pace", "running equation"), ("trailspeed", "trail speed per effort km", "running equation"),
                             ("climb", "climbing rate on a 15% grade", "walking equation"), ("climb150", "climbing rate on a 15% grade", "walking equation"),
                             ("climbsteep", "climbing rate on a 25% grade", "walking equation"))},
-        "bike": f"Percentile ladder, edges read from a general population model (Estimated): cycling VO2max norms for your age and sex (FRIEND registry) turned into watts at 130 bpm with the ACSM cycling equation, assuming a resting heart rate of {REST_HR} and a maximum of 220 minus age; {_fix}. Orange lines = the block goal.",
+        "bike": f"Levels come from a general population model (Estimated): FRIEND cycling VO2max norms for your age and sex, turned into watts at 130 bpm (ACSM cycling equation). It assumes resting HR {REST_HR} and max HR 220 minus age.",
     }
-    ANCHOR_SRC = re.compile(r"edges read from .*? for your sex(?: and age band| where published \(not yet\))?, ")
+    ANCHOR_SRC = re.compile(r"Levels come from .*? for your sex(?: and age band| where published \(not yet\))?\. ")
     NO_NORM = " No population levels yet: add \"sex\" and \"birth_year\" to coach/athlete/profile.json so the norms match your age and sex; a coach scale stands in."
 
     def ladder(key, norm, value, tiers_, resolution, extra=()):
@@ -1073,7 +1075,7 @@ def build(today, rows_so_far):
                if last["n"] > 1 else f"One steady long {sp}, {_d(last['date']).strftime('%b %-d')} ({last['mins']} min) · {osub}",
                "good" if last["mid"] < 5 else "ok" if last["mid"] < 8 else "watch",
                "How much efficiency (speed or power per heartbeat) falls from the first half to the second half of a long steady session. Under about 5% suggests the aerobic base holds up for the session's length: the thing that decides the back half of a 70.3, an ultra or a full IRONMAN.",
-               f"Steady long sessions only: runs of 75+ min and Zwift rides of 90+ min at an average heart rate at or under the top of your Steady zone (run {DUR_HR['run']}, bike {DUR_HR['bike']} bpm) with an even effort (lap to lap spread of {DUR_CV}% or less). The first 10 minutes and laps with stops are left out. Hard or uneven days and outdoor rides (speed only: wind, stops and the route move it more than fatigue) stay on the chart as grey dots and do not move the level. The figure is the middle of the last {DUR_LAST} steady sessions of that sport in 12 months. From Garmin laps; hilly sessions are left out (trail runs have their own tile). Coaching heuristic, Estimated.",
+               f"Steady long sessions only: runs of 75+ min and Zwift rides of 90+ min. Average heart rate at or under the top of your Steady zone (run {DUR_HR['run']}, bike {DUR_HR['bike']} bpm). Even effort: lap to lap spread of {DUR_CV}% or less. The first 10 minutes and laps with stops are left out. Hard or uneven days and outdoor rides (speed only: wind, stops and the route move it more than fatigue) stay on the chart as grey dots and do not move the level. The figure is the middle of the last {DUR_LAST} steady sessions of that sport in 12 months. From Garmin laps; hilly sessions are left out (trail runs have their own tile). Coaching heuristic, Estimated.",
                "Estimated", "line")
         md = next((r for r in out if r.get("kind") == "marker" and r["key"] == "durability"), None)
         gap_d = f"{last['mid'] - 5:+.1f} points vs 5%"
@@ -1189,7 +1191,7 @@ def build(today, rows_so_far):
             sub = (f"5K · Best in a run, last {FIVEK_WINDOW} days ({_d(cur[0]).strftime('%b %-d')})" if cur else f"No 5K run in {FIVEK_WINDOW} days; last best {_d(best5['points'][-1][0]).strftime('%b %-d, %Y')}") + \
                 f" · all-time {mss(ab[1] * 60)} ({_d(ab[0]).strftime('%b %Y')})" + (f" · next test {_d(nxt).strftime('%b %-d')}" if nxt else "")
             marker("fitness", order, key, label, mss((cur or (None, best5["points"][-1][1]))[1] * 60), "", sub, "", dfn.get("why", ""),
-                   f"Fastest 5 km inside any run, from Garmin (its best-effort split, GPS), as the best of the {FIVEK_WINDOW} days up to each run; dots are each run's own fastest 5 km, mostly easy runs, so they sit slower than a race. Reported test results count too. Estimated. Test protocol: " + dfn.get("protocol", ""),
+                   f"Fastest 5 km inside any run, from Garmin's best-effort split (GPS), as the best of the {FIVEK_WINDOW} days up to each run. Dots are each run's own fastest 5 km; most are easy runs, so they sit slower than a race. Reported test results count too. Estimated. Test protocol: " + dfn.get("protocol", ""),
                    "Estimated", "line")
             out[-1].update(tile_label="Run time")  # the tile is named for what it is; its distance is the first word of the line under the figure (the athlete, Nov 12, 2026)
             # the same figure at other distances, behind the tile's Distance switch; no level ladder until norms exist for them
@@ -1471,7 +1473,7 @@ def build(today, rows_so_far):
         marker("fitness", 8, "consistency", "Consistency", f"{good} of {len(counts)}", "weeks",
                f"weeks with 3+ training days · 4+ in {better} · avg {_mean(counts):.1f} days/week", "good" if good >= 0.75 * len(counts) else "ok" if good >= 0.5 * len(counts) else "watch",
                "Showing up most days, week after week, is what builds an endurance base and keeps injury risk down; it predicts progress better than any single big session.",
-               "Mon–Sun weeks; a training day has a run, ride, swim, hike or logged strength (" + ("walks count, since walking is your sport; sauna does not" if walker else "walks and sauna not counted") + "); two sessions on one day count once. 3+ days is the research cutoff for 'regularly active'; 4 and 5 are coach tiers. Measured.",
+               "A training day has a run, ride, swim, hike or logged strength, in Mon–Sun weeks (" + ("walks count, since walking is your sport; sauna does not" if walker else "walks and sauna not counted") + "). Two sessions on one day count once. 3+ days is the research cutoff for 'regularly active'; 4 and 5 are coach tiers. Measured.",
                "Measured", "bars")
         avgc = _mean(counts)
         annot("consistency", "Good: 3+ days in 9 of 12 weeks (research cutoff). Better: 4. Best: 5 to 6 with at least one low-load day",
@@ -1520,8 +1522,8 @@ def build(today, rows_so_far):
     race = next_trail_course(T)
     speed_tiers, gap_tiers, (ANCHOR_COACH["trailspeed"], ANCHOR_COACH["trailgap"]) = trail_tiers(race)
     HOW_HR = " Heart rate must average 20+ bpm over resting; the scaling is value × (HR − RHR) ÷ (150 − RHR), RHR the 15-day mean around the run."
-    climb_how = lambda lo, hi: (f"Every minute on {lo:g}%{f' to {hi:g}%' if hi else ' or steeper'} ground, graded minute by minute from the 5 s detail of hilly runs and hikes: "
-                                "each minute counts at its own grade, so a steep pitch inside a long climb is not averaged away; it needs 3 minutes in the run. Heart rate is read 30 s later "
+    climb_how = lambda lo, hi: (f"Every minute on {lo:g}%{f' to {hi:g}%' if hi else ' or steeper'} ground in hilly runs and hikes, graded minute by minute from the 5 s detail. "
+                                "Each minute counts at its own grade, so a steep pitch inside a long climb is not averaged away. A run needs 3 such minutes. Heart rate is read 30 s later "
                                 "because it lags the hill, then vertical feet per hour is scaled to 150 bpm minute by minute, only for minutes at 125 to 180 bpm. Running and power hiking "
                                 "both count; the share hiked comes from cadence (under 130 steps/min). 28-day average; one run moves it a lot, so read it over several. Estimated.")
     COACH_TRAIL = "Coach guide; no population norm exists for this at a set heart rate. Draft for review."

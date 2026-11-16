@@ -88,6 +88,24 @@
   }
   const fD = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
+  // BP history as a table (6.99.0). pillars.py writes "date[ time][ part]  reading  note"; shared note words are said once
+  const SHARED = [[/home reading \(A&D cuff\),?\s*/, 'Home readings, A&D cuff.'], [/(all )?settled,?\s*/, 'Settled readings.'], [/none dropped,?\s*/, 'None dropped.'],
+    [/times? (approximate|is when the photo arrived)[^;]*;?\s*/, 'Times are about when the photo arrived.'], [/single reading,?\s*/, '']];
+  function histTable(m) {
+    const yr = String(new Date().getFullYear()); const said = new Set(); let pulse = false;
+    const rowsH = (m.hist || []).map((h) => { const [when, reading, ...rest] = String(h).split(/\s{2,}/); let note = rest.join(' ');
+      const p = /,?\s*pulse (\d+)/.exec(note); if (p) { pulse = true; note = note.replace(p[0], ''); }
+      const gap = /spaced (\d+ min) apart/.exec(note);
+      for (const [re, w] of SHARED) if (re.test(note)) { note = note.replace(re, ''); if (w) said.add(w); }
+      note = note.replace(/(first|second|third) of three back-to-back readings/, (x, n) => `${{ first: 1, second: 2, third: 3 }[n]} of 3 in a row` + (gap ? `, ${gap[1]} apart` : '')).replace(/^[;,\s]+|[;,\s]+$/g, '').replace(/;\s*/g, ', ');
+      const w = String(when || '').replace(', ' + yr, '').replace(/ (\d\d):(\d\d) (morning|evening)/, (x, a, b) => ` ${+a % 12 || 12}:${b} ${+a < 12 ? 'AM' : 'PM'}`);
+      return { w, reading: reading || '', pulse: p ? p[1] : '', note }; });
+    const box = el('div'); const t = el('table', 'hl-hist'); t.append(el('caption', 'ck-vh', 'Every reading of ' + m.name));
+    const hr = el('tr'); for (const c of ['When', 'Reading', ...(pulse ? ['Pulse'] : []), 'Note']) { const h = el('th', null, c); h.scope = 'col'; hr.append(h); } const th = el('thead'); th.append(hr); t.append(th);
+    const tb = el('tbody'); for (const r of rowsH) { const tr = el('tr'); for (const c of [r.w, r.reading, ...(pulse ? [r.pulse] : []), r.note]) tr.append(der(el('td', null, c), MW(m.id), 'hist')); tb.append(tr); } t.append(tb);
+    box.append(t); if (said.size) box.append(el('p', 'ck-note', [...said].join(' ')));
+    return box;
+  }
   function chartFor(m, r, host) {
     const c = m.chart || 'none'; const LC = window.CX.lineChart;
     const box = el('div', 'chart'); box.style.setProperty('--h', '130px');
@@ -95,9 +113,10 @@
     const wrap = el('div', 'hp-prog'); wrap.append(head, box);
     if (c === 'none') return null;
     if (c === 'hist') {
-      const ul = el('ul', 'hp-hist'); (m.hist || []).forEach((h) => ul.append(der(el('li', null, h), MW(m.id), 'hist')));
-      if (!(m.hist || []).length) ul.append(el('li', 'hp-muted', `No history yet. It comes from your ${m.cad.toLowerCase()}.`));
-      head.textContent = 'History'; wrap.replaceChildren(head, ul); host.append(wrap); return;
+      head.textContent = 'History';
+      if (!(m.hist || []).length) { wrap.replaceChildren(head, el('p', 'hp-muted', `No history yet. It comes from your ${m.cad.toLowerCase()}.`)); host.append(wrap); return; }
+      if (m.id === 'bp') { wrap.replaceChildren(head, histTable(m)); host.append(wrap); return; } // readings with a pulse and a note; other histories stay a short list
+      const ul = el('ul', 'hp-hist'); m.hist.forEach((h) => ul.append(der(el('li', null, h), MW(m.id), 'hist'))); wrap.replaceChildren(head, ul); host.append(wrap); return;
     }
     host.append(wrap);
     if (c.startsWith('bars:')) { bars(box, seriesFor(m, r), m); return; }

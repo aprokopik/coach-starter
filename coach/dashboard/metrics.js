@@ -26,7 +26,8 @@
   const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
   let db = null, loaded = false;
   const picks = new Map(); // key -> {on, saved_at}
-  const VIEW = 'cx-fit-view';
+  const VIEW = 'cx-fit-view', LAY = 'cx-fit-lay'; // Grid or List cards (the athlete, Nov 15)
+  let lay = (() => { try { return localStorage.getItem(LAY) === 'list' ? 'list' : 'grid'; } catch (e) { return 'grid'; } })();
   const ui = { open: null, add: false, cats: new Set(), other: false, sent: '', err: '', draft: '', node: null, shut: new Set(), habits: new Set(), reorder: false,
     view: (() => { try { return localStorage.getItem(VIEW) === 'map' ? 'map' : 'score'; } catch (e) { return 'score'; } })() };
   let order = null; // the athlete's own order of the Scorecard groups (store doc metric_order/groups), else the layout's
@@ -131,22 +132,27 @@
     if (m.weeks) {
       const on = (String(m.weeks).match(/1/g) || []).length; const wk = el('div', 'mx-weeks'); wk.setAttribute('role', 'img'); wk.setAttribute('aria-label', `${on} of ${String(m.weeks).length} weeks on target, oldest first`);
       for (const c of String(m.weeks)) wk.append(el('i', c === '1' ? 'mx-wk mx-wk--on' : 'mx-wk')); mark(wk, 'coach', 'weeks', mw(m));
-      f.append(wk, el('p', 'ck-sub', 'Your last 12 finished weeks, oldest first. Filled is on target.'));
+      f.append(wk, el('p', 'ck-sub', 'Last 12 finished weeks, oldest first. Filled is on target.'));
     }
     if (rungs.length) {
       const ol = el('ol', 'mx-rungs'); ol.setAttribute('aria-label', (m.ladder_label || 'Levels') + ', top rung first');
       for (const r of rungs) { const lab = r.replace('your event', ev); const me = !!m.level && m.level === lab; const li = el('li', me ? 'mx-rung mx-rung--me' : 'mx-rung', lab); if (me) { li.setAttribute('aria-current', 'true'); li.append(el('b', 'mx-you', 'You')); } ol.append(li); }
-      f.append(el('span', 'ck-eyebrow', m.ladder_label || 'Levels'), ol);
+      f.append(el('span', 'ck-eyebrow', (m.ladder_label || 'Levels') + (m.event ? ' · ' + m.event : '')), ol);
       if (m.level && !rungs.some((r) => r.replace('your event', ev) === m.level)) f.append(el('p', 'ck-note', m.level + '.'));
     }
-    if (m.next) { const n = el('p', 'ck-note'); n.append(el('b', null, 'Next: '), mark(el('span', null, m.next), 'coach', 'next', mw(m)), '.'); f.append(n); }
-    if (m.note) f.append(mark(el('p', 'ck-sub', m.note), 'coach', 'note', mw(m)));
-    if (m.rule) f.append(mark(el('p', 'ck-sub', m.rule), 'coach', 'rule', mw(m)));
+    // labelled lines, then the rule folded (6.99.0)
+    const A = CX.app; const dl = el('dl', 'ft-kv'); const ws = A.sentences(m.what);
+    const row = (lab, txt, fld, d) => { if (txt) A.kvRow(dl, lab, mark(el('span', null, txt), 'coach', d ? null : fld, mw(m), d)); };
+    row('What', ws[0], 'what', ws.length > 1 ? 'what-first' : null); row('Why', ws.slice(1).join(' '), 'what', 'what-rest');
+    row('Next', m.next, 'next'); row(m.ladder === 'ready' ? 'Latest' : 'Counts', m.note, 'note');
+    if (dl.childNodes.length) f.append(dl);
+    if (m.rule) { const h = A.section('How ' + String(m.ladder_label || 'these levels').replace(/\s*\(.*\)/, '').toLowerCase() + ' work'); const ul = el('ul', 'ft-howl');
+      A.sentences(m.rule).forEach((x) => ul.append(el('li', null, x))); mark(ul, 'coach', 'rule', mw(m)); h.body.append(ul); f.append(h.dt); }
     return f;
   }
   function ladderPanel(m) {
     const p = el('div', 'ft-expand mx-unlock mx-ladder'); p.id = 'mx-ladder'; if (m.ladder === 'reps') p.dataset.sport = CX.sportTok(m.sport); // the rep boxes take the tile's sport colour p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'Levels for ' + m.name);
-    p.append(el('h3', 'ck-h3', m.name)); const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what, ladderBody(m));
+    p.append(el('h3', 'ck-h3', m.name)); if (m.ladder === 'reps' && m.goal) { const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what); } p.append(ladderBody(m));
     // a habit that had its own chart keeps it inside the panel (Consistency, the training days per week bars; 6.47.0, back from 6.40.0)
     const A = CX.app || {}; const mk = A.kind ? A.kind('marker').find((x) => x.key === m.key && x.chart) : null;
     if (mk && A.drawMarker) { const box = el('div', 'chart mx-ladder-chart'); box.id = 'mx-ladder-chart'; box.style.setProperty('--h', '170px'); box.dataset.source = 'coach'; p.append(box);
@@ -202,7 +208,7 @@
     s.hidden = true; const lb = p.querySelector('.ft-label > span:last-child'); if (lb) { lb.textContent = lb.textContent.replace(/power /i, ''); lb.removeAttribute('data-field'); lb.setAttribute('data-derived', 'pair-name'); }
     const row = (name, fig) => { const r = el('span', 'ft-barname'); const v = el('b'); for (const n of fig.childNodes) v.append(n.cloneNode(true)); r.append(el('b', null, name), v); return r; };
     const pf = p.querySelector('.ft-fig'), sf = s.querySelector('.ft-fig'), lv = p.querySelector('.ft-lvrow, .ft-chip'), sub = p.querySelector('.ft-subl');
-    if (pf && lv) lv.before(row('Power', pf));
+    if (pf && lv) { lv.before(row('Power', pf)); pf.hidden = true; } // the Power row has the figure (the athlete, Nov 15)
     if (sf) { const add = [row('Speed', sf), ...['.ft-chip', '.ft-steps'].map((q) => s.querySelector(q)).filter(Boolean).map((n) => n.cloneNode(true))]; if (sub) sub.before(...add); else p.append(...add); }
     p.setAttribute('aria-label', p.getAttribute('aria-label').replace(/^Bike power/, 'Bike') + `, speed ${sf ? sf.textContent.trim() : 'none yet'}`);
     const sp = ui.open === 'bikespeed'; if (sp) p.setAttribute('aria-expanded', 'true');
@@ -211,7 +217,7 @@
     for (const [k, lab] of [['bike', 'Power'], ['bikespeed', 'Speed']]) { const l = el('label', 'ck-seg-opt'), i = el('input', 'ck-vh-input'); i.type = 'radio'; i.name = 'f-bkseg'; i.checked = (k === 'bikespeed') === sp;
       i.addEventListener('change', () => { ui.open = k === 'bikespeed' ? k : null; CX.state.fit = k === 'bike' ? k : null; rerender(); const f = document.querySelectorAll('#f-bkseg input')[k === 'bike' ? 0 : 1]; if (f) f.focus({ preventScroll: true }); });
       l.append(i, lab); seg.append(l); }
-    // hiding the speed tile moves the tiles after it up a place, so an open panel placed before goes back under its own row (the athlete, Nov 15, 2026: Long ride opened below Rides to plan)
+    // hiding the speed tile shifts later tiles up, so an open panel goes back under its own row (the athlete, Nov 15)
     { const op = box.querySelector(':scope > #mx-ladder, :scope > #mx-unlock'), ot = box.querySelector(':scope > .ft-tile[aria-expanded="true"]:not([hidden])'); if (op && ot && !sp) afterRow(box, ot, op); }
     if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); const c = el('div', 'chart'); c.id = 'c-bikespeed'; c.style.setProperty('--h', '190px'); c.setAttribute('data-source', 'coach'); pn.prepend(seg, c); const m = metrics().find((x) => x.key === 'bikespeed'); if (m && CX.app.speedChart) CX.app.speedChart(c, m); } }
     else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(seg, n); } else if (c) c.before(seg); }
@@ -263,6 +269,14 @@
       inp.addEventListener('change', () => { if (inp.checked) setView(v); }); opt.append(inp, label); bar.append(opt);
     }
     return bar;
+  }
+  function layBar(box) {
+    const bar = el('fieldset', 'ck-seg ft-seg mx-lay'); bar.id = 'mx-lay'; bar.append(el('legend', 'ck-vh', 'Cards'));
+    for (const [v, label] of [['grid', 'Grid'], ['list', 'List']]) {
+      const opt = el('label', 'ck-seg-opt'); const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'mx-lay'; inp.value = v; inp.checked = lay === v;
+      inp.addEventListener('change', () => { if (!inp.checked) return; lay = v; try { localStorage.setItem(LAY, v); } catch (e) { /* private window */ } focusNext = '#mx-lay input:checked'; rerender(); }); opt.append(inp, label); bar.append(opt);
+    }
+    box.classList.toggle('ft-tiles--list', lay === 'list'); return bar;
   }
   // this block's focus metrics (the live block brief): a Focus chip on their tile and on their Map row
   function focusKeys() {
@@ -461,7 +475,7 @@
     const om = ui.open && byKey.get(ui.open); const ot = om && inBox(om.key);
     if (om && ot && ot.classList.contains('mx-lock')) afterRow(box, ot, unlockPanel(om, I)); else if (om && ot && ot.classList.contains('mx-fig') && ot.tagName === 'BUTTON') afterRow(box, ot, ladderPanel(om)); else ui.open = null;
     const nb = nextBox(M, tiles); const key = box.querySelector(':scope > .ft-key');
-    box.prepend(viewBar(), ...(nb ? [nb] : [])); if (key) box.querySelector(':scope > .mx-view').after(key);
+    box.prepend(viewBar(), layBar(box), ...(nb ? [nb] : [])); if (key) box.querySelector(':scope > .mx-lay').after(key);
     const foot = el('div', 'mx-add'); foot.id = 'mx-add';
     const mb = el('button', 'ck-btn ck-btn--secondary mx-addbtn', 'Add or remove metrics'); mb.type = 'button'; mb.id = 'mx-addbtn'; mb.addEventListener('click', () => setView('map'));
     const rb = el('button', 'ck-btn ck-btn--quiet mx-reorder', ui.reorder ? 'Done reordering' : 'Reorder'); rb.type = 'button'; rb.id = 'mx-reorder'; rb.setAttribute('aria-pressed', String(ui.reorder)); rb.addEventListener('click', () => { ui.reorder = !ui.reorder; focusNext = '#mx-reorder'; rerender(); });
