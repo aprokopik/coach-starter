@@ -170,7 +170,7 @@ for r in read_json("coach/races.json", {"rows": []}).get("rows", []):
     if r.get("kind") in ("race", "race_note", "race_kit"):
         rows.append(dict(r))
 
-for name in ("coach/zones.json", "coach/benchmarks.json", "coach/strength.json", "coach/levels.json", "coach/norms.json", "coach/fitness_layout.json"):
+for name in ("coach/zones.json", "coach/benchmarks.json", "coach/strength.json", "coach/levels.json", "coach/norms.json", "coach/fitness_layout.json", "coach/race_tree.json"):
     for r in read_json(name, {"rows": []}).get("rows", []):
         rows.append(dict(r))
 

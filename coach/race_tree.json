@@ -1,0 +1,184 @@
+{
+ "about": "The race tree on the Season page (6.96.0): event distances per line, each opened by the one before it. Generic, the same for every person; the page fills it from the person's own Garmin record and races.json. A single sport node is Done when one session covered its distance (a race, or training: 'Covered in training'); a triathlon node is Done only by a finished race, and its legs show which single sport nodes are already covered. The next node on a line is Open; the rest are Locked. A planned or registered race is pinned on the node of its distance. Gates are a proposal until the package owner confirms them (tree_meta confirmed, a date). km is the distance in kilometres; legs is sport:km joined by ','; after is the node it needs first. A registered, planned or finished race longer than a line's top node adds its own node on top (the page does it, nothing is written here); beyond in tree_meta is the hint shown on each line's dashed ring above the top (line:label joined by ',').",
+ "rows": [
+  {
+   "kind": "tree_meta",
+   "confirmed": "",
+   "window_weeks": 12,
+   "cover_share": 0.95,
+   "note": "Proposed Nov 16, 2026; awaiting the owner's OK on the gate list",
+   "beyond": "run:200 mi,bike:300K,swim:10K,tri:Ultra"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "run5k",
+   "label": "5K",
+   "km": 5,
+   "after": "",
+   "short": "5K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "run10k",
+   "label": "10K",
+   "km": 10,
+   "after": "run5k",
+   "short": "10K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "runhalf",
+   "label": "Half marathon",
+   "km": 21.1,
+   "after": "run10k",
+   "short": "Half"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "runmar",
+   "label": "Marathon",
+   "km": 42.2,
+   "after": "runhalf",
+   "short": "Mara­thon"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "run50k",
+   "label": "50K",
+   "km": 50,
+   "after": "runmar",
+   "short": "50K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "run100k",
+   "label": "100K",
+   "km": 100,
+   "after": "run50k",
+   "short": "100K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "run",
+   "id": "run100m",
+   "label": "100 miles",
+   "km": 160.9,
+   "after": "run100k",
+   "short": "100 mi"
+  },
+  {
+   "kind": "tree_node",
+   "line": "bike",
+   "id": "bike40",
+   "label": "40K",
+   "km": 40,
+   "after": "",
+   "short": "40K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "bike",
+   "id": "bike100",
+   "label": "Metric century",
+   "km": 100,
+   "after": "bike40",
+   "short": "100K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "bike",
+   "id": "bike160",
+   "label": "Century",
+   "km": 160.9,
+   "after": "bike100",
+   "short": "100 mi"
+  },
+  {
+   "kind": "tree_node",
+   "line": "bike",
+   "id": "bike200",
+   "label": "200K",
+   "km": 200,
+   "after": "bike160",
+   "short": "200K"
+  },
+  {
+   "kind": "tree_node",
+   "line": "swim",
+   "id": "swim750",
+   "label": "750 m",
+   "km": 0.75,
+   "after": "",
+   "short": "750 m"
+  },
+  {
+   "kind": "tree_node",
+   "line": "swim",
+   "id": "swim1500",
+   "label": "1500 m",
+   "km": 1.5,
+   "after": "swim750",
+   "short": "1500 m"
+  },
+  {
+   "kind": "tree_node",
+   "line": "swim",
+   "id": "swim1900",
+   "label": "1.2 mi",
+   "km": 1.93,
+   "after": "swim1500",
+   "short": "1.2 mi"
+  },
+  {
+   "kind": "tree_node",
+   "line": "swim",
+   "id": "swim3800",
+   "label": "2.4 mi",
+   "km": 3.86,
+   "after": "swim1900",
+   "short": "2.4 mi"
+  },
+  {
+   "kind": "tree_node",
+   "line": "tri",
+   "id": "trisprint",
+   "label": "Sprint triathlon",
+   "legs": "swim:0.75,bike:20,run:5",
+   "after": "",
+   "short": "Sprint"
+  },
+  {
+   "kind": "tree_node",
+   "line": "tri",
+   "id": "triolympic",
+   "label": "Olympic triathlon",
+   "legs": "swim:1.5,bike:40,run:10",
+   "after": "trisprint",
+   "short": "Olympic"
+  },
+  {
+   "kind": "tree_node",
+   "line": "tri",
+   "id": "tri703",
+   "label": "Half distance (70.3)",
+   "legs": "swim:1.93,bike:90.1,run:21.1",
+   "after": "triolympic",
+   "short": "70.3"
+  },
+  {
+   "kind": "tree_node",
+   "line": "tri",
+   "id": "trifull",
+   "label": "Full distance (140.6)",
+   "legs": "swim:3.86,bike:180.2,run:42.2",
+   "after": "tri703",
+   "short": "140.6"
+  }
+ ]
+}

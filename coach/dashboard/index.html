@@ -658,7 +658,7 @@
         <p class="ck-race-line" id="r-race-key" hidden></p>
       </div>
     </article>
-    <!-- Status panels (the athlete, Nov 2, 2026): Current block, Season so far and Hall of fame, all folded by default; choosing one opens
+    <!-- Status panels (the athlete, Nov 2, 2026): Current block, Season so far, Hall of fame and Badges, all folded by default; choosing one opens
          it, choosing the open one again folds it away (open panel kept per viewer in localStorage cx-season-tab) -->
     <article class="ck-tile sn-status" id="r-st" aria-label="Season summary">
       <fieldset class="ck-seg sn-seg" id="r-st-tabs">
@@ -666,6 +666,7 @@
         <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="block" aria-controls="r-p-block"><span>Current block</span></label>
         <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="sofar" aria-controls="r-p-sofar"><span>Season so far</span></label>
         <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="records" aria-controls="r-p-records"><span>Hall of fame</span></label>
+        <label class="ck-seg-opt"><input class="ck-vh-input" type="radio" name="r-st" value="badges" aria-controls="r-p-badges"><span>Badges</span></label>
       </fieldset>
       <div class="sn-panel" id="r-p-block" role="region" aria-label="Current block" hidden>
         <div class="bk sn-bk" id="r-block" data-source="coach">
@@ -687,6 +688,13 @@
         <div class="sn-pbody" data-body hidden>
           <div class="sn-tiles" id="r-rec-tiles" data-source="coach activities"></div>
           <p class="ck-note" id="r-rec-note"></p>
+        </div>
+      </div>
+      <!-- Badges (earned.js, 6.96.0; the athlete, Nov 16, 2026: "I like this here") -->
+      <div class="sn-panel" id="r-p-badges" role="region" aria-labelledby="r-eb-h" hidden>
+        <div class="eb-space">
+          <div class="ck-tile-head sn-head"><h2 class="ck-h3" id="r-eb-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-badge"/></svg> Badges</h2><span class="ck-sub" id="r-eb-cap"></span></div>
+          <div id="r-eb"></div>
         </div>
       </div>
     </article>
@@ -751,6 +759,7 @@
 <script src="forms.js"></script>
 <script src="lifts.js"></script>
 <script src="records.js"></script>
+<script src="earned.js"></script>
 <script src="body.js"></script>
 <script src="pillars.js"></script>
 <script src="checkins.js"></script>

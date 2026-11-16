@@ -696,6 +696,62 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .sn-panel { display: grid; gap: var(--ck-s2); min-width: 0; padding: 0 var(--ck-s2); }
 .ck .sn-panel[hidden], .ck .sn-hub[hidden] { display: none; }
 .ck .sn-bk { display: grid; gap: var(--ck-s2); min-width: 0; }
+/* Badges and Race tree (earned.js, 6.88.0), round 3 from the athlete's notes (Nov 16, 2026): Star map gold, medals for race
+   distances, badges by sport inside the season summary, race distances climbing in columns. A deep space panel in both themes
+   on purpose: fixed colours below, every text pair checked at 4.5:1 or more. */
+.ck .eb-space, .ck .ck-tile.eb-space { display: grid; gap: var(--ck-s3); position: relative; overflow: hidden; border-radius: var(--ck-r2, 12px); border: 1px solid #2e2a6a; color: #ece9ff; padding: var(--ck-s3); background-color: #0b0b26;
+  background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #cfc8ff, transparent), radial-gradient(1.5px 1.5px at 40% 66%, #fff, transparent), radial-gradient(1px 1px at 88% 52%, #fff, transparent), radial-gradient(1px 1px at 22% 84%, #bdb5ff, transparent), radial-gradient(1px 1px at 8% 48%, #fff, transparent), radial-gradient(120% 70% at 20% 0%, #26205e 0%, #0b0b26 55%, #05050f 100%); }
+.ck .ck-tile.eb-space { padding: var(--ck-s3); }
+.ck .eb-space .ck-h3 { color: #ffd27a; text-transform: uppercase; letter-spacing: .16em; font-size: 13px; text-shadow: 0 0 10px rgba(255, 210, 122, .45); }
+.ck .eb-space .ck-sub, .ck .eb-space .ck-note { color: #c8c2ff; }
+.ck .eb-space .sn-head .ck-sub { font-family: ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.ck .eb-body, .ck .rt-body { display: grid; gap: var(--ck-s3); min-width: 0; }
+.ck .eb-sp { display: grid; gap: var(--ck-s2); padding-top: var(--ck-s2); border-top: 1px solid rgba(255, 255, 255, .12); }
+.ck .eb-sp:first-child { border-top: 0; padding-top: 0; }
+.ck .eb-sph { display: flex; gap: var(--ck-s2); align-items: center; margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #ffd27a; }
+.ck .eb-sph .ck-sub { margin-left: auto; letter-spacing: .02em; text-transform: none; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ck .eb-sk { margin: 0; font-size: 13px; font-weight: 400; color: #ddd8ff; }
+.ck .eb-sph .ck-i, .ck .rt-cap .ck-i { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ck .eb-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ck-s1); }
+.ck .eb-cell { display: grid; justify-items: center; gap: 1px; min-height: 44px; padding: var(--ck-s1) 2px; border: 0; border-radius: var(--ck-r1); background: none; color: #ece9ff; font: inherit; text-align: center; cursor: pointer; }
+.ck .eb-cell[aria-expanded="true"] { background: rgba(255, 210, 122, .1); box-shadow: inset 0 0 0 1px rgba(255, 210, 122, .55); }
+.ck .eb-cell:focus-visible, .ck .rt-dot:focus-visible, .ck .eb-space .ck-btn:focus-visible { outline: 2px solid #ffd27a; outline-offset: 2px; }
+.ck .eb-cell.is-slipped .eb-art { opacity: .55; filter: saturate(.4); }
+.ck .eb-cell.is-next .eb-art { opacity: .7; }
+.ck .eb-start { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; border: 2px dashed #7d75d6; color: #c8bfff; font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .04em; text-transform: uppercase; }
+.ck .eb-cell.is-start .eb-rank { color: #c8bfff; font-weight: 400; }
+.ck .eb-cell.eb-hid[aria-expanded="true"] { background: none; box-shadow: none; }
+.ck .eb-hid .eb-start { border-style: solid; border-color: #ffd27a; color: #ffd27a; font-size: 14px; }
+.ck .eb-rank { font-size: 12px; line-height: 1.2; }
+.ck .eb-when { font-size: 11px; color: #c8c2ff; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ck .eb-art .eb-g { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ck .eb-art .eb-n { font: 800 13px/1 ui-monospace, Menlo, Consolas, monospace; }
+.ck .eb-det, .ck .rt-det { margin: 0; padding: var(--ck-s2) var(--ck-s3); border-radius: var(--ck-r1); background: rgba(255, 210, 122, .08); border: 1px solid rgba(255, 210, 122, .4); font-size: 14px; color: #f3eedc; }
+.ck .eb-det b, .ck .rt-det b { color: #ffd27a; }
+.ck .rt-det p { margin: 0 0 2px; }
+.ck .rt-det .ck-sub { color: #e6e0c8; }
+.ck .eb-space .ck-btn { justify-self: start; background: rgba(255, 210, 122, .08); color: #ffd27a; border: 1px solid rgba(255, 210, 122, .5); }
+/* the race tree: one column per sport, read bottom to top like a climb; the dashed ring on top is the step past the list */
+.ck .rt-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; align-items: end; }
+.ck .rt-col { display: flex; flex-direction: column-reverse; align-items: center; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.ck .rt-cap { display: grid; justify-items: center; gap: 2px; padding-top: var(--ck-s2); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: #c8bfff; text-align: center; }
+.ck .rt-cap .ck-sub { letter-spacing: 0; font-weight: 400; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ck .rt-n { position: relative; display: grid; justify-items: center; gap: 1px; padding: 2px 0 12px; width: 100%; text-align: center; }
+.ck .rt-n:not(.is-first)::after { content: ''; position: absolute; left: 50%; bottom: -3px; height: 12px; width: 2px; transform: translateX(-50%); background: #3d3880; }
+.ck .rt-n.is-done:not(.is-first)::after { background: #ffd27a; box-shadow: 0 0 8px #ffd27a; }
+.ck .rt-dot { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: #ffe9a6; cursor: pointer; }
+.ck .rt-dot[aria-expanded="true"] { box-shadow: 0 0 0 2px #ffd27a; }
+.ck .rt-star { width: 12px; height: 12px; border-radius: 50%; background: #2f2b6b; box-shadow: 0 0 0 1px #6e66c8; }
+.ck .rt-n.is-open .rt-star { width: 18px; height: 18px; background: #fff; box-shadow: 0 0 0 3px #a99bff, 0 0 18px 6px rgba(169, 155, 255, .8); animation: rt-tw 2s ease-in-out infinite; }
+@keyframes rt-tw { 50% { box-shadow: 0 0 0 5px #a99bff, 0 0 26px 10px rgba(169, 155, 255, .6); } }
+.ck .rt-part { position: absolute; margin: 22px 0 0 22px; width: 14px; height: 14px; color: #ffd27a; fill: none; stroke: currentColor; stroke-width: 2.4; }
+.ck .rt-ghost .rt-dot { border: 2px dashed #7d75d6; color: #c8bfff; font: 700 16px/1 ui-monospace, Menlo, Consolas, monospace; }
+.ck .rt-ghost .rt-lab { font-style: italic; color: #c8bfff; }
+.ck .rt-lab { font-size: 11px; line-height: 1.15; color: #e7e3ff; overflow-wrap: anywhere; }
+.ck .rt-pin { display: flex; align-items: center; gap: 2px; font-size: 11px; line-height: 1.2; color: #ffd27a; white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.ck .rt-pin .ck-i { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
+.ck .rt-prop { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .ck .rt-n.is-open .rt-star { animation: none; } }
 /* Season so far and Hall of fame tiles: 2 across, an odd last tile spans the row; the sport band is the Fitness tile band */
 .ck .sn-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ck-s2); min-width: 0; }
 .ck .sn-grp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: var(--ck-s2) 0 0; padding: 0 2px; font-size: var(--ck-t1); line-height: var(--ck-l1); letter-spacing: var(--ck-caps); text-transform: uppercase; font-weight: var(--ck-w-bold); color: var(--ck-fg-2); }

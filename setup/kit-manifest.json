@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.95.0",
+ "version": "6.96.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -39,6 +39,7 @@
   "coach/dashboard/checkins.js",
   "coach/dashboard/cockpit.css",
   "coach/dashboard/cockpit.js",
+  "coach/dashboard/earned.js",
   "coach/dashboard/forms.js",
   "coach/dashboard/fresh.js",
   "coach/dashboard/harness/.gitignore",
@@ -109,6 +110,7 @@
   "coach/ops/data_paths.json",
   "coach/pillars.json",
   "coach/race_template.json",
+  "coach/race_tree.json",
   "coach/research/LIBRARY.md",
   "coach/research/PROTOCOL.md",
   "coach/tests/frozen.py",

@@ -28,6 +28,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `forms.js` | Morning check-in, Rate a session, race kit ticks |
 | `lifts.js` | Lifts tab |
 | `records.js` | Hall of fame (All-time records) on Season |
+| `earned.js` | Badges and Race tree on Season (6.96.0): earned badges from the one level function, saved as the store document `badges/earned`; the race tree from `coach/race_tree.json` |
 | `body.js` | The `body_trend` calc for the Body composition pillar |
 | `pillars.js` | Health tab |
 | `checkins.js` | Check-in tab and the Today check-ins due line |
@@ -36,7 +37,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `change.js` | Today changed? on the plan card: reason, Plan B (Min), the store document `day_change` and the replan line |
 | `tasks.js` | When your coach checks in, on the Check-ins tab: one row per check-in with a time and an on/off switch, Add a check-in, the store document `checkin_task` |
 
-Load order: openlog.js (first, so it times everything after it), calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
+Load order: openlog.js (first, so it times everything after it), calc.js, cockpit.js, charts.js, app.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, earned.js, body.js, pillars.js, checkins.js, block.js, change.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
 A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering its renderer on `window.CX` and its `dash.calc` definitions at top level. Never grow `app.js` (about 171 KB). When a file nears the cap, split it along a `// ----------` page seam the way `season.js` was split.
 
@@ -116,7 +117,7 @@ RUNBOOK step 4 (Data) lists these on the dashboard store each morning:
 | `lift_choice` | Lifts tab, New block card | `lifts.py accept` or `keep` |
 | `brief_choice` | Fitness tab, This block card | `brief.py accept` or `change` |
 
-`race_kit` (Season kit ticks) is page state only; nothing copies it. Document shapes are in `coach/DASHBOARD.md`, "What the athlete enters on the page".
+`race_kit` (Season kit ticks) and `badges/earned` (earned badges) are page state only; nothing copies them. Document shapes are in `coach/DASHBOARD.md`, "What the athlete enters on the page".
 
 A new collection the coach must read needs, in the same change and with the athlete's sign-off (these files sit outside a dashboard change): a row in `coach/ops/data_paths.json` (route, writes, cadence, evidence, fallback, owner), a line in RUNBOOK step 4 naming the `list` and what to do with it, and a tool command that records it (a `coach/tools` script with a test). Until all three exist, the page may write it but nothing reads it.
 
