@@ -386,6 +386,12 @@
   "tasks": [
    {
     "id": "(task id)",
+    "name": "Coach nightly fixer",
+    "grace_hours": 6,
+    "why": "the self improvement loop: fix PRs for open findings, ledger coach/findings.json (coach/ops/LOOP.md)"
+   },
+   {
+    "id": "(task id)",
     "name": "Sunday mentor review",
     "grace_hours": 6,
     "why": "reads coach.json summary, today, week and marker rows"
