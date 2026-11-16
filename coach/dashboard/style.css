@@ -1459,8 +1459,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ft-tiles--list>.ft-tile>.ft-barname{grid-column:1/-1;margin:0}
 .ck .ft-tiles--list>.ft-tile:has(>.ft-barname)>.ft-fig{display:none}
 .ck .ft-tiles>.ck-seg.mx-lay{grid-column:1/-1;justify-self:end;width:9.5rem}.ck .mx-lay .ck-seg-opt{min-height:30px;padding:2px;font-size:var(--ck-t1,13px)}
-.ck .cx-unsaved{margin:var(--ck-s2) 0 0;color:var(--ck-act);font-weight:var(--ck-w-bold)}
-.cx-savebar{margin:var(--ck-s3) 0}.ck.cx-savebar .ck-stale{grid-template-columns:minmax(0,1fr)}.ck.cx-savebar .ck-btn{grid-column:1}
+.ck .cx-unsaved{position:relative;margin:0 var(--ck-s2) 0 auto;padding:2px 10px;min-height:24px;border:1px solid var(--ck-act);border-radius:999px;background:var(--ck-act-tint);color:var(--ck-act);font:inherit;font-size:12px;font-weight:var(--ck-w-bold)}.ck .cx-unsaved::after{content:'';position:absolute;inset:-10px -4px}
 .ck .lx-day { display: grid; gap: var(--ck-s1); justify-items: start; padding: var(--ck-s2); border-radius: var(--ck-r); background: var(--ck-accent-wash); margin-bottom: var(--ck-s2); }
 .ck .lx-dayfold { display: flex; justify-content: space-between; gap: var(--ck-s2); width: 100%; text-align: left; padding: var(--ck-s2); border: 1px dashed var(--ck-line); border-radius: var(--ck-r); background: none; color: var(--ck-fg-2); font: inherit; font-size: var(--ck-t2); cursor: pointer; min-height: 44px; } .ck .lx-dayfold-a { flex: none; color: var(--ck-accent); font-weight: var(--ck-w-bold); }
 .ck .lx-pick { display: grid; gap: var(--ck-s1); margin: var(--ck-s2) 0; } .ck .lx-picksel { width: 100%; min-height: 44px; }

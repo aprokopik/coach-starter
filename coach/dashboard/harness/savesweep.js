@@ -3,7 +3,7 @@
 // Taps every button on every tab, once, against the stand-in store (frozen like the live one since 6.105.0), then checks:
 //   1. every store kind in savesweep-expect.json got at least one write (a tap that used to save still saves),
 //   2. no page error and no failed save the page recorded (window.CX.saveLog),
-//   3. with every write refused (__failWrites), the tapped card says "Not saved" and the top bar shows after two misses.
+//   3. with every write refused (__failWrites), the tapped card shows the red "Not saved" chip (6.111.0; the top bar is gone, the athlete: "less intrusive").
 // Usage: node savesweep.js <page.html> [--learn]   (--learn prints the kinds written, to refresh savesweep-expect.json)
 // Exit 1 on a failure. Build the page with build.py --lvx so the level up screen and its "Thanks, coach" are in the sweep.
 const { chromium } = require('playwright');
@@ -31,9 +31,9 @@ async function sweep(b, page, fail) {
     }
     await p.waitForTimeout(fail ? 1500 : 600);
     const r = await p.evaluate(() => ({ writes: window.__harness.writes.map((w) => w[0].split('/')[0]), log: (window.CX && window.CX.saveLog) || [],
-      line: (document.body.innerText.match(/Not saved/g) || []).length, bar: !!(document.getElementById('cx-savebar') && !document.getElementById('cx-savebar').hidden), failed: window.__harness.failed || 0 }));
+      line: (document.body.innerText.match(/Not saved/g) || []).length, failed: window.__harness.failed || 0 }));
     r.writes.forEach((k) => kinds.add(k)); saveLog.push(...r.log.map((x) => tab + ': ' + x));
-    if (fail) { const taps = r.log.filter((x) => /^tap /.test(x)); if (!r.bar || (taps.length && !r.line)) errs.push(`${tab}: refused ${taps.join('; ') || 'probe only'}, Not saved lines ${r.line}, top bar ${r.bar}`); }
+    if (fail) { const taps = r.log.filter((x) => /^tap /.test(x)); if (taps.length && !r.line) errs.push(`${tab}: refused ${taps.join('; ') || 'probe only'}, Not saved lines ${r.line}`); }
     await p.close();
   }
   return { kinds: [...kinds].sort(), errs, saveLog };

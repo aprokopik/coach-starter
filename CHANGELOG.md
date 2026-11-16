@@ -2,7 +2,8 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
-## 6.110.0 (2026-11-16)
+## 6.111.0 (2026-11-16)
+- Dashboard, the not saved notice is quieter (the kit maker, Nov 16, Release Board note on 6.105.0: "Make this less intrusive", then "I still think you want red here"; their pick C of four, in red). A tap that does not save now shows a small red "↻ Not saved" chip by the card's title; tapping it sends the kept taps again. The red top bar and the bold red line on the card are gone. Unsent taps are still kept on the phone and resent at the next open. `store.js` loses the bar code, so the page gets smaller. Harness `savesweep.js` checks the chip; `test_save_store.py` checks there is no bar.
 - Dashboard: an opened Week session reads as three short lines, Plan as steps, Effort as numbers and Fallback, with Why, the push contract rep, food and timing under More detail (the kit maker, Nov 16: "This is too text blocky", then "Visual looks really great"). The page sorts the coach's detail sentences; how the coach writes them is unchanged. Effort stays in plain words, not RPE (the kit maker, Nov 16: "Or is that too gimmicky/fitnessy for everyone?").
 
 ## 6.109.0 (2026-11-16)
