@@ -101,6 +101,18 @@ def splits(norm, tier_rows, resolution=None):
     return out
 
 
+def _in_band(age, band):
+    """True when a five-year (or any) published band such as "35-39" or "75+" holds the athlete's own age (the athlete, 6.126.0: the
+    70.3 table by age group should match a man of 37 to 35 to 39, not the nearest decade)."""
+    if age is None or not band:
+        return False
+    try:
+        lo, _, hi = str(band).replace("+", "-200").partition("-")
+        return int(lo) <= int(age) <= int(hi)
+    except ValueError:
+        return False
+
+
 def pick(rows, key, group, compare=None):
     """The norm row for this athlete: same sex and age band, then same sex all ages, then the nearest published age band for
     that sex, then a row with both sexes mixed. None if the source has nothing for this athlete."""
@@ -115,7 +127,8 @@ def pick(rows, key, group, compare=None):
     if group:
         sx, band = group["sex"], group["band"]
         same = [r for r in rs if r.get("sex") == sx]
-        hit = next((r for r in same if r.get("age_band") == band), None) or next((r for r in same if not r.get("age_band")), None)
+        hit = next((r for r in same if _in_band(group.get("age"), r.get("age_band"))), None) or \
+            next((r for r in same if r.get("age_band") == band), None) or next((r for r in same if not r.get("age_band")), None)
         if hit is None and same:
             lo = int(band.split("-")[0])
             hit = min((r for r in same if r.get("age_band")), key=lambda r: abs(int(r["age_band"].split("-")[0]) - lo), default=None)

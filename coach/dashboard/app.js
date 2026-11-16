@@ -2508,7 +2508,7 @@
       const ul = el('ul', 'ft-tiers'); mark(ul, 'coach', null, mw, 'tiers'); const curBand = mi && mi.band ? mi.band.label : String(m.rank || '').split(' (')[0];
       const subs = subtiersOf(m);
       for (const t of ts) {
-        const here = t.label === curBand; const li = el('li', here ? 'is-here' : null); li.append(el(here ? 'b' : 'span', null, t.label)); if (t.basis !== m.basis) li.append(' ', basisTag(t.basis)); if (t.note) li.append(': ' + (/percentile of/.test(t.note) ? t.note.split(':')[0] : t.note));
+        const here = t.label === curBand; const li = el('li', here ? 'is-here' : null); li.append(el(here ? 'b' : 'span', null, t.label)); if (t.basis !== m.basis) li.append(' ', basisTag(t.basis)); if (t.note) li.append(': ' + (/percentile of/.test(t.note) ? t.note.split(': ')[0] : t.note)); // split on ': ' so a time like 0:53 keeps its seconds
         const mine = subs.filter((x) => x.parent === t.label && x.label !== t.label);
         if (mine.length) { const sl = el('span', 'ft-subs'); sl.append(mine.map((x) => `step ${x.step} ${sf(x.lo)}–${sf(x.hi)}${mi && mi.cur && mi.cur.label === x.label ? ' (you)' : ''}`).join(' · ')); li.append(sl); }
         ul.append(li);

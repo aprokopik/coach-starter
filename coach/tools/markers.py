@@ -979,6 +979,8 @@ def build(today, rows_so_far):
     # Population norms for this athlete's sex and age band (the athlete, Nov 8, 2026: levels follow each person, never hard-coded);
     # each ranked Fitness tile reads them on the shared percentile ladder (fit_ladder, vo2_norms.FIT_BANDS)
     NG = vo2_norms.group(T)
+    if NG and _sex_age(T)[1] is not None:  # the athlete's own age, so a five-year published band can match (fit_ladder.pick)
+        NG = dict(NG, age=_sex_age(T)[1])
     NR = norm_rows()
     N5K, NSW, NWKG, NDUR = (fit_ladder.pick(NR, k, NG) for k in ("5k", "hm703_swim_pace", "wkg", "marathon_decoupling"))
     NRUN, NBIKE = run_pace_norm(fit_ladder.pick(NR, "hm703_run", NG)), bike_w_norm(fit_ladder.pick(NR, "hm703_bike", NG))
