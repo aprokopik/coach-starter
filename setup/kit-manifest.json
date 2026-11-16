@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.112.1",
+ "version": "6.113.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -127,6 +127,7 @@
   "coach/tests/test_no_live_data.py",
   "coach/tests/test_race_check.py",
   "coach/tests/test_version.py",
+  "coach/tools/alpha.py",
   "coach/tools/bike_speed.py",
   "coach/tools/board.py",
   "coach/tools/board_jobs.py",

@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.113.0 (2026-11-16)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.112.1 (2026-11-16)
 - Engine: at most three habits to build at once (the kit maker, Nov 16, 2026, on the Release Board: "You can go up to three habits, that be the max"). The number has one home, `HABITS_MAX` in the new `coach/tools/habits.py`; `build_dashboard.py` keeps only the first three agreed rows, BLOCK-BRIEF.md 2.5 says "1 to 3 habits, never more", and `test_habits_card.py` fails if the brief or the build disagree with it. Before any habits are agreed the Today card still shows the four plan rows as "Doing the plan" (the kit maker's pick). No page file changes.
 

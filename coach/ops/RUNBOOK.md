@@ -55,7 +55,7 @@ Three stages, each with its own failure line, so a dashboard problem never block
 3. ArtifactData `get` of `datasets/recovery`, `datasets/activities`, `datasets/coach` for their versions; one `batch` of three `update` writes pinned with `if_version`, setting `source: {kind: "file", url, name}` and `updated: {at, by: "7:45 AM coach run"}`.
 4. Never delete assets or documents from the dashboard. If any step fails, one line in the check-in. After a successful upload, `python3 coach/tools/refresh_check.py mark --by "morning run"` and commit `coach/refresh.json` with the morning record, so the daytime refresh (`coach/ops/TASK-PROMPT-refresh.md`, every 2 hours in the athlete's waking hours) only republishes for activities the dashboard has not shown yet.
 5. **Shared Race Season page** (Nov 3, 2026): `python3 coach/tools/build_season.py`. When it prints `changed`, commit `coach/dashboard/season.html` and republish it with the Artifact tool (`action: "publish"`, `file_path` coach/dashboard/season.html, `url` {{SEASON_URL}}). Never hand-edit its race list: it is generated from races.json, public fields only. facts.json `races.shared_page` says whether it is in sync; a failed publish is one line in the check-in and the next run retries.
-
+6.
 Any change to the plan, the week or a race later in the session is the same three steps for `coach.json` alone, plus step 5 when a race changed.
 
 ## On-request refresh (a pull or data change the athlete asks for during the day)
