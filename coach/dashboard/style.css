@@ -1520,3 +1520,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-nw-day.is-flag:not(.sel) { border: 2px solid var(--ck-accent); background: var(--ck-accent-wash); color: var(--ck-accent); }
 .ck .td-nw-chg { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ck-s3); }
 .ck .td-nwk[hidden] { display: none; }
+/* Talk to the coach button (chat.js, alpha float_chat, 6.119.0) */
+.ck .cx-chat { position: fixed; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 56px; height: 56px; border-radius: 28px; border: 0; display: flex; align-items: center; justify-content: center; background: var(--ck-accent); color: var(--ck-bg); box-shadow: 0 4px 14px rgba(0, 0, 0, .28); cursor: pointer; }
+.ck .cx-chat svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ck .cx-chat:focus-visible { outline: 3px solid var(--ck-fg); outline-offset: 3px; }
+.ck .cx-chat-tip { position: fixed; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 30; max-width: 260px; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--ck-surface); color: var(--ck-fg); border: 1px solid var(--ck-line); box-shadow: 0 6px 18px rgba(0, 0, 0, .22); font-size: 14px; line-height: 1.35; }
