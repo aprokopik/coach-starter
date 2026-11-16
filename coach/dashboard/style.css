@@ -702,6 +702,14 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .eb-space, .ck .ck-tile.eb-space { display: grid; gap: var(--ck-s3); position: relative; overflow: hidden; border-radius: var(--ck-r2, 12px); border: 1px solid #2e2a6a; color: #ece9ff; padding: var(--ck-s3); background-color: #0b0b26;
   background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #cfc8ff, transparent), radial-gradient(1.5px 1.5px at 40% 66%, #fff, transparent), radial-gradient(1px 1px at 88% 52%, #fff, transparent), radial-gradient(1px 1px at 22% 84%, #bdb5ff, transparent), radial-gradient(1px 1px at 8% 48%, #fff, transparent), radial-gradient(120% 70% at 20% 0%, #26205e 0%, #0b0b26 55%, #05050f 100%); }
 .ck .ck-tile.eb-space { padding: var(--ck-s3); }
+/* Badges | Race tree tabs: the sky sits behind tabs and card */
+.ck #r-p-badges.eb-space { gap: 0; padding: 0; margin: 0 var(--ck-s2); }
+.ck #r-p-badges > .eb-space { background: none; border: 0; border-radius: 0; }
+.ck .eb-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+.ck .eb-tab { min-height: 48px; padding: 0 8px; border: 0; border-bottom: 1px solid #2e2a6a; background: rgba(3, 3, 12, .6); color: #c8c2ff; font: 700 13px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.ck .eb-tab + .eb-tab { border-left: 1px solid #2e2a6a; }
+.ck .eb-tab[aria-selected="true"] { background: none; border-bottom-color: transparent; color: #ffd27a; text-shadow: 0 0 10px rgba(255, 210, 122, .45); }
+.ck .eb-tab:focus-visible { outline: 2px solid #ffd27a; outline-offset: -3px; }
 .ck .eb-space .ck-h3 { color: #ffd27a; text-transform: uppercase; letter-spacing: .16em; font-size: 13px; text-shadow: 0 0 10px rgba(255, 210, 122, .45); }
 .ck .eb-space .ck-sub, .ck .eb-space .ck-note { color: #c8c2ff; }
 .ck .eb-space .sn-head .ck-sub { font-family: ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }

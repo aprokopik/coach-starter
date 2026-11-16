@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.107.0 (2026-11-16)
+- Dashboard: the Race tree moves inside the Badges choice of the season summary as two half-width folder tabs, Badges and Race tree, the open one blending into its card (the kit maker, Nov 16, 2026: "make badges and race tree subtabs under that badges tab ... like a folder tab"), so it shows only when Badges is picked and its tab is open (the kit maker, Nov 16, 2026: "The badges and race tree should be nested together under the badges toggle. I don't want the race tree shown all the time"). Each tab draws only when open; arrow keys move between the tabs. Page size budget +2 KB (1,051,000).
+
 ## 6.106.0 (2026-11-16)
 - Dashboard: the Race tree draws each distance as a sun (the kit maker, Nov 16, 2026, on the options page: "make the completed ones bright, highest level brightest and a dim outline on a booked race for a level not yet achieved"). A distance you have done is a sun, a small white hot core in a gold glow (the kit maker picked it from 10 options); the furthest done on its column is bigger and pulses; a booked race on a distance not reached yet is a small dashed gold ring with its date; above the highest of those, one dotted ring names the next distance and nothing else shows (the kit maker: "there should not be anything but for the next level showing just the dotted outline"). The medals and the locked dots are gone.
 

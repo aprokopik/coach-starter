@@ -15,7 +15,9 @@
   const $ = (id) => document.getElementById(id);
   const A = () => CX.app || {};
   let db = null, loaded = false; const kept = new Map(); // id -> badge saved in the store
-  const ui = { open: null, node: null, all: false, wide: new Set() };
+  const ui = { open: null, node: null, all: false, wide: new Set(), sub: 'eb' };
+  // a tab draws only when open (the athlete, Nov 16, 2026)
+  const isOpen = (id) => { const pn = $('r-p-badges'), x = $(id); return !!x && !x.hidden && !(pn && pn.hidden); };
   let memo = null; // one draw's skill series and badges, so the Season tab reads each series once (speed budget)
   const ser = () => { if (memo && memo.ser) return memo.ser; const v = A().skillSeries ? A().skillSeries() : []; if (memo) memo.ser = v; return v; };
   const BASIS = { research: ['series-8', 'Research'], race: ['series-2', 'Race target'], coach: ['chart-threshold', 'Coach estimate'] };
@@ -123,7 +125,7 @@
     const ring = el('span', 'eb-start'); ring.textContent = 'Start'; c.append(ring, el('b', 'eb-rank', sp.label), el('span', 'eb-when', fDay(sp.date))); return c;
   }
   function renderShelf() {
-    const box = $('r-eb'); if (!box) return; const pn = $('r-p-badges'); if (pn && pn.hidden) return; // folded: drawn when Badges is chosen
+    const box = $('r-eb'); if (!box || !isOpen('r-eb-card')) return; // folded: drawn when Badges is chosen
     const { el, icon, P } = A(); if (!el) return; const fDay = (s) => A().fDay(P(s));
     const list = badges(); const body = el('div', 'eb-body');
     const cap = $('r-eb-cap'); if (cap) cap.textContent = list.length ? `${list.length} earned` : '';
@@ -196,7 +198,7 @@
     return { nodes, st, longest, recent, pinned, raced, meta, weeks, beyond };
   }
   function renderTree() {
-    const box = $('r-rt'); if (!box) return; const { el, icon, N, mark, P } = A(); if (!el) return; const fDay = (s) => A().fDay(P(s));
+    const box = $('r-rt'); if (!box || !isOpen('r-tree')) return; const { el, icon, N, mark, P } = A(); if (!el) return; const fDay = (s) => A().fDay(P(s));
     const T = treeState(); const body = el('div', 'rt-body');
     if (!T) { box.replaceChildren(el('p', 'ck-note', 'The race tree fills from your activities once they arrive.')); return; }
     const cap = $('r-rt-cap'); const nDone = T.nodes.filter((n) => T.st.get(n.id).s === 'done').length; if (cap) cap.textContent = `${nDone} of ${T.nodes.length} done`;
@@ -245,14 +247,18 @@
   }
 
   function render() { if (!$('r-tree')) mount(); memo = {}; try { renderShelf(); renderTree(); } finally { memo = null; } }
-  function mount() { // the Race tree card under the season summary; Badges is a panel inside it (index.html #r-p-badges)
-    const { el, icon } = A(); const after = $('r-st'); if (!after || !el) return;
-    const a = el('article', 'ck-tile sn-earn eb-space'); a.id = 'r-tree'; a.setAttribute('aria-labelledby', 'r-rt-h'); const hd = el('div', 'ck-tile-head sn-head'); const h = el('h2', 'ck-h3'); h.id = 'r-rt-h'; h.append(icon('flag'), 'Race tree');
-    const cap = el('span', 'ck-sub'); cap.id = 'r-rt-cap'; hd.append(h, cap); const tb = el('div'); tb.id = 'r-rt'; a.append(hd, tb); after.after(a);
+  function mount() { // the Race tree, under the shelf in #r-p-badges (the athlete, Nov 16, 2026)
+    const { el, icon } = A(); const pn = $('r-p-badges'); if (!pn || !el) return;
+    const a = el('div', 'eb-space'); a.id = 'r-tree'; a.setAttribute('role', 'tabpanel'); a.setAttribute('aria-labelledby', 'r-tab-rt'); a.hidden = ui.sub !== 'rt'; const hd = el('div', 'ck-tile-head sn-head'); const h = el('h2', 'ck-h3 ck-vh'); h.id = 'r-rt-h'; h.append(icon('flag'), 'Race tree');
+    const cap = el('span', 'ck-sub'); cap.id = 'r-rt-cap'; hd.append(h, cap); const tb = el('div'); tb.id = 'r-rt'; a.append(hd, tb); pn.append(a);
   }
   const wrap = () => { const orig = CX.renderRaces; if (!orig || orig.__eb) return; const f = () => { orig(); try { render(); } catch (e) { /* the rest of Season still draws */ } }; f.__eb = true; CX.renderRaces = f; };
   wrap();
-  { const r = document.querySelector('input[name=r-st][value=badges]'); if (r) r.addEventListener('change', () => setTimeout(() => { if (r.checked) { memo = {}; try { renderShelf(); } finally { memo = null; } } }, 0)); }
+  { const r = document.querySelector('input[name=r-st][value=badges]'); if (r) r.addEventListener('change', () => setTimeout(() => { if (r.checked) render(); }, 0)); }
+  { const T = [['eb', 'r-tab-eb', 'r-eb-card'], ['rt', 'r-tab-rt', 'r-tree']];
+    const pick = (k, focus) => { ui.sub = k; if (!$('r-tree')) mount(); for (const [x, t, p] of T) { const b = $(t), on = x === k; if (b) { b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); } if ($(p)) $(p).hidden = !on; } render(); };
+    T.forEach(([k, t], i) => { const b = $(t); if (!b) return; b.addEventListener('click', () => pick(k));
+      b.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); pick(T[(i + 1) % 2][0], true); } }); }); }
   (async () => {
     try { db = await window.CX.store(); } catch (e) { db = null; }
     if (db) { try { const d = await db.doc('badges/earned').get(); const v = d && d.exists ? d.data() : null; let items = v ? v.items : null; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }
