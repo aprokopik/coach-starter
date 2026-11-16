@@ -524,15 +524,22 @@
       // shows the week plan for today; its first day row drives Fallback / Plan / Strong day and their size texts, its details
       // go in Help me pick, and yesterday's purpose, choice rule and question stay out. A rest day has no sizes.
       const usePlan = stale && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
+      const multi = usePlan && todays.length > 1, bnd = $('t-bounds'); if (bnd.parentNode !== $('t-presc-b')) { $('t-presc-b').append(bnd); $('t-presc-b').after($('t-presc-s'), $('t-more')); }
       const sized = !pd || pd.type !== 'rest', det = $('t-pdet'); det.replaceChildren(); det.hidden = !usePlan;
-      box.hidden = !usePlan; $('t-presc-a').hidden = usePlan; $('t-presc-b').hidden = !sized; $('t-presc-s').hidden = !sized; $('t-purpose').hidden = usePlan || !t.purpose; $('t-rule').hidden = usePlan || !t.choice_rule;
-      state.usePlan = usePlan; state.sized = sized;
+      box.hidden = !usePlan; $('t-presc-a').hidden = usePlan; $('t-presc-b').hidden = !sized || multi; $('t-presc-s').hidden = !sized; $('t-purpose').hidden = usePlan || !t.purpose; $('t-rule').hidden = usePlan || !t.choice_rule;
+      state.usePlan = usePlan; state.sized = sized; state.multi = multi;
       state.from = usePlan || !stale ? '' : `From ${fWd(P(t.date))}'s check-in`;
       if (usePlan) {
-        for (const r of todays) {
+        for (const [i, r] of todays.entries()) {
           const w = `kind=day&date=${r.date}&order=${r.order}`;
-          box.append(mark(el('h3', 'ck-session-title', noTime(r.title)), 'coach', null, w, 'title without its time'));
-          if (r.detail) det.append(plainEl(mark(el('p', 'ck-session-text', r.detail), 'coach', 'detail', w)));
+          const h = mark(el('h3', 'ck-session-title', noTime(r.title)), 'coach', null, w, 'title without its time');
+          if (!multi) box.append(h);
+          else { // two or more: each session its own symbol and sizes, done whenever (the athlete, Nov 16)
+            const ic = el('span', 'ck-sport td-sport td-sport-s'); ic.append(sportIcon(glyphOf(r)), el('span', 'ck-vh', String(r.type)));
+            const row = el('div', 'td-sess-row'); row.append(ic, h); box.append(row);
+            if (r.type !== 'rest') box.append(...(i ? [sizeBar(r, w, i), ...sessFoot(r, w)] : [bnd, $('t-presc-s'), $('t-more')]));
+          }
+          if (r.detail && (!multi || !i)) det.append(noteList(r, w));
         }
       }
       $('t-ask').hidden = !t.question || usePlan; // Coach asks only from today's check-in
@@ -549,8 +556,8 @@
       const sm = $('t-sess-min'); sm.replaceChildren(); sm.hidden = true;
       // the sport as one icon at the top right (6.39.0, the athlete's markup), its name read aloud; from the week plan row or the session's plan row
       const sr = pd || pr, srw = pd ? pdw : pw;
-      const sp = $('t-sport'); sp.replaceChildren(); sp.hidden = !sr || sr.type === 'rest'; sp.classList.add('td-sport');
-      if (!sp.hidden) sp.append(sportIcon(sr.type), mark(el('span', 'ck-vh', String(sr.type)), 'coach', 'type', srw)); // the Week tab's sport glyph and colour
+      const sp = $('t-sport'); sp.replaceChildren(); sp.hidden = !sr || (usePlan && todays.length > 1); sp.classList.add('td-sport'); // rest days too (the athlete, Nov 16)
+      if (!sp.hidden) sp.append(sportIcon(glyphOf(sr)), mark(el('span', 'ck-vh', String(sr.type)), 'coach', 'type', srw)); // the Week tab's sport glyph and colour
       state.sizeRow = pd || (pr ? kind('day').filter((r) => r.date === pr.date).sort((a, b) => (a.order || 0) - (b.order || 0))[0] || null : null);
       state.sizePlan = pd ? { row: pd, w: pdw } : pr ? { row: pr, w: pw } : null;
       coachCall(t, stale);
@@ -695,14 +702,51 @@
       const d = isoN(m0 + i), rs = kind('day').filter((r) => r.date === d);
       const key = rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null));
       const done = wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
-      const planned = rs.some((r) => r.type !== 'rest');
+      const planned = rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
+      const sg = el('span', 'td-nw-sg'); sg.setAttribute('aria-hidden', 'true'); // a symbol per session, as on Next week (the athlete, Nov 16)
+      for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
       const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '') + (done ? ' is-done' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
       nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
-      li.append(nd, el('span', 'td-dow', DOW[i]), el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
+      li.append(nd, el('span', 'td-dow', DOW[i]), sg, el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (n > 1 ? `, ${n} sessions` : '') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
       ol.append(li);
       if (key) { keys++; if (done) keysDone++; }
     }
     $('t-path-n').textContent = keys ? `${keysDone} of ${keys} key done` : '';
+  }
+  // a later session's own Effort line and More info (the athlete, Nov 16, 2026: "Each should also still have their own more info. And effort");
+  // a lift row carries no target_rpe, so its reps in reserve come from its notes
+  // More info in the Week tab's labelled lines (Plan, Fallback, Food, When; wkLines), not a text block, with Effort said once
+  // above it and the coach's planning notes (Replanned ...) left out (the athlete, Nov 16: "communicating what matters")
+  function noteList(r, w) {
+    const d = el('span', 'ck-row-more td-notes'), more = wkLines(d, r, w);
+    for (const k of d.querySelectorAll('.wk-kv')) if (k.firstChild.textContent === 'Effort') k.remove();
+    let last = ''; // each label once; said elsewhere on the card (effort, the day's fuel line) or planning notes are left out
+    for (const [k, n] of more) {
+      const t = n.textContent; if (/^replanned\b|reps? in reserve$|^eat to maintenance$/i.test(t.trim())) continue;
+      n.textContent = t.replace(/\s*\(replanned[^)]*\)/i, ''); wkKv(d, k === last ? '' : k).append(n); last = k;
+    }
+    return d;
+  }
+  function sessFoot(r, w) {
+    const ft = el('div', 'td-size'), p = el('p', 'td-size-t'), bits = [], rir = /(\d+(?:-\d+)?) reps? in reserve/i.exec(r.detail || '');
+    if (r.target_rpe !== undefined && r.target_rpe !== null && r.target_rpe !== '') { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, String(r.target_rpe)), 'coach', 'target_rpe', w), ' of 10'); bits.push(g); }
+    else if (rir) { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, rir[1]), 'coach', 'detail', w, 'reps in reserve from the notes'), ' reps in reserve'); bits.push(g); }
+    if (N(r.hr_cap) !== null) { const g = el('span', 'td-nw', 'HR about '); g.append(mark(el('span', null, String(N(r.hr_cap))), 'coach', 'hr_cap', w)); bits.push(g); }
+    bits.forEach((b, k) => { if (k) p.append(el('span', 'td-dot', ' · ')); p.append(b); }); ft.append(p);
+    if (!r.detail) return [ft];
+    const btn = el('button', 'td-more', 'More info'), pan = el('div', 'td-more-panel'); btn.type = 'button'; btn.setAttribute('aria-expanded', 'false'); pan.hidden = true;
+    pan.append(noteList(r, w));
+    btn.addEventListener('click', () => { pan.hidden = !pan.hidden; btn.setAttribute('aria-expanded', String(!pan.hidden)); btn.textContent = pan.hidden ? 'More info' : 'Less'; });
+    ft.append(btn); return [ft, pan];
+  }
+  function sizeBar(r, w, i) {
+    const f = el('fieldset', 'ck-seg td-sizes'); f.append(el('legend', 'ck-vh', 'Size of ' + noTime(r.title)));
+    for (const [k, fl, lab] of [['fallback', 'fallback_minutes', 'Min'], ['nominal', 'minutes', 'Plan'], ['upper', 'upper_minutes', 'Max']]) {
+      const v = N(r[fl]), o = el('label', 'ck-seg-opt' + (k === 'nominal' ? ' is-rec' : '')), inp = el('input', 'ck-vh-input');
+      inp.type = 'radio'; inp.name = 't-bound-' + i; inp.checked = k === 'nominal'; inp.disabled = v === null;
+      o.append(inp, lab, v === null ? '' : mark(el('span', 'ck-sub', hmin(v)), 'coach', null, w, 'h:mm of ' + fl)); f.append(o);
+    }
+    return f;
   }
   function renderBound() {
     for (const inp of document.querySelectorAll('#t-bounds input[type=radio]')) { inp.checked = inp.value === state.bound; inp.closest('.ck-seg-opt').classList.toggle('is-rec', inp.value === state.rec); }
@@ -710,15 +754,18 @@
     const line = $('t-size'); line.replaceChildren();
     const sp = state.sizePlan, f = { nominal: 'minutes', upper: 'upper_minutes', fallback: 'fallback_minutes' }[state.bound];
     const v = sp ? N(sp.row[f]) : null;
-    if (v !== null && state.bound === 'fallback' && sp.row.alt_type && sp.row.alt_type !== sp.row.type) line.append(mark(el('span', 'td-cap', String(sp.row.alt_type)), 'coach', 'alt_type', sp.w), ' instead');
+    if (v !== null && state.bound === 'fallback' && sp.row.alt_type && sp.row.alt_type !== glyphOf(sp.row)) line.append(mark(el('span', 'td-cap', String(sp.row.alt_type)), 'coach', 'alt_type', sp.w), ' instead');
     const dr = state.sizeRow, dw = dr ? `kind=day&date=${dr.date}&order=${dr.order}` : null;
     const sep = () => { if (line.childNodes.length) line.append(el('span', 'td-dot', ' · ')); };
     if (dr && dr.target_rpe !== undefined && dr.target_rpe !== null && dr.target_rpe !== '') { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, String(dr.target_rpe)), 'coach', 'target_rpe', dw), ' of 10'); sep(); line.append(g); }
     if (dr && N(dr.hr_cap) !== null) { const g = el('span', 'td-nw', 'HR about '); g.append(mark(el('span', null, String(N(dr.hr_cap))), 'coach', 'hr_cap', dw)); sep(); line.append(g); }
     // the line under the title: key number, then what the coach says, or the day an older check-in is from
     const sub = $('t-sub'); sub.replaceChildren(); const rf = { nominal: 'minutes', upper: 'upper_minutes', fallback: 'fallback_minutes' }[state.rec || 'nominal'], rv = sp ? N(sp.row[rf]) : null;
-    const bits = [state.keyN, state.from, rv !== null ? 'coach says ' + hmin(rv) : ''].filter(Boolean);
-    bits.forEach((b, i) => { if (i) sub.append(' · '); sub.append(i === bits.length - 1 && rv !== null ? mark(el('span', null, b), 'coach', null, sp.w, 'coach size h:mm') : b); });
+    // a rest day never says "coach says 0 min" (the athlete, Nov 16, 2026)
+    const rest = !!sp && String(sp.row.type || '') === 'rest', restWord = rest && !/^\s*rest\b/i.test($(state.usePlan ? 't-planned' : 't-title').textContent) ? 'Rest day' : '';
+    const said = rv !== null && !rest && !state.multi;
+    const bits = [state.keyN, state.from, said ? 'coach says ' + hmin(rv) : restWord].filter(Boolean);
+    bits.forEach((b, i) => { if (i) sub.append(' · '); sub.append(i === bits.length - 1 && said ? mark(el('span', null, b), 'coach', null, sp.w, 'coach size h:mm') : b); });
     const more = $('t-more'), mb = $('t-more-btn');
     const hasMore = [...more.children].some((c) => !c.hidden && c.textContent.replace('—', '').trim());
     mb.hidden = !hasMore; if (!hasMore) { more.hidden = true; mb.setAttribute('aria-expanded', 'false'); }
@@ -1010,6 +1057,8 @@
   const wvWhere = (r) => `date=${r.date}&kind=${r.kind}&order=${r.order}` + (r.kind === 'extra' && r.done_ids ? '&done_ids=' + encodeURIComponent(r.done_ids) : '');
   // sport glyphs from the sprite, coloured by the sport tokens; hike and walk stay neutral (outline), as before
   const SGLYPH = { bike: 'bike', run: 'run', swim: 'swim', strength: 'strength', hike: 'trail', walk: 'steps', trail: 'trail', rest: 'rest', test: 'check', race: 'flag', other: 'session' };
+  // a test shows its sport (an FTP test on Zwift is a ride), not the check mark
+  function glyphOf(r) { return r.type === 'test' && /zwift|bike|ftp|ride/i.test(r.title || '') ? 'bike' : r.type; }
   function sportIcon(tp) {
     const s = icon(SGLYPH[tp] || 'session', 'ck-i wk-sg');
     const sp = ['bike', 'run', 'swim', 'strength', 'other'].includes(tp) ? tp : tp === 'race' ? 'run' : null;

@@ -29,7 +29,7 @@
   const live = (wk) => (saved[wk] && !saved[wk].cleared ? saved[wk] : null);
   function dayRows(d) { return A().kind('day').filter((r) => r.date === d); }
   function keyOf(rs) { const { truthy, N } = A(); return rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null)); }
-  const dowOf = (d) => DOW[(A().P(d).getDay() + 6) % 7];
+  const dowOf = (d) => DOW[(A().P(d).getUTCDay() + 6) % 7];
   function btn(cls, txt, fn) { const b = A().el('button', cls, txt); b.type = 'button'; b.addEventListener('click', fn); return b; }
 
   // One mount: a root element, the week it shows, and whether it draws the path and offers Looks good (Today) or not (Week tab)
@@ -145,7 +145,7 @@
     if (!alpha('week_review') || !(await store())) { card.hidden = true; return; }
     const { TODAY, dayN, monday, isoN, P, fDay, kind, el, mark } = A(), wk = isoN(dayN(monday(TODAY)) + 7);
     await load(wk);
-    const pc = kind('plan_check')[0], di = DOW.indexOf(pc ? String(pc.day || 'Fri').slice(0, 3) : 'Fri'), ti = (P(TODAY).getDay() + 6) % 7;
+    const pc = kind('plan_check')[0], di = DOW.indexOf(pc ? String(pc.day || 'Fri').slice(0, 3) : 'Fri'), ti = (P(TODAY).getUTCDay() + 6) % 7;
     if (!(FORCE || ti >= di)) { card.hidden = true; return; }
     shell(card);
     if (!today) today = mount(card, { path: true, good: true, onSent: (w) => { if (week && week.wk === w) week.paint(); } });
