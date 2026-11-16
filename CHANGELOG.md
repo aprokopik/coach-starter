@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.107.1 (2026-11-16)
+- Dashboard: the Fitness Map holds a tapped metric in place on the phone too (the kit maker, Nov 16: "I still get a jump when I tap on the fitness map on a metric"). 6.104.0 corrected the jump by scrolling the window, but on claude.ai the page scrolls inside a host box, so that correction did nothing there; it now scrolls whichever box holds the Map, the same way the Scorecard tile hold does (app.js).
+- Dashboard: every open or close tap on every tab now holds the tapped row in place (the kit maker, Nov 16: "Im also getting jumping on this page when opening a workout" on Week). The Scorecard tile hold from Nov 15 covered only Fitness tiles; `app.js` now applies it to anything with aria-expanded (Week workouts and days, Today, Check-in, Map metrics, Health, Season) and to the Map's switches, in the box that scrolls; the Map's own hold from 6.104.0 goes, as this covers it. A tap that scrolls on purpose (Health pillars and Season race cards open at the top) is left alone.
+
 ## 6.107.0 (2026-11-16)
 - Dashboard: the Race tree moves inside the Badges choice of the season summary as two half-width folder tabs, Badges and Race tree, the open one blending into its card (the kit maker, Nov 16, 2026: "make badges and race tree subtabs under that badges tab ... like a folder tab"), so it shows only when Badges is picked and its tab is open (the kit maker, Nov 16, 2026: "The badges and race tree should be nested together under the badges toggle. I don't want the race tree shown all the time"). Each tab draws only when open; arrow keys move between the tabs. Page size budget +2 KB (1,051,000).
 

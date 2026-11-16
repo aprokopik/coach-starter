@@ -40,10 +40,7 @@
   const metrics = () => CX.kind('cat_metric').slice().sort((a, b) => Number(a.order) - Number(b.order)).map((m) => ({ ...m, needs: arr(m.needs), missing: arr(m.missing), shown: truthy(m.shown) }));
   // on the dashboard now: the layout, changed by any tap not yet written into it
   const isOn = (m) => (picks.has(m.key) ? !!picks.get(m.key).on : m.shown);
-  // the tapped control stays put through re-renders (the athlete, Nov 16: the Map jumped); a scroll lets go
-  let anchor = null; ['touchmove', 'wheel'].forEach((t) => window.addEventListener(t, () => { anchor = null; }, { passive: true }));
-  const rerender = () => { if (focusNext && !scrollNext) { const a = document.querySelector(focusNext); anchor = a ? { sel: focusNext, top: a.getBoundingClientRect().top, until: Date.now() + 4000 } : null; } if (CX.render) CX.render(); };
-  const hold = (box) => { if (!anchor) return; if (Date.now() > anchor.until) { anchor = null; return; } const a = box.querySelector(anchor.sel); if (!a) return; const d = a.getBoundingClientRect().top - anchor.top; if (Math.abs(d) > 1) window.scrollBy(0, d); };
+  const rerender = () => { if (CX.render) CX.render(); };
 
   function lockIcon() {
     const NS = 'http://www.w3.org/2000/svg'; const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ck-i mx-lk'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
@@ -52,7 +49,7 @@
   }
   const needWords = (m, I) => [...new Set(m.missing.map((k) => (I.get(k) || {}).label || k))].join(' and ');
   const mw = (m) => 'kind=cat_metric&key=' + m.key;
-  // plain words for a rung name that does not say what it counts (the athlete, Nov 15, 2026, card "Both"); the ladder keeps its name
+  // plain words for a rung name that does not say what it counts (the athlete, Nov 15)
   const LV_SAY = { consistency: { '3 days': '3 days a week', '3 weeks': '3 weeks of 3 days', '3 months': '3 months of 3 days' } };
 
   // ---------- tiles ----------
@@ -211,7 +208,7 @@
     s.hidden = true; const lb = p.querySelector('.ft-label > span:last-child'); if (lb) { lb.textContent = lb.textContent.replace(/power /i, ''); lb.removeAttribute('data-field'); lb.setAttribute('data-derived', 'pair-name'); }
     const row = (name, fig) => { const r = el('span', 'ft-barname'); const v = el('b'); for (const n of fig.childNodes) v.append(n.cloneNode(true)); r.append(el('b', null, name), v); return r; };
     const pf = p.querySelector('.ft-fig'), sf = s.querySelector('.ft-fig'), lv = p.querySelector('.ft-lvrow, .ft-chip'), sub = p.querySelector('.ft-subl');
-    if (pf && lv) { lv.before(row('Power', pf)); pf.hidden = true; } // the Power row has the figure (the athlete, Nov 15)
+    if (pf && lv) { lv.before(row('Power', pf)); pf.hidden = true; }
     if (sf) { const add = [row('Speed', sf), ...['.ft-chip', '.ft-steps'].map((q) => s.querySelector(q)).filter(Boolean).map((n) => n.cloneNode(true))]; if (sub) sub.before(...add); else p.append(...add); }
     p.setAttribute('aria-label', p.getAttribute('aria-label').replace(/^Bike power/, 'Bike') + `, speed ${sf ? sf.textContent.trim() : 'none yet'}`);
     const sp = ui.open === 'bikespeed'; if (sp) p.setAttribute('aria-expanded', 'true');
@@ -220,7 +217,7 @@
     for (const [k, lab] of [['bike', 'Power'], ['bikespeed', 'Speed']]) { const l = el('label', 'ck-seg-opt'), i = el('input', 'ck-vh-input'); i.type = 'radio'; i.name = 'f-bkseg'; i.checked = (k === 'bikespeed') === sp;
       i.addEventListener('change', () => { ui.open = k === 'bikespeed' ? k : null; CX.state.fit = k === 'bike' ? k : null; rerender(); const f = document.querySelectorAll('#f-bkseg input')[k === 'bike' ? 0 : 1]; if (f) f.focus({ preventScroll: true }); });
       l.append(i, lab); seg.append(l); }
-    // hiding the speed tile shifts later tiles up, so an open panel goes back under its own row (the athlete, Nov 15)
+    // the open panel goes back under its own row (the athlete, Nov 15)
     { const op = box.querySelector(':scope > #mx-ladder, :scope > #mx-unlock'), ot = box.querySelector(':scope > .ft-tile[aria-expanded="true"]:not([hidden])'); if (op && ot && !sp) afterRow(box, ot, op); }
     if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); const c = el('div', 'chart'); c.id = 'c-bikespeed'; c.style.setProperty('--h', '190px'); c.setAttribute('data-source', 'coach'); pn.prepend(seg, c); const m = metrics().find((x) => x.key === 'bikespeed'); if (m && CX.app.speedChart) CX.app.speedChart(c, m); } }
     else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(seg, n); } else if (c) c.before(seg); }
@@ -425,7 +422,7 @@
   CX.metricTiles = (box, tiles) => {
     const M = metrics(); if (!M.length) return;
     const I = inputs(); const byKey = new Map(M.map((m) => [m.key, m]));
-    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) { f.focus({ preventScroll: true }); if (scrollNext) f.scrollIntoView({ block: 'start' }); } } scrollNext = false; hold(box); if (!box.cxHold && window.ResizeObserver) { box.cxHold = new ResizeObserver(() => hold(box)); box.cxHold.observe(box); } };
+    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) { f.focus({ preventScroll: true }); if (scrollNext) f.scrollIntoView({ block: 'start' }); } } scrollNext = false; };
     if (ui.view === 'map') {
       const ex = document.getElementById('f-expand'); if (ex && box.contains(ex)) { ex.hidden = true; box.after(ex); } // the chart panel lives in the box while a tile is open: keep it
       const nb = nextBox(M, tiles); box.replaceChildren(viewBar(), ...(nb ? [nb] : []), mapView(M, I, tiles)); finish(); return;

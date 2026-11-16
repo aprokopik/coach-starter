@@ -1537,12 +1537,15 @@
   // (store open_log/2026-11-15-jump): the app scrolls a box around the page, and as the tab redraws that box jumped near its end with
   // no scroll call from the page. So for 0.6 s after a tap the tapped tile is held at its place on screen, until a finger scrolls.
   { const sbox = (n) => { for (let e = n.parentElement; e; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)) return e; return document.scrollingElement; };
+    // every open or close tap, on every tab (the athlete, Nov 16: Week and Map jumped too); a tap that scrolls on purpose (scrollIntoView) is left alone
+    let intent = 0; const siv = Element.prototype.scrollIntoView; Element.prototype.scrollIntoView = function (...a) { intent = performance.now(); return siv.apply(this, a); };
     document.addEventListener('click', (e) => {
-      const t = e.target && e.target.closest ? e.target.closest('#f-tiles .ft-tile, #f-bkseg, #f-sport') : null; if (!t) return;
-      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id, p = $(id); if (!p) return;
-      const sc = sbox(p), top = p.getBoundingClientRect().top, end = performance.now() + 600; let off = false;
+      const t = e.target && e.target.closest ? e.target.closest('[aria-expanded], [role=switch], #f-tiles .ft-tile, #f-bkseg, #f-sport') : null; if (!t || t.closest('.cx-tabs')) return;
+      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id, k = t.dataset.k, tag = t.tagName, p = (id && $(id)) || t;
+      const find = () => (id && $(id)) || (k && [...document.querySelectorAll(tag + '[data-k]')].find((n) => n.dataset.k === k)) || (t.isConnected ? t : null);
+      const at = performance.now(), sc = sbox(p), top = p.getBoundingClientRect().top, end = at + 600; let off = false;
       addEventListener('touchmove', () => { off = true; }, { passive: true, once: true });
-      const hold = () => { const n = $(id); if (off || !n) return; const d = n.getBoundingClientRect().top - top; if (Math.abs(d) > 2) sc.scrollTop += d; if (performance.now() < end) requestAnimationFrame(hold); };
+      const hold = () => { const n = find(); if (off || intent > at || !n) return; const d = n.getBoundingClientRect().top - top; if (Math.abs(d) > 2) sc.scrollTop += d; if (performance.now() < end) requestAnimationFrame(hold); };
       requestAnimationFrame(hold); }, true); }
   const ftFocus = (sel) => { const t = document.querySelector(sel); if (t) t.focus({ preventScroll: true }); };
 
