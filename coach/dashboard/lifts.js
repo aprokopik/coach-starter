@@ -151,9 +151,9 @@
   function build(m) {
     const box = $('l-ex'); box.replaceChildren(); box.classList.remove('dash-skeleton');
     const dp = dayPlan(m), tm = alpha('lift_time');
-    if (dayFor !== date) { dayView = 'plan'; dayFor = date; dayMins = N(dp && dp.r.minutes) || N(m.routine.minutes) || 25; }
-    const fit = tm && dayView !== 'all' ? fitTime(m.ex.filter((e) => !dp || !dp.full.length || dp.full.includes(e.ex)), dayMins) : null;
-    const want = fit ? [...fit.keys()] : dp && (dayView === 'busy' && dp.busy.length ? dp.busy : dp.full);
+    if (dayFor !== date) { dayView = 'plan'; dayFor = date; mfy = null; dayMins = N(dp && dp.r.minutes) || N(m.routine.minutes) || 25; }
+    const fit = tm && dayView !== 'all' ? fitTime(m.ex.filter((e) => (mfy ? mfy.ex.includes(e.ex) : !dp || !dp.full.length || dp.full.includes(e.ex))), dayMins) : null;
+    const want = fit ? [...fit.keys()] : mfy ? mfy.ex : dp && (dayView === 'busy' && dp.busy.length ? dp.busy : dp.full);
     // a lift with sets already saved or typed that day always shows, so saving never drops it (collect reads the open inputs)
     const has = (e) => !!(saved && saved.sets && Array.isArray(saved.sets[e.ex]) && saved.sets[e.ex].length) || doneSet.has(e.ex) || skipSet.has(e.ex);
     const inDay = (e) => !want || !want.length || dayView === 'all' || want.includes(e.ex) || has(e);
@@ -291,7 +291,7 @@
   // Time for more (the athlete, Nov 16): +5, +10 and +15 minutes add NEW lifts at the end in the coach's order, never sets on a lift
   // already done; each button lists what it adds. Show all opens every lift, as before.
   function moreBox(m, out, dp) {
-    const pool = m.ex.filter((e) => !dp || !dp.full.length || dp.full.includes(e.ex)), now = new Set(fitTime(pool, dayMins).keys());
+    const pool = m.ex.filter((e) => (mfy ? mfy.ex.includes(e.ex) : !dp || !dp.full.length || dp.full.includes(e.ex))), now = new Set(fitTime(pool, dayMins).keys());
     const box = el('div', 'lx-more'), hd = el('div', 'lx-morehd'); hd.append(el('b', null, 'Time for more?'));
     const sa = el('button', 'lx-showall', 'Show all'); sa.type = 'button'; sa.addEventListener('click', () => { dayView = 'all'; build(m); }); hd.append(sa); box.append(hd);
     const row = el('div', 'lx-more3'); let seen = '';
@@ -357,7 +357,17 @@
   }
   // Routines page (alpha lift_clean; the athlete picked A2, Nov 16: "this is the way forward"): a tile row with Change ›, then a page
   // of tiles like made-for-you playlists (today's pick on top, Made by you, Library); a tile opens its own page.
-  let rView = '';
+  let rView = '', mfy = null;
+  // Made for you (the athlete, Nov 16: "i dont see any made for me today alternatives"): today-only versions of the current routine
+  // that the page can run at once, since they use its own lifts: the short version, upper body only, legs only.
+  function mfyList(m) {
+    const r = m.routine, est = (L) => Math.max(10, Math.round((2 + L.reduce((t, e) => t + (N(e.sets) || 2) * (e.per_side ? 1.75 : 1.25), 0)) / 5) * 5), L = [];
+    const add = (id, name, ex, why, mins) => { if (ex.length && ex.length < m.ex.length) L.push({ id: 'mfy_' + id, name, ex: ex.map((e) => e.ex), minutes: mins || est(ex), best_for: why, mfy: true }); };
+    add('short', 'Short version', m.ex.filter((e) => e.busy), 'The main lifts only, for a short day', N(r.busy_minutes));
+    add('upper', 'Upper body', m.ex.filter((e) => !e.legs), 'Leaves your legs fresh for running and riding');
+    add('legs', 'Legs and lower leg', m.ex.filter((e) => e.legs), 'Rests your upper body');
+    return L;
+  }
   const hue = (id) => [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
   const ini = (n) => String(n).split(/[\s,]+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
   const art = (x, big) => { const a = el('span', 'lx-art' + (big ? ' big' : '')); a.style.setProperty('--h', hue(x.id)); a.setAttribute('aria-hidden', 'true'); a.append(el('b', null, big ? x.name.split(',')[0] : ini(x.name))); return a; };
@@ -367,13 +377,13 @@
     const cur = m.routine.routine, r = m.routine;
     const cr = m.lib.find((x) => x.id === cur) || { id: cur, name: r.name, minutes: r.minutes, needs: '', lifts: m.ex.map((e) => e.name).join('; ') };
     const lib = m.lib.some((x) => x.id === cur) ? m.lib : [cr, ...m.lib];
-    const src = (x) => (x.id === cur ? 'Today\u2019s pick' : x.mine ? 'Made by you' : 'Library');
+    const mf = mfyList(m), src = (x) => (x.mfy ? 'Made for you \u00b7 today only' : x.id === cur ? 'Today\u2019s pick' : x.mine ? 'Made by you' : 'Library');
     $('l-log').classList.toggle('lx-browse', !!rView);
     const pend = pickPending && pickPending !== cur ? lib.find((x) => x.id === pickPending) : null;
     if (!rView) {
       const b = el('button', 'lx-rt'); b.type = 'button'; b.setAttribute('aria-label', `Routine: ${cr.name}. Change`);
-      const t = el('span', 'lx-rtt'); t.append(mk('b', null, cr.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(cr)));
-      b.append(art(cr), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b); return;
+      const sh = mfy || cr, t = el('span', 'lx-rtt'); t.append(mk('b', null, sh.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(sh)));
+      b.append(art(sh), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b); return;
     }
     const top = el('div', 'lx-rtop'), back = el('button', 'lx-back', rView === 'list' ? '\u2039 Back to today' : '\u2039 Routines'); back.type = 'button';
     back.addEventListener('click', () => goR(m, rView === 'list' ? '' : 'list')); top.append(back);
@@ -385,21 +395,22 @@
       hero.append(art(cr, true), hx); hero.addEventListener('click', () => goR(m, cur));
       const shelf = (h, L) => { if (!L.length) return []; const row = el('div', 'lx-shelf'); for (const x of L) { const t = el('button', 'lx-tile'); t.type = 'button'; t.append(art(x, true), el('span', 'ck-sub', `${x.minutes} min`)); t.setAttribute('aria-label', `${x.name}, ${x.minutes} min`); t.addEventListener('click', () => goR(m, x.id)); row.append(t); } return [el('span', 'lx-mh', h), row]; };
       const rest = lib.filter((x) => x.id !== cur);
-      box.replaceChildren(top, hero, ...shelf('Made by you', rest.filter((x) => x.mine)), ...shelf('Library', rest.filter((x) => !x.mine)),
+      box.replaceChildren(top, hero, ...shelf('Made for you, today', mf), ...shelf('Made by you', rest.filter((x) => x.mine)), ...shelf('Library', rest.filter((x) => !x.mine)),
         el('p', 'ck-sub lx-own', '+ Make your own: tell your coach in chat what you want, e.g. \u201c20 minutes in a hotel gym, dumbbells only\u201d, and it lands here.'));
       return;
     }
-    const x = lib.find((y) => y.id === rView) || cr, lw = `kind=lift_lib&id=${x.id}`;
+    const x = mf.find((y) => y.id === rView) || lib.find((y) => y.id === rView) || cr, lw = `kind=lift_lib&id=${x.id}`;
     const hero = el('div', 'lx-hero'), hx = el('span', 'lx-hx');
     hx.append(el('span', 'lx-mh', src(x)), el('b', null, x.name), mk('span', 'ck-sub', `${x.minutes} min${x.needs ? ' \u00b7 ' + x.needs : ''}`, 'coach', 'needs', lw));
     if (x.best_for) hx.append(mk('span', 'lx-bc', x.best_for, 'coach', 'best_for', lw));
     hero.append(art(x, true), hx);
     const acts = el('div', 'lx-racts');
-    if (x.id === cur) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button'; u.addEventListener('click', () => goR(m, '')); acts.append(u); }
+    if (x.id === cur || x.mfy) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button';
+      u.addEventListener('click', () => { flush(); mfy = x.mfy ? x : null; dayView = 'plan'; dayMins = N(x.minutes) || dayMins; builtKey = ''; goR(m, ''); renderLifts(); }); acts.append(u); }
     else if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Switch asked. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, cur)); acts.append(c); }
     else { const a = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Ask the coach to switch'); a.type = 'button'; a.addEventListener('click', () => savePick(m, x.id)); acts.append(a, el('span', 'ck-sub', 'Your coach sets it up with your weights at the next check-in.')); }
     const ul = mk('ul', 'lx-rlifts', null, 'coach', 'lifts', lw);
-    const names = x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
+    const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
     for (const n of names) ul.append(el('li', null, n.replace(/^\w/, (c) => c.toUpperCase())));
     box.replaceChildren(top, hero, acts, ul);
   }
@@ -631,7 +642,7 @@
   // The tap is saved to lift_choice/<block_key>; the next morning run records it and applies accepted swaps from the block start.
   function renderRotation(m) {
     const card = $('l-rot'); if (!card) return;
-    const fresh = (p) => p.status === 'proposed' || (p.decided_on && dayN(TODAY) - dayN(p.decided_on) <= 14) || choices.has(p.block_key);
+    const fresh = (p) => p.status === 'proposed' || (p.decided_on && dayN(TODAY) - dayN(p.decided_on) <= 14) || (choices.has(p.block_key) && dayN(TODAY) <= dayN(p.start) + 14);
     const p = m.proposals.filter(fresh).sort((a, b) => (a.start < b.start ? -1 : 1))[0];
     card.hidden = !p; if (!p) return;
     const ch = choices.get(p.block_key);
@@ -660,7 +671,12 @@
       catch (e) { st.textContent = `Not saved (${e && e.code ? e.code : 'error'}). Reply to the check-in instead.`; }
     };
     bA.onclick = () => pick('accept'); bK.onclick = () => pick('keep');
+    // once answered the card folds to one line (the athlete, Nov 16, 2026: "this doesnt go away"); Change opens it again
+    let sm = $('l-rotsum'); if (!sm) { sm = el('button', 'lx-rotsum'); sm.type = 'button'; sm.id = 'l-rotsum'; sm.addEventListener('click', () => { rotOpen = !rotOpen; renderRotation(m); }); card.prepend(sm); }
+    card.classList.toggle('lx-rotfold', !!decided && !rotOpen); sm.hidden = !decided; sm.setAttribute('aria-expanded', String(rotOpen));
+    sm.replaceChildren(icon('check'), el('span', null, `${p.block} block, ${fD(p.start)}: ` + (decided === 'accept' ? 'changes saved' : 'routine stays')), el('span', 'lx-chg', rotOpen ? 'Hide' : 'Change'));
   }
+  let rotOpen = false;
 
   function renderLifts() {
     const m = model();
@@ -675,6 +691,11 @@
     legacy = m.routine.legacy_ids || {};
     if (CL() && !rpe3) { rpe3 = true; $('l-rpe').classList.add('lx-opts3'); $('l-rpe-l').textContent = 'How did it feel?'; paintRpe = chips($('l-rpe'), ['3', '4', '6'], ['Easy', 'Steady', 'Hard'], () => rpeSel, (v) => { rpeSel = v; edited(); }); }
     $('l-copy').hidden = CL();
+    // Rules card (the athlete, Nov 16: "do we still need rules at the bottom"): with the aim line and the minutes in the session it goes;
+    // a stop-signal rule stays as one Watch line above the effort question. The rules stay in the routine for the coach.
+    { const rc = $('l-rules'); if (rc) rc.hidden = CL(); let sl = $('l-stop'); const w = CL() && m.rules.find((x) => x.warn);
+      if (w && !sl) { sl = el('p', 'lx-stop'); sl.id = 'l-stop'; $('l-rpe').closest('.lx-rpe').before(sl); }
+      if (sl) { sl.hidden = !w; if (w) sl.replaceChildren(icon('watch'), mk('span', null, null, 'coach', 'text', `kind=lift_rule&routine=${w.routine}&order=${w.order}`)); if (w) sl.lastChild.append(el('b', null, w.label + ': '), w.text); } }
     renderStatic(m); renderRotation(m);
     const key = JSON.stringify([m.ex, m.phases, date, loaded]);
     if (key !== builtKey) { if (builtKey && db) { const v = snap(m); if (Object.keys(v.sets).length || v.note) draftPut(date, v); } builtKey = key; build(m); }

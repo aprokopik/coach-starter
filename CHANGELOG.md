@@ -2,6 +2,11 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.119.1 (2026-11-16)
+- Dashboard, alpha `lift_time`: the Time you have box on the Lifts tab drops the blue wash it borrowed from the plan-day note and gets a plain outline (the kit maker, Nov 16, 2026: "why is this blue?").
+- Dashboard, alpha `lift_clean` (the kit maker's notes on the built page, Nov 16, 2026): the Routines page gains a Made for you, today shelf ("i dont see any made for me today alternatives"): Short version, Upper body and Legs and lower leg, built from the current routine's own lifts, so Use today runs them at once for that day only; the Rules card goes ("do we still need rules at the bottom"), with the stop-signal rule kept as one Watch line above How did it feel (the rules stay in the routine for the coach).
+- Dashboard, everyone: a block-start rotation card folds to one line once answered ("this doesnt go away"), with Change to open it, and leaves 14 days after the block starts.
+
 ## 6.119.0 (2026-11-16)
 - Dashboard, alpha (`float_chat`, the kit maker only; the kit maker's Release Board note on epic talk_anywhere, Nov 16, 2026: "add a floating text button in the bottom right to open a floating chat"; they picked "A. Ask now in comment box" on the rendered options). A round Talk to the coach button sits at the bottom right of every tab (coach/dashboard/chat.js). A tap opens Claude's own comment box at the button; Send to Claude there wakes the coach chat watching the dashboard, which answers in the same thread on the page. The dashboard's page type allows only that path (comments as composer only, no in-page Claude), so the page writes nothing. If the box cannot open, a short tip says to use the comment tool and Send to Claude.
 
