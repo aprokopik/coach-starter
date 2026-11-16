@@ -90,9 +90,13 @@
     const b = el('button', 'ck-tile ck-tile-btn ft-tile mx-fig'); b.type = 'button'; b.dataset.k = m.key; b.id = 'f-' + m.key; b.dataset.sport = CX.sportTok(m.sport);
     b.setAttribute('aria-expanded', String(ui.open === m.key)); b.setAttribute('aria-controls', 'mx-ladder');
     const head = el('span', 'ck-tile-head'); head.append(mark(el('span', 'ck-tile-label ft-label', m.name), 'coach', 'name', mw(m)), CX.ck.icon('chevron', 'ck-chev ft-chev')); b.append(head);
-    const fig = el('span', 'ck-big ft-fig'); fig.append(mark(el('span', null, m.value), 'coach', 'value', mw(m)));
+    const fig = el('span', 'ck-big ft-fig'); const wk = m.wk_value !== undefined && m.wk_value !== '';
+    // a habit tile leads with the week in progress, the weeks held under it (the athlete, Nov 16, 2026, option A "This week first")
+    if (wk) { fig.append(mark(el('span', null, m.wk_value), 'coach', 'wk_value', mw(m)), mark(el('span', 'ck-unit', ' ' + m.wk_unit), 'coach', 'wk_unit', mw(m))); b.append(fig);
+      const held = el('span', 'ck-sub ft-subl mx-held'); held.append(mark(el('span', null, m.value), 'coach', 'value', mw(m)), ' ', mark(el('span', null, m.unit || ''), 'coach', 'unit', mw(m)), ' in a row'); b.append(held); }
+    else { fig.append(mark(el('span', null, m.value), 'coach', 'value', mw(m)));
     // the unit as the marker tiles set it (app.js fitTile: ck-unit, "/mi" against the figure, a word after a space)
-    if (m.unit) fig.append(mark(el('span', 'ck-unit', String(m.unit).startsWith('/') ? m.unit : ' ' + m.unit), 'coach', 'unit', mw(m))); b.append(fig);
+    if (m.unit) fig.append(mark(el('span', 'ck-unit', String(m.unit).startsWith('/') ? m.unit : ' ' + m.unit), 'coach', 'unit', mw(m))); b.append(fig); }
     // a rung name that does not say what it counts gets plain words on the tile; the ladder keeps its own name (the athlete, Nov 15, 2026,
     // card "Both": Consistency read "Level 3 days"; its 3-3-3 rungs count weeks with three or more training days)
     if (m.level) { const say = (LV_SAY[m.key] || {})[m.level]; const c = el('span', 'ft-chip'); c.append(el('span', 'ft-chip-k', 'Level'), ' ', say ? mark(el('span', null, say), 'coach', null, mw(m), 'formatted') : mark(el('span', null, m.level), 'coach', 'level', mw(m))); b.append(c); }
@@ -106,7 +110,7 @@
     }
     if (m.next) b.append(mark(el('span', 'ck-sub ft-subl', m.next), 'coach', 'next', mw(m)));
     if (m.sub) b.append(mark(el('span', 'ck-sub ft-subl', m.sub), 'coach', 'sub', mw(m)));
-    b.setAttribute('aria-label', [m.name, `${m.value} ${m.unit || ''}`.trim(), m.level ? 'Level ' + m.level : ''].filter(Boolean).join(', '));
+    b.setAttribute('aria-label', [m.name, wk ? `${m.wk_value} ${m.wk_unit}` : '', `${m.value} ${m.unit || ''}${wk ? ' in a row' : ''}`.trim(), m.level ? 'Level ' + m.level : ''].filter(Boolean).join(', '));
     b.addEventListener('click', (e) => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = e.detail === 0 ? '#f-' + m.key : null; rerender(); });
     return b;
   }
@@ -158,6 +162,9 @@
     const A = CX.app || {}; const mk = A.kind ? A.kind('marker').find((x) => x.key === m.key && x.chart) : null;
     if (mk && A.drawMarker) { const box = el('div', 'chart mx-ladder-chart'); box.id = 'mx-ladder-chart'; box.style.setProperty('--h', '170px'); box.dataset.source = 'coach'; p.append(box);
       requestAnimationFrame(() => { if (box.isConnected) { try { A.drawMarker(mk, box, null, null, false); } catch (e) { box.replaceChildren(el('p', 'ck-note', 'The chart could not draw.')); } } }); }
+    // the slot's lift over time (lifts.js liftChart), under its levels (the athlete, Nov 16, 2026, "Both")
+    const lid = sl && m[sl + '_id'];
+    if (lid && CX.liftChart) { const ch = CX.liftChart(lid); if (ch) { const kv = p.querySelector('.ft-kv'); const h = el('h4', 'ck-h3 mx-lifth', `${m[sl + '_ex']} over time`); if (kv) kv.after(h, ch); else p.append(h, ch); } }
     return p;
   }
   const alpha = (id) => !!(CX.app && CX.app.kind && CX.app.kind('alpha').some((x) => x.id === id));

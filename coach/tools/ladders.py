@@ -82,6 +82,53 @@ def plan_from_week(week_rows):
     return out
 
 
+def plan_sessions(week_rows):
+    """{(week_start iso, habit type): planned sessions} from coach/week.json day rows, as plan_from_week counts minutes."""
+    out = {}
+    for r in week_rows or []:
+        d = _day(r.get("date"))
+        if r.get("kind") != "day" or not d or str(r.get("type")) == "rest":
+            continue
+        w = str(_mon(d))
+        for t in {"any", PLAN_TYPE.get(str(r.get("type")))} - {None}:
+            out[(w, t)] = out.get((w, t), 0) + 1
+    return out
+
+
+def habit_this_week(h, acts, lift_days, summ, plan_n, today, profile, train_days=()):
+    """(figure, unit) for the week in progress on a habit tile (the athlete, Nov 16, 2026, option A "This week first": "0 of 2 this
+    week" leads, the weeks held sit under it). Sessions against this week's planned sessions, else the weekly minimum; days and
+    active minutes against their minimum. None where a week alone does not say it: a window over one week, average steps."""
+    typ, meas = h.get("type", "any"), h.get("measure", "sessions")
+    if int(h.get("window", 1)) > 1 or meas == "steps":
+        return None
+    mn = _num((profile or {}).get(h.get("profile_min"))) if h.get("profile_min") else None
+    mn = mn if mn is not None else (_num(h.get("min")) or 1)
+    this = _mon(today)
+    if meas == "active":
+        v = 0.0
+        for r in summ or ():
+            d = _day(r.get("date"))
+            if d and this <= d <= today:
+                v += (_num(r.get("intensity_min_moderate")) or 0) + 2 * (_num(r.get("intensity_min_vigorous")) or 0)
+        return f"{int(round(v))} of {mn:g}", "min this week"
+    sess, days = 0, set()
+    for a in acts:
+        d = _day(a.get("local_start"))
+        if d and this <= d <= today and _counts(a, typ):
+            sess += 1
+            days.add(d)
+    if typ in ("strength", "train"):
+        for d in list(lift_days or ()) + (list(train_days or ()) if typ == "train" else []):
+            if this <= d <= today and d not in days:
+                sess += 1
+                days.add(d)
+    if meas == "days":
+        return f"{len(days)} of {mn:g}", "days this week"
+    need = (plan_n or {}).get((str(this), typ)) if h.get("plan", True) else None
+    return f"{sess} of {(need or mn):g}", "this week"
+
+
 def merge_plan(ledger_rows, week_rows):
     """The plan on record: the ledger, with every week still in week.json replaced by its current rows."""
     out = {}
@@ -285,7 +332,7 @@ def event_needs(races, today, rule, days=365):
     return best
 
 
-def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=(), walker=False):
+def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=(), walker=False, plan_n=None):
     """{metric key: {level, next, rungs, ladder_label, rule, + figure overrides}} for habit, ready and guide metrics."""
     global WALKS_TRAIN
     WALKS_TRAIN = bool(walker)
@@ -346,6 +393,9 @@ def levels(cat, profile, acts, lifts, summ, plan, races, today, fig, train_days=
             rungs = "|".join(([f"{mo} months"] if mo > 3 else ["Past 3 months"]) + ["3 months", "3 weeks", "3 days", "Starting"])
             out[k] = {**base, "rungs": rungs, "value": str(held), "unit": "weeks held" if held != 1 else "week held", "chip": "3-3-3", "note": note.strip(),
                       "level": f"{mo} months" if mo > 3 else cur, "pct": pct, "next": nx, "weeks": "".join("1" if ok else "0" for _, ok, _w in wk[-12:])}
+            tw = habit_this_week(m["habit"], acts, lift_days, summ, plan_n, today, profile, train_days)
+            if tw:
+                out[k]["wk_value"], out[k]["wk_unit"] = tw
         elif m["ladder"] == "ready":
             f = fig.get(k)
             v = _num((f or {}).get("value"))

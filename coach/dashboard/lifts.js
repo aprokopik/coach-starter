@@ -483,7 +483,16 @@
     if (db) { try { await db.doc('lift_pref/pinned').set({ ids: cur.join(';'), saved: new Date().toISOString() }); } catch (e) { status('Could not save your key lifts.', 'err'); } }
     renderProgress(m);
   }
+  // the chart a lift's row opens, also drawn in its Fitness strength panel (metrics.js ladderPanel; the athlete, Nov 16, 2026, "Both":
+  // the Strength progress card leaves the Lifts tab once the strength levels are on, and each lift's chart moves to its panel)
+  window.CX.liftChart = (id) => {
+    const A = window.CX.app; const hr = A && A.kind('lift_hist').find((x) => x.id === id); const p = pts(hr); if (!hr || !p.length) return null;
+    const lb = A.kind('lift_ex').find((x) => x.id === id) || {}; const o = el('div', 'lx-sopen'); const c = sline(p, 320, 140, true);
+    c.setAttribute('aria-label', `${hr.name}, ${hr.basis === 'e1rm' ? 'estimated best single in ' + wU() : hr.basis}: ` + p.map((q) => `${fD(q[0])} ${q[1]}`).join(', '));
+    o.append(el('p', 'ck-sub', hr.basis === 'e1rm' ? 'Estimated best single, ' + wU() + (lb.load === 'lb_added' ? ', body weight included' : '') : 'Best set, ' + (hr.basis || 'reps')), c); o.dataset.source = 'coach'; o.dataset.where = 'kind=lift_hist&id=' + id; return o;
+  };
   function renderProgress(m) {
+    if (alpha('strength_levels')) { $('l-prog').hidden = true; return; } // alpha strength_levels: each lift's chart is in its Fitness panel
     const body = $('l-progbody'); const n = logs.size; const anyHist = [...m.hist.values()].some((h) => N(h.sessions));
     $('l-progn').textContent = n ? `${n} session${n === 1 ? '' : 's'} logged` : '';
     // shared states: loading until the store answers, empty before the first saved session (same sentence as before)

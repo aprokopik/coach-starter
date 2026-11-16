@@ -272,6 +272,7 @@ def slot_figures(strength_rows, exercises, log_rows, g, bw, age):
             else:
                 any_row = True
                 r = sn.row(ex, sessions(log_rows, ex.get("id")), g, bw, age, word)
+                r["id"] = ex.get("id")  # the lift_hist row the opened panel draws its chart from (the athlete, Nov 16, 2026, "Both")
             for k, v in r.items():
                 f[f"s{i}_{k}"] = v
         f["s_n"] = len(planes)

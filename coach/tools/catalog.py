@@ -384,7 +384,8 @@ def rows(root=".", today=None):
         for key, f in key_lifts.slot_figures(srows, exlib, slog, grp, bw, age).items():
             fig[key] = f
     lifts = (read_json(os.path.join(root, LIFTS), {}) or {}).get("rows", [])
-    lev = ladders.levels(cat, profile, acts, lifts, summ, plan_on_record(root), (read_json(os.path.join(root, RACES), {}) or {}).get("rows", []), today, fig, train_days=manual_training_days(root), walker=ladders.walks_are_training(root))
+    lev = ladders.levels(cat, profile, acts, lifts, summ, plan_on_record(root), (read_json(os.path.join(root, RACES), {}) or {}).get("rows", []), today, fig, train_days=manual_training_days(root), walker=ladders.walks_are_training(root),
+                         plan_n=ladders.plan_sessions((read_json(os.path.join(root, WEEK), {}) or {}).get("rows", [])))
     lad = {l["key"]: l for l in cat.get("ladders", [])}
     out = [{"kind": "cat_cat", **c} for c in cat.get("categories", [])]
     out += [{"kind": "cat_step", **x} for x in cat.get("steps", [])]
