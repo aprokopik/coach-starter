@@ -63,15 +63,13 @@
     try { Promise.resolve(db.doc('badges/earned').set({ items, saved_at: new Date().toISOString() })).catch(() => { /* drawn from the record again next open */ }); } catch (e) { /* same */ }
   }
 
-  // ---------- the art (round 3, from the athlete's notes on the options page, Nov 16, 2026: the Star map gold):
-  // original, drawn here. A skill badge is a cut gem; its colour and glow climb with the level's place on its own ladder
-  // (silver for a level, gold for a stage, as on the congrats screen; the glow and one dot per tier climb with the level), a sparkle once earned. A finished race
-  // distance is a sun (below). The basis (research, race target, coach) is said in the badge's line.
+  // ---------- the art: a cut gem in the metal of what the level is measured against (the athlete, Nov 16, 2026; rules in DASHBOARD.md 3a)
   const tierOf = (b) => (b.stageUp ? 4 : b.of > 1 ? Math.round((4 * (b.lv - 1)) / (b.of - 1)) : 0);
-  // two metals, as on the congrats screen (the athlete, Nov 16, 2026: "keep silver and gold colors like we use in the pop up"):
-  // a new level is silver, a new stage is gold (the level up screen's dark tokens; the panel is dark in both themes)
-  const SILVER = ['#e8f0f8', '#9db2c9'], GOLD = ['#ffd27a', '#c98a10'];
-  const TIER = [SILVER, SILVER, SILVER, SILVER, GOLD];
+  const BRONZE = new Set(['consistency', 'strength', 'sleepreg', 'sauna', 'trail', 'traildur', 'durability', 'longrun', 'longride', 'swimlong', 'lifts', 'runmiles', 'trailhabit', 'ridehabit', 'swimhabit', 'lifthabit', 'walkmiles', 'trainhours', 'steps', 'activemin']);
+  const RACE = /^(5k|mile|10k|half|marathon|t\d+k|swim\d+)$/;
+  const METAL = { bronze: { c: ['#f3c79e', '#a8622c'], word: 'Bronze: habit or capacity' }, silver: { c: ['#e8f0f8', '#9db2c9'], word: 'Silver: general population' },
+    gold: { c: ['#ffd27a', '#c98a10'], word: 'Gold: race result' }, elite: { c: ['#eafcff', '#4fc8ec'], stops: [[0, '#fff'], [0.3, '#bff3ff'], [0.6, '#5fd6f5'], [1, '#2a7fd0']], halo: '#9ff0ff', word: 'Diamond: Top 1% or better' } };
+  const metalOf = (b) => (/^Top (1|0\.5)%/.test(b.rank || '') ? 'elite' : BRONZE.has(b.key) ? 'bronze' : RACE.test(b.key) || b.basis === 'race' ? 'gold' : 'silver');
   const ring = (n, r, cx, cy) => Array.from({ length: n }, (_, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
   const pts = (l) => l.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   let gid = 0;
@@ -79,9 +77,10 @@
   const glyph = (name, x, y, w, col) => { const g = sv('g', { class: 'eb-g' }); g.style.color = col; g.append(sv('use', { href: '#cx-' + name, x, y, width: w, height: w })); return g; };
   const label = (txt, y, col) => { const t = sv('text', { x: 32, y, 'text-anchor': 'middle', class: 'eb-n', fill: col }); t.textContent = txt; return t; };
   function art(b, size, next) { // the gem
-    const t = next ? 0 : tierOf(b); const [c1, c2] = b.stageUp ? GOLD : SILVER; const s = sv('svg', { viewBox: '0 0 64 64', width: size, height: size, class: 'eb-art', 'aria-hidden': 'true' });
+    const t = next ? 0 : tierOf(b); const M = METAL[metalOf(b)]; const [c1, c2] = M.c; const s = sv('svg', { viewBox: '0 0 64 64', width: size, height: size, class: 'eb-art', 'aria-hidden': 'true' });
     const { id, d } = glow(s, 1.4 + t * 0.8); const gr = sv('linearGradient', { id: id + 'l', x1: 0, y1: 0, x2: 1, y2: 1 });
-    gr.append(sv('stop', { offset: 0, 'stop-color': '#fff', 'stop-opacity': 0.9 }), sv('stop', { offset: 0.35, 'stop-color': next ? '#3a3770' : c1 }), sv('stop', { offset: 1, 'stop-color': next ? '#1c1a44' : c2 })); d.append(gr);
+    if (!next && M.stops) for (const [o, c] of M.stops) gr.append(sv('stop', { offset: o, 'stop-color': c })); else gr.append(sv('stop', { offset: 0, 'stop-color': '#fff', 'stop-opacity': 0.9 }), sv('stop', { offset: 0.35, 'stop-color': next ? '#3a3770' : c1 }), sv('stop', { offset: 1, 'stop-color': next ? '#1c1a44' : c2 })); d.append(gr);
+    if (!next && M.halo) s.append(sv('circle', { cx: 32, cy: 31, r: 30, fill: 'none', stroke: M.halo, 'stroke-width': 1.5, opacity: 0.8 }));
     const o = ring(8, 26, 32, 31); const g = sv('g', next ? {} : { filter: `url(#${id})` });
     o.forEach((p, i) => { const q = o[(i + 1) % 8]; g.append(sv('polygon', { points: pts([[32, 31], p, q]), fill: `url(#${id}l)`, opacity: (0.55 + 0.15 * (i % 4)).toFixed(2) })); });
     g.append(sv('polygon', { points: pts(ring(8, 14, 32, 31)), fill: '#0d0b28', opacity: 0.88 })); s.append(g);
@@ -108,13 +107,11 @@
   function detail(b, el, fDay) {
     const p = el('p', 'eb-det'); const [, word] = basisOf(b.basis);
     p.append(el('b', null, b.label), b.stageUp ? `: stage ${b.stageUp} unlocked on ${fDay(b.date)}, by a reading in the Top 20% of the stage before. ` : `: ${b.rank} reached on ${fDay(b.date)}${b.stage ? ` on the stage ${b.stage} scale` : ''}. `,
-      `Level basis: ${word}. `, b.held ? 'You hold it today.' : 'Your level has slipped since; the badge stays yours.');
+      `Level basis: ${word}. ${METAL[metalOf(b)].word}. `, b.held ? 'You hold it today.' : 'Your level has slipped since; the badge stays yours.');
     if (window.CX.ck && window.CX.ck.mark) window.CX.ck.mark(p, 'coach', null, `kind=mpt&key=${b.key}`, 'badge');
     return p;
   }
-  // the starting point (the athlete, Nov 16, 2026: "Give a starting point. My concern is this list could get really long"): one
-  // marker per skill for the level held on the start date, from the last reading before it; history before the start earns
-  // no badges, it shows only as this one marker.
+  // the starting point (the athlete, Nov 16, 2026): the level held on the start date, one marker per skill
   function startOf(key) {
     const { skillSeries, levelOf, startDay } = A(); if (!skillSeries || !levelOf) return null; const start = (startDay && startDay()) || '0000';
     const s = ser().find((x) => x.m.key === key); if (!s) return null; const before = s.rows.filter((r) => String(r.date) < start); if (!before.length) return null;
@@ -265,5 +262,5 @@
       if (Array.isArray(items)) for (const b of items) if (b && b.id) kept.set(String(b.id), b); } catch (e) { /* drawn from the record */ } }
     loaded = true; if (window.CX.state && window.CX.state.page === 'races') render();
   })();
-  CX.badges = { earnedNow, badges, treeState, raceDist };
+  CX.badges = { earnedNow, badges, treeState, raceDist, metalOf };
 })();
