@@ -987,11 +987,17 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ck-finish.lx-bar { bottom: calc(var(--ck-s2) + max(env(safe-area-inset-bottom, 0px), env(keyboard-inset-height, 0px))); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ck-s3); padding: var(--ck-s2) var(--ck-s2) var(--ck-s2) var(--ck-s3); }
 .ck .ck-btn.lx-save.done { background: var(--ck-good); border-color: var(--ck-good); color: var(--ck-surface); } .ck .lx-save .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
 /* Progress: one tile per exercise (latest top set, the comparison with the earlier best, the last four, the next step) */
-.ck .lx-prog { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap: var(--ck-s2); margin: 0; padding: 0; list-style: none; }
-.ck .ck-tile.lx-ptile { gap: 4px; } .ck .lx-ptile .ck-tile-label { display: block; } .ck .lx-pfig { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--ck-s1); margin: 0; } .ck .lx-pvs { margin: 0; }
+/* Strength progress (6.89.0): summary, weekly bars against the target, one row per lift that opens to its chart */
+.ck .lx-ssum { display: grid; gap: var(--ck-s1); margin-bottom: var(--ck-s2); } .ck .lx-sblk { margin: 0; } .ck .lx-shd { margin: var(--ck-s2) 0 var(--ck-s1); font-size: var(--ck-t1); font-weight: var(--ck-w-bold); color: var(--ck-fg-2); } .ck .lx-spin { margin-top: var(--ck-s1); }
+.ck .lx-sch { width: 100%; height: auto; overflow: visible; } .ck .lx-sch text { fill: var(--ck-chart-label); font-size: 11px; font-family: var(--ck-font); }
+.ck .lx-sgrid { fill: var(--ck-chart-grid); stroke: var(--ck-chart-grid); }
+.ck .lx-sline { fill: none; stroke: var(--ck-strength); stroke-width: 2.5; } .ck .lx-sdot { fill: var(--ck-strength); } .ck .lx-spk { width: 64px; height: 26px; flex: none; }
+.ck .lx-srows { list-style: none; margin: 0; padding: 0; display: grid; } .ck .lx-srow + .lx-srow { border-top: 1px solid var(--ck-line); }
+.ck .lx-sbtn { all: unset; box-sizing: border-box; width: 100%; min-height: var(--ck-tap); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--ck-s2); align-items: center; padding: var(--ck-s1) 0; cursor: pointer; color: var(--ck-fg); } .ck .lx-sbtn:focus-visible { outline: var(--ck-focus-w) solid var(--ck-focus); outline-offset: 2px; }
+.ck .lx-snm { display: grid; min-width: 0; } .ck .lx-sopen { display: grid; gap: var(--ck-s1); padding: var(--ck-s2); margin-bottom: var(--ck-s2); border-radius: var(--ck-r2); background: var(--ck-surface-2); }
+.ck .lx-sw { font-size: var(--ck-t1); font-weight: var(--ck-w-bold); white-space: nowrap; color: var(--ck-fg-2); } .ck .lx-sw.progressing { color: var(--ck-good); } .ck .lx-sw.stalled, .ck .lx-sw.down, .ck .lx-sw.back { color: var(--ck-watch); } .ck .lx-sw.new { color: var(--ck-accent); }
 .ck .lx-phist { display: flex; flex-wrap: wrap; gap: 0 4px; margin: 0; padding: 0; list-style: none; font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); } .ck .lx-phist > li { white-space: nowrap; } .ck .lx-phist > li + li::before { content: "\2192\00a0"; content: "\2192\00a0" / ""; } .ck .lx-phist b { color: var(--ck-fg); font-weight: var(--ck-w-med); } /* one session per step: the chain wraps between sessions, never inside one (point 4) */
-.ck .lx-cmp { display: inline-flex; align-items: center; gap: 3px; font-weight: var(--ck-w-bold); color: var(--ck-fg); }
-.ck .lx-cmp .ck-i, .ck .lx-nx .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
+.ck .lx-nx .ck-i { width: var(--ck-i-sm); height: var(--ck-i-sm); }
 .ck .lx-nx { display: flex; align-items: flex-start; gap: 4px; margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg); } .ck .lx-nx.up { font-weight: var(--ck-w-bold); } .ck .lx-nx .ck-i { margin-top: 1px; }
 /* Rules: phases and rules as list rows; the phase in effect today has the emphasis edge and a Now chip */
 .ck .ck-row.lx-rule { grid-template-columns: minmax(0, 1fr); } .ck .ck-row.lx-swap { grid-template-columns: 1.75rem minmax(0, 1fr); }
@@ -1442,3 +1448,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .ft-tiles--list>.ft-tile>.ft-barname{grid-column:1/-1;margin:0}
 .ck .ft-tiles--list>.ft-tile:has(>.ft-barname)>.ft-fig{display:none}
 .ck .ft-tiles>.ck-seg.mx-lay{grid-column:1/-1;justify-self:end;width:9.5rem}.ck .mx-lay .ck-seg-opt{min-height:30px;padding:2px;font-size:var(--ck-t1,13px)}
+.ck .lx-day { display: grid; gap: var(--ck-s1); justify-items: start; padding: var(--ck-s2); border-radius: var(--ck-r); background: var(--ck-accent-wash); margin-bottom: var(--ck-s2); }
+.ck .lx-dayfold { display: flex; justify-content: space-between; gap: var(--ck-s2); width: 100%; text-align: left; padding: var(--ck-s2); border: 1px dashed var(--ck-line); border-radius: var(--ck-r); background: none; color: var(--ck-fg-2); font: inherit; font-size: var(--ck-t2); cursor: pointer; min-height: 44px; } .ck .lx-dayfold-a { flex: none; color: var(--ck-accent); font-weight: var(--ck-w-bold); }
+.ck .lx-pick { display: grid; gap: var(--ck-s1); margin: var(--ck-s2) 0; } .ck .lx-picksel { width: 100%; min-height: 44px; }
+.ck .lx-pickcard { display: grid; gap: var(--ck-s1); justify-items: start; padding: var(--ck-s2); border: 1px solid var(--ck-line); border-radius: var(--ck-r); } .ck .lx-pickcard.rec { border-color: var(--ck-good); } .ck .lx-pickcard p { margin: 0; }
+.ck .lx-pickwhy { font-size: var(--ck-t2); } .ck .lx-pickwhy b { color: var(--ck-good); } .ck .lx-picklifts { font-size: var(--ck-t2); } .ck .lx-pickedit { margin: 0; font-size: var(--ck-t1); } .ck .lx-pickpend { color: var(--ck-watch); font-weight: var(--ck-w-bold); font-size: var(--ck-t2); }

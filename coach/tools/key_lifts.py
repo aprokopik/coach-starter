@@ -123,6 +123,67 @@ def figure(ex, sess, today):
             "box_lo": int(lo), "box_hi": int(hi), "box_reps": ",".join(f"{r:g}" for r in reps[:n]), "box_when": when}
 
 
+# Powerlifting comparison (the athlete, Sprint Review note, Nov 15, 2026: "if I was doing back squat and dead lift ... you would want
+# to compare me to powerlifters, but since I'm not we will need some other method. Some users might though"). Only an exercise
+# whose library row says norm: powerlifting (barbell back squat, bench press, deadlift: the three competition lifts) is ranked
+# against van den Hoek 2024 (coach/norms.json keys pl_squat, pl_bench, pl_deadlift), as estimated best single over body weight
+# for the person's sex and age. Everyone else keeps the double progression ladder above (their own progress) and the push-up test.
+PL_BANDS = ((12, 17, "12-17"), (18, 35, "18-35"), (36, 59, "36-59"), (60, 79, "60-79"), (80, 200, "80+"))
+
+
+def pl_band(age):
+    for lo, hi, b in PL_BANDS:
+        if lo <= age <= hi:
+            return b
+    return None
+
+
+def pl_norm(norm_rows, key, sex, age):
+    """The norms.json row for this competition lift, sex and age, or None."""
+    b = pl_band(age) if age is not None else None
+    return next((r for r in norm_rows or [] if r.get("key") == key and r.get("sex") == sex and r.get("age_band") == b), None)
+
+
+def pl_rank(norm, ratio):
+    """(level name, share of the way through it 0..1, next level name or None, ratio needed for it or None, percentile). Pure."""
+    import fit_ladder
+    import vo2_norms
+    p = fit_ladder.percentile(norm, ratio)
+    for i, (name, lo, hi) in enumerate(vo2_norms.FIT_BANDS):
+        if (lo is None or p >= lo) and (hi is None or p < hi):
+            through = 1.0 if hi is None else (0.0 if lo is None and p <= 0 else (p - (lo or 0)) / (hi - (lo or 0)))
+            nxt = vo2_norms.FIT_BANDS[i + 1] if i + 1 < len(vo2_norms.FIT_BANDS) else None
+            need = fit_ladder.value_at(norm, nxt[1])[0] if nxt else None
+            return name, max(0.0, min(1.0, through)), (nxt[0] if nxt else None), need, p
+    return None
+
+
+def pl_figure(fig, ex, sess, norm, bw):
+    """Turn a key lift's own progress figure into a powerlifting ranking. fig from figure(); sess its sessions; norm from
+    pl_norm; bw the latest body weight in lb. Returns fig unchanged when anything is missing. Pure."""
+    if not fig or not norm or not bw:
+        return fig
+    best = max(l * (1 + r / 30) for s in sess.values() for l, r in s if l)  # Epley, as lift_history.json
+    ratio = best / bw
+    rk = pl_rank(norm, ratio)
+    if not rk:
+        return fig
+    name, through, nxt, need, p = rk
+    import vo2_norms
+    more = (need * bw - best) if need else None
+    out = dict(fig)
+    out.update({"level": name, "pct": round(through, 3),
+                "next": f"{more:.0f} lb more on your estimated best single to {nxt}" if nxt else "Top of the scale",
+                "rungs": "|".join(n for n, _lo, _hi in reversed(vo2_norms.FIT_BANDS)),
+                "ladder_label": f"{norm['population'].split(',')[0].capitalize()}, powerlifters",
+                "rule": (f"Where your estimated best single ({best:.0f} lb from your sets, Epley) over your body weight ({bw:.0f} lb), "
+                         f"{ratio:.2f} times, sits among {norm['population']}: {norm['source']}. Lifters who compete, not the "
+                         "general population, so the middle of this scale is already strong. The 25th and 75th are Estimated. "
+                         "Your reps toward the next load still show on the Lifts tab."),
+                "chip": f"{ratio:.2f}× body weight", "pl_ratio": round(ratio, 2), "pl_pct": round(p, 1)})
+    return out
+
+
 def pushup_tiers(g):
     """[(label, lowest count)] lowest first for the person's age band and sex, or None with no group."""
     if not g or g.get("sex") not in PUSHUP:

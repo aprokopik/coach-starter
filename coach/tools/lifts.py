@@ -28,7 +28,7 @@ import csv
 import json
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 
 STRENGTH = "coach/strength.json"
 LIBRARY = "coach/exercises.json"
@@ -240,7 +240,22 @@ def exercise_history(ex, rows, bw_pts, on):
     return {"sessions": len(ss), "first": ss[0]["date"], "last": last["date"], "basis": basis,
             "best": round(best["score"], 1), "best_date": best["date"], "best_set": best["set"],
             "last_score": round(last["score"], 1), "last_set": last["set"], "trend": trend, "stalled": stalled, "gap": gap,
-            "recent": [{"date": s["date"], "score": round(s["score"], 1), "set": s["set"]} for s in ss[-6:]]}
+            "recent": [{"date": s["date"], "score": round(s["score"], 1), "set": s["set"]} for s in ss[-6:]],
+            # every session of the last year, "date score|...", for the per lift chart on the Lifts tab (Strength progress, 6.88.0)
+            "series": "|".join(f"{s['date']} {s['score']:.1f}" for s in ss if s["date"] > (date.fromisoformat(on) - timedelta(days=365)).isoformat()),
+            "status": status_word(trend, stalled, gap, len(ss))}
+
+
+def status_word(trend, stalled, gap, n):
+    """One plain word per lift for the Strength progress card: new, back (returning after a break, still below its earlier
+    best), stalled (no new best in 3 sessions), down, holding or progressing. Same thresholds as trend and stalled."""
+    if n < 2:
+        return "new"
+    if gap and gap["sessions_back"] <= 6 and gap["status"] == "below":
+        return "back"
+    if stalled:
+        return "stalled"
+    return {"improving": "progressing", "flat": "holding", "down": "down"}.get(trend, "new")
 
 
 def fdate(d):
@@ -285,9 +300,11 @@ def cmd_history(args):
     write_json(HISTORY, {"about": "Per-exercise strength history, built by coach/tools/lifts.py history from coach/strength_log.csv; never edit by hand. "
                          "score basis: e1rm = estimated 1-rep max in lb (Epley; weighted pull-ups include the day's body weight), reps or seconds for bodyweight, band and timed work. "
                          "trend compares the last session with the best of the 3 before it (improving above +1%, down below -3%). stalled = no new best in the last 3 sessions. "
-                         f"gap = the latest break of {GAP_DAYS}+ days and how the return compares with the best before it (level = within {LEVEL_PCT:g}%).",
+                         f"gap = the latest break of {GAP_DAYS}+ days and how the return compares with the best before it (level = within {LEVEL_PCT:g}%). "
+                         "series = every session of the last year (date score), status = one word for the Strength progress card. "
+                         "Sessions per week live in the outcome_week rows (coach/tools/outcomes.py), not here.",
                          "as_of": on, "rows": out})
-    logged = [r for r in out if r["sessions"]]
+    logged = [r for r in out if r.get("sessions")]
     print(f"lift_history.json: {len(out)} exercises, {len(logged)} with sessions")
     for r in logged:
         print(f"  {r['slot'] or '--':<3} {r['name']}: {r['note']}")

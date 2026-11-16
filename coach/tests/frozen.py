@@ -32,7 +32,7 @@ SYSTEM_FILES = {
     "VERSION", "CHANGELOG.md", "README.md",
     "coach/COACH-SPEC.md", "coach/README.md", "coach/DASHBOARD.md", "coach/research/PROTOCOL.md",
     # reference tables (the kit ships these as they are)
-    "coach/norms.json", "coach/exercises.json", "coach/checkins.json", "coach/pillars.json", "coach/metric_catalog.json",
+    "coach/norms.json", "coach/exercises.json", "coach/routines.json", "coach/checkins.json", "coach/pillars.json", "coach/metric_catalog.json",
     "coach/race_template.json", "coach/race_tree.json", "coach/fitness_layout.json", "coach/zones.json", "coach/benchmarks.json",
     # the meal guide's extras list: changed only by a PR after the athlete agrees (6.13.0)
     "coach/nutrition_extras.json",
@@ -44,7 +44,7 @@ LIVE_INSIDE_SYSTEM = {
 LIVE_INSIDE_SYSTEM_PREFIXES = ("coach/dashboard/datasets/",)
 
 # System files a repo copy needs beside the frozen data (read by the tools from the working directory).
-COPY_SYSTEM = ["coach/engine", "coach/ops/data_paths.json", "coach/norms.json", "coach/exercises.json",
+COPY_SYSTEM = ["coach/engine", "coach/ops/data_paths.json", "coach/norms.json", "coach/exercises.json", "coach/routines.json",
                "coach/checkins.json", "coach/pillars.json", "coach/race_template.json", "coach/metric_catalog.json",
                "coach/fitness_layout.json", "coach/zones.json", "coach/race_tree.json"]
 

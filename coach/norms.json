@@ -6836,6 +6836,1056 @@
    "short": "women 40–49, riders who test with a power meter",
    "compare": "tested",
    "compare_label": "Riders who test with a power meter"
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "12-17",
+   "population": "men 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.32,
+     90
+    ],
+    [
+     1.6,
+     75
+    ],
+    [
+     1.92,
+     50
+    ],
+    [
+     2.23,
+     25
+    ],
+    [
+     2.5,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "18-35",
+   "population": "men 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.75,
+     90
+    ],
+    [
+     2.0,
+     75
+    ],
+    [
+     2.28,
+     50
+    ],
+    [
+     2.57,
+     25
+    ],
+    [
+     2.83,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "36-59",
+   "population": "men 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.48,
+     90
+    ],
+    [
+     1.74,
+     75
+    ],
+    [
+     2.03,
+     50
+    ],
+    [
+     2.31,
+     25
+    ],
+    [
+     2.58,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "60-79",
+   "population": "men 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.04,
+     90
+    ],
+    [
+     1.31,
+     75
+    ],
+    [
+     1.62,
+     50
+    ],
+    [
+     1.92,
+     25
+    ],
+    [
+     2.16,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "80+",
+   "population": "men 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.52,
+     90
+    ],
+    [
+     0.84,
+     75
+    ],
+    [
+     1.11,
+     50
+    ],
+    [
+     1.45,
+     25
+    ],
+    [
+     1.72,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "12-17",
+   "population": "women 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.01,
+     90
+    ],
+    [
+     1.21,
+     75
+    ],
+    [
+     1.45,
+     50
+    ],
+    [
+     1.71,
+     25
+    ],
+    [
+     1.95,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "18-35",
+   "population": "women 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.23,
+     90
+    ],
+    [
+     1.46,
+     75
+    ],
+    [
+     1.72,
+     50
+    ],
+    [
+     2.0,
+     25
+    ],
+    [
+     2.26,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "36-59",
+   "population": "women 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.01,
+     90
+    ],
+    [
+     1.24,
+     75
+    ],
+    [
+     1.51,
+     50
+    ],
+    [
+     1.79,
+     25
+    ],
+    [
+     2.05,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "60-79",
+   "population": "women 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.72,
+     90
+    ],
+    [
+     0.93,
+     75
+    ],
+    [
+     1.17,
+     50
+    ],
+    [
+     1.42,
+     25
+    ],
+    [
+     1.65,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_squat",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "80+",
+   "population": "women 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.29,
+     90
+    ],
+    [
+     0.41,
+     75
+    ],
+    [
+     0.67,
+     50
+    ],
+    [
+     0.93,
+     25
+    ],
+    [
+     1.01,
+     10
+    ]
+   ],
+   "note": "Best competition back squat divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "12-17",
+   "population": "men 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.85,
+     90
+    ],
+    [
+     1.04,
+     75
+    ],
+    [
+     1.24,
+     50
+    ],
+    [
+     1.45,
+     25
+    ],
+    [
+     1.63,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "18-35",
+   "population": "men 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.19,
+     90
+    ],
+    [
+     1.36,
+     75
+    ],
+    [
+     1.56,
+     50
+    ],
+    [
+     1.76,
+     25
+    ],
+    [
+     1.95,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "36-59",
+   "population": "men 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.13,
+     90
+    ],
+    [
+     1.31,
+     75
+    ],
+    [
+     1.51,
+     50
+    ],
+    [
+     1.72,
+     25
+    ],
+    [
+     1.92,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "60-79",
+   "population": "men 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.88,
+     90
+    ],
+    [
+     1.05,
+     75
+    ],
+    [
+     1.23,
+     50
+    ],
+    [
+     1.43,
+     25
+    ],
+    [
+     1.6,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "80+",
+   "population": "men 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.61,
+     90
+    ],
+    [
+     0.77,
+     75
+    ],
+    [
+     0.93,
+     50
+    ],
+    [
+     1.16,
+     25
+    ],
+    [
+     1.31,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "12-17",
+   "population": "women 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.56,
+     90
+    ],
+    [
+     0.67,
+     75
+    ],
+    [
+     0.81,
+     50
+    ],
+    [
+     0.98,
+     25
+    ],
+    [
+     1.14,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "18-35",
+   "population": "women 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.67,
+     90
+    ],
+    [
+     0.81,
+     75
+    ],
+    [
+     0.96,
+     50
+    ],
+    [
+     1.15,
+     25
+    ],
+    [
+     1.35,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "36-59",
+   "population": "women 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.62,
+     90
+    ],
+    [
+     0.74,
+     75
+    ],
+    [
+     0.9,
+     50
+    ],
+    [
+     1.09,
+     25
+    ],
+    [
+     1.28,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "60-79",
+   "population": "women 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.49,
+     90
+    ],
+    [
+     0.59,
+     75
+    ],
+    [
+     0.72,
+     50
+    ],
+    [
+     0.89,
+     25
+    ],
+    [
+     1.04,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_bench",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "80+",
+   "population": "women 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.41,
+     90
+    ],
+    [
+     0.45,
+     75
+    ],
+    [
+     0.55,
+     50
+    ],
+    [
+     0.71,
+     25
+    ],
+    [
+     0.92,
+     10
+    ]
+   ],
+   "note": "Best competition bench press divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "12-17",
+   "population": "men 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.61,
+     90
+    ],
+    [
+     1.93,
+     75
+    ],
+    [
+     2.28,
+     50
+    ],
+    [
+     2.61,
+     25
+    ],
+    [
+     2.9,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "18-35",
+   "population": "men 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     2.03,
+     90
+    ],
+    [
+     2.32,
+     75
+    ],
+    [
+     2.63,
+     50
+    ],
+    [
+     2.95,
+     25
+    ],
+    [
+     3.25,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "36-59",
+   "population": "men 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.75,
+     90
+    ],
+    [
+     2.02,
+     75
+    ],
+    [
+     2.34,
+     50
+    ],
+    [
+     2.67,
+     25
+    ],
+    [
+     2.98,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "60-79",
+   "population": "men 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.42,
+     90
+    ],
+    [
+     1.68,
+     75
+    ],
+    [
+     2.02,
+     50
+    ],
+    [
+     2.36,
+     25
+    ],
+    [
+     2.64,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "male",
+   "age_band": "80+",
+   "population": "men 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.96,
+     90
+    ],
+    [
+     1.18,
+     75
+    ],
+    [
+     1.5,
+     50
+    ],
+    [
+     1.94,
+     25
+    ],
+    [
+     2.3,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "12-17",
+   "population": "women 12–17, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.26,
+     90
+    ],
+    [
+     1.49,
+     75
+    ],
+    [
+     1.76,
+     50
+    ],
+    [
+     2.05,
+     25
+    ],
+    [
+     2.3,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "18-35",
+   "population": "women 18–35, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.49,
+     90
+    ],
+    [
+     1.75,
+     75
+    ],
+    [
+     2.06,
+     50
+    ],
+    [
+     2.38,
+     25
+    ],
+    [
+     2.66,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "36-59",
+   "population": "women 36–59, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.32,
+     90
+    ],
+    [
+     1.57,
+     75
+    ],
+    [
+     1.88,
+     50
+    ],
+    [
+     2.21,
+     25
+    ],
+    [
+     2.51,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "60-79",
+   "population": "women 60–79, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     1.11,
+     90
+    ],
+    [
+     1.33,
+     75
+    ],
+    [
+     1.6,
+     50
+    ],
+    [
+     1.92,
+     25
+    ],
+    [
+     2.19,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
+  },
+  {
+   "kind": "norm",
+   "key": "pl_deadlift",
+   "unit": "x body weight",
+   "better": 1,
+   "sex": "female",
+   "age_band": "80+",
+   "population": "women 80+, drug-tested unequipped powerlifting meets, 1968–2022",
+   "source": "van den Hoek et al. 2024, J Sci Med Sport, doi 10.1016/j.jsams.2024.07.005 (809,986 entries); cells via fitnessnorms.com",
+   "date": "2024-07",
+   "n": 809986,
+   "breakpoints": [
+    [
+     0.61,
+     90
+    ],
+    [
+     0.77,
+     75
+    ],
+    [
+     1.16,
+     50
+    ],
+    [
+     1.54,
+     25
+    ],
+    [
+     1.68,
+     10
+    ]
+   ],
+   "note": "Best competition deadlift divided by body weight, all weight classes pooled. 10th, 50th and 90th are published deciles; 25th and 75th are midpoints of the published deciles (Estimated). Lifters, not the general population."
   }
  ]
 }

@@ -154,6 +154,12 @@ def figures(profile, acts, lifts, today, summ=()):
         old = [x for x in best.get("recent") or [] if _num(x.get("score")) and str(x.get("date") or "")[:10] <= str(today - timedelta(days=28))]
         out["liftbest"] = {"value": f"{float(best['best']):.0f}", "unit": "lb", "chip": str(best.get("name") or ""), "baseline": max((float(x["score"]) for x in old), default=None),
                            "note": f"Estimated best single{when}. {n} lift{'s' if n != 1 else ''} with a figure so far."}
+    elif lift_days:
+        # strength sessions from the watch but no sets typed (stranger test, Nov 16, 2026: a lifter's 16 watch sessions counted
+        # as days while Lift strength stayed empty with no word why); the watch records time, not the weights
+        n = sum(1 for d, a in dated if "strength" in str(a.get("type") or "").lower() and d >= today - timedelta(days=41))
+        out["liftbest"] = {"sub": (f"{n} strength session{'s' if n != 1 else ''} from your watch in 6 weeks. " if n else "") +
+                           "Your watch records the time, not the weights: type a session's sets on the Lifts tab to see lift strength."}
     swims = [d for d, a in dated if "swim" in str(a.get("type") or "").lower()]
     if swims:
         this = sum(1 for d in swims if (d.year, d.month) == (today.year, today.month))
@@ -354,8 +360,19 @@ def rows(root=".", today=None):
         slog = []
     srows = (read_json(os.path.join(root, "coach", "strength.json"), {}) or {}).get("rows", [])
     exlib = (read_json(os.path.join(root, "coach", "exercises.json"), {}) or {}).get("rows", [])
+    # a competition barbell lift (exercises.json norm: powerlifting) is ranked against powerlifters of the person's sex and age
+    # (the athlete's note, Nov 15, 2026); every other key lift keeps its own progress ladder
+    nrows = (read_json(os.path.join(root, "coach", "norms.json"), {}) or {}).get("rows", [])
+    libn = {r.get("id"): r for r in exlib}
+    by = _num(profile.get("birth_year"))
+    age = today.year - int(by) if by else (int(str(grp["band"]).split("-")[0]) + 5 if grp and str(grp.get("band", "")).split("-")[0].isdigit() else None)
+    bw = next((_num(r.get("weight_lb")) for r in sorted(summ, key=lambda r: str(r.get("date")), reverse=True) if _num(r.get("weight_lb"))), None)
     for key, _pat, ex in key_lifts.key_lifts(srows, exlib):
-        kf = key_lifts.figure(ex, key_lifts.sessions(slog, ex.get("id")), today)
+        ss = key_lifts.sessions(slog, ex.get("id"))
+        kf = key_lifts.figure(ex, ss, today)
+        lib_ex = libn.get(ex.get("id")) or {}
+        if kf and lib_ex.get("norm") == "powerlifting" and grp:
+            kf = key_lifts.pl_figure(kf, ex, ss, key_lifts.pl_norm(nrows, lib_ex.get("norm_key"), grp.get("sex"), age), bw)
         fig[key] = kf or {"name": ex.get("name"), "sub": f"Log {ex.get('name')} on the Lifts tab to start its levels."}
     for _pat, key in key_lifts.PATTERNS:
         fig.setdefault(key, {"hide": True})  # no loaded lift of this pattern in the routine: no tile
