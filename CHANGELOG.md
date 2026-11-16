@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.125.1 (2026-11-16)
+- Dashboard fix, alpha `race_toggles` (the kit maker, Nov 16, 2026, picked "Loose ends, then 70.3 table"): Your path and the level up path name the stages Everyone, Trained and Elite, the names the kit maker picked for every Fitness tile; a coin shows its name only when chosen ("Only show when selected"). Checked on the nested Bike at 130 tile.
+
 ## 6.125.0 (2026-11-16)
 - Dashboard: habit tiles lead with the week in progress ("0 of 2 this week"), with the weeks held in a row under it (the kit maker, Nov 16, 2026, option A "This week first", then "Both"). Sessions count against this week's planned sessions, else the weekly minimum; Consistency counts days and Weekly active minutes counts minutes. Swim habit (a 4 week window), Trail outings and Daily steps keep their weeks held figure. `ladders.habit_this_week`, fields `wk_value` and `wk_unit`.
 

@@ -382,7 +382,7 @@
     if (u.stage) {
       const sc = scaleSort(scalesOf(m)); const st = [...new Set(sc.map(stageNo))].sort((a, b) => a - b); if (!st.includes(3)) st.push(3); // the Map shows Elite even before a scale is on file
       nodes = st.map((n) => { const s0 = sc.find((x) => stageNo(x) === n); const who = !s0 ? 'best in sport' : /^General population$/i.test(s0.label || '') ? 'everyone' : String(s0.short || s0.label || '').replace(/^IRONMAN /, '');
-        return { n: String(n), name: (s0 && s0.stage_label) || (n === 3 ? 'Elite' : `Stage ${n}`), who, s: n < u.stage ? 'done' : n === u.stage ? 'new' : 'lock' }; });
+        return { n: String(n), name: stageName(n), who, s: n < u.stage ? 'done' : n === u.stage ? 'new' : 'lock' }; });
     } else { const lad = ladderOf(m); const sg = stageOf(m); const nm = (i) => String(i + 1); /* the level alone (the athlete, Nov 15); the stage is named in the ring */ void sg;
       nodes = [u.lv - 2, u.lv - 1, u.lv].filter((i) => i >= 0 && i < lad.length).map((i) => ({ n: nm(i), name: lad[i].label, who: '', s: i < u.lv - 1 ? 'done' : i === u.lv - 1 ? 'new' : 'lock' })); }
     if (nodes.length < 2) return null;
@@ -1848,6 +1848,7 @@
   const scaleTile = (m) => { const o = kind('marker').find((x) => String(x.pair || '').split(',').map((k) => k.trim()).includes(m.key)); return o ? o.key : m.key; };
   const scaleSort = (sc) => sc.slice().sort((x, y) => (Number(x.stage) || 2) - (Number(y.stage) || 2) || (y.stage_label === 'Your race') - (x.stage_label === 'Your race') || (Number(x.km) || 0) - (Number(y.km) || 0)); // races shortest first
   const stageNo = (s) => Number(s.stage) || 2;
+  const stageName = (n) => ['', 'Everyone', 'Trained', 'Elite'][n] || `Stage ${n}`; // the athlete's stage names on every Fitness tile
   const coin = (n) => { const c = el('i', 'ft-coin'); c.dataset.s = String(n || 1); c.setAttribute('aria-hidden', 'true'); return c; }; // the stage coin colours: silver, gold, diamond (the athlete, 6.124.0)
   const isNewScale = (s) => !!(s && s.first_seen && TN - dayN(s.first_seen) <= 14); // New for 14 days after it first shows (6.124.0)
   const scaleLevel = (m, s, v) => { if (v === null || v === undefined) return ''; const st = standingOf({ ...m, tiers: s.tiers, splits: s.splits, basis: s.basis }, v); return st.band ? st.band.label : ''; };
@@ -1938,7 +1939,7 @@
     for (const s of sc) {
       const n = stageNo(s);
       const locked = au && n > au.unlocked;
-      const head = `Stage ${n} · ${s.stage_label || 'Your sport'}${locked ? ' · Locked' : ''}`; if (head !== last) { const hd = el('div', 'ft-stage'); hd.append(coin(n), head); box.append(hd); last = head; }
+      const head = `Stage ${n} · ${stageName(n)}${locked ? ' · Locked' : ''}`; if (head !== last) { const hd = el('div', 'ft-stage'); hd.append(coin(n), head); box.append(hd); last = head; }
       if (locked && head.endsWith('Locked') && !box.querySelector(`[data-lock="${n}"]`)) { const p = el('p', 'ft-stage-none', `Unlocks the first time a reading reaches Top 20% (or the top category) on stage ${n - 1}.`); p.dataset.lock = n; box.append(p); }
       if (s._wait) { const o = el(ro ? 'div' : 'label', 'ft-scale-opt is-locked' + (ro ? ' is-static' : '')), t = el('span'); t.append(el('b', null, s.label), ' · No data yet'); o.append(radio(s.id, false, true), t); box.append(o); continue; }
       const isAuto = !!(au && au.scale && s.id === au.scale.id); const inUse = s.id === (m.compare || 'general');
@@ -2028,7 +2029,8 @@
       const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && isNewScale(s) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;
       const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + m.key; inp.value = isAuto ? 'auto' : s.id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${scaleShort(s)}, stage ${stageNo(s)}, ${sub}`);
       if (!off) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, inp.value); });
-      const c = coin(stageNo(s)); l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', scaleShort(s))); box.append(l); // the chip names the scale only, no level (the athlete)
+      const c = coin(stageNo(s));
+      l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', scaleShort(s))); box.append(l); // the chip names the scale only, no level (the athlete)
     }
     wrap.append(box); const sp = $('f-sport'); if (sp) sp.after(wrap); else $('c-fit').before(wrap); // directly under the distance switch (the athlete)
   }
