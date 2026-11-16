@@ -51,7 +51,7 @@ ANCHOR = {
     "swim": "Levels come from all IRONMAN 70.3 finishers 2004–2020 (Knechtle 2023, normal fit to the published mean and SD) for your sex. The Cutoff risk band uses the race's 1.2 mi and 1:10 cutoff (estimated until the 2027 guide). Pool pace is not open water race pace, and a 70.3 is usually non-wetsuit.",
     "ftp": "Levels come from the one W/kg spread in the library (one Zwift event, both sexes; weak) for your sex where published (not yet). Shown in watts at your test-day weight; they move only when a new FTP result lands.",
     "wkg": "Levels come from the one W/kg spread in the library (one Zwift event, both sexes; weak) for your sex where published (not yet).",
-    "5k": "Levels come from 2.2 million US 5K results, 2024 for your sex and age band. WMA age grade is given as a second reference.",
+    "5k": "Levels come from 2.2 million US 5K results, 2024 for your sex and age band. An age grade is given as a second reference.",
     "durability": "Levels come from 82,303 recreational marathoners (Smyth 2022), two published points, for your sex where published (not yet). Theirs was measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
     "traildur": "Levels come from 82,303 recreational marathoners (Smyth 2022), two published points, for your sex where published (not yet). Theirs was measured over about 4 h, so the ranking flatters a 90 min session. Under 5% stays the coaching target (Friel).",
     "sleepreg": "Coach guide, fixed; replaced if a Sleep Regularity Index becomes computable from the watch.",
@@ -219,6 +219,62 @@ def bike_time_general(key, metres, g, kg=RIDER_KG):
 REST_HR = 65
 
 
+def hr_ends(kind, age):
+    """(rest, max) the population model reads a heart rate against. A typical adult (REST_HR, 220 minus age) unless the
+    alpha own_hr_model is on, then the athlete's own (hr_anchor reserve: 28 day resting mean, profile hr_max). kind run|bike."""
+    own = _own_reserve()
+    if own:
+        return own["rest"], own["max"]["bike" if kind == "bike" else "run"]
+    return REST_HR, 220 - age
+
+
+def _own_reserve():
+    try:
+        import alpha
+        if not alpha.on("own_hr_model"):
+            return None
+    except ImportError:
+        return None
+    return hr_anchor.current().get("reserve")
+
+
+def _sex_age(today):
+    """(sex, age) from the profile: birth year, else the middle of the age band. One reader for the age grade lines."""
+    prof = {}
+    if os.path.exists(hr_anchor.PROFILE):
+        with open(hr_anchor.PROFILE, encoding="utf-8") as fh:
+            prof = json.load(fh)
+    return str(prof.get("sex") or "").lower(), hr_anchor._age(prof, today)
+
+
+def _age_grade(out, today):
+    """Age grade on every road time tile (epic Compare with anyone, the athlete kept it on the Truer numbers page): Mile, 5K, 10K, Half and Marathon
+    each say how the latest time grades for the athlete's own age and sex (coach/tools/age_grade.py, 2025 road tables). It
+    replaces the 5K's old line, which used a man of 35's factor for everyone. No sex or age on file: no line."""
+    import age_grade
+    sex, age = _sex_age(today)
+    who = f"{'men' if sex == 'male' else 'women'} aged {age}"
+    for key in age_grade.KEYS:
+        m = next((r for r in out if r.get("kind") == "marker" and r.get("key") == key), None)
+        pts = sorted((r for r in out if r.get("kind") == "mpt" and r.get("key") == key and _f(r.get("value"))), key=lambda r: r["date"])
+        if m is None or not pts:
+            continue
+        g = age_grade.grade(sex, age, key, _f(pts[-1]["value"]) * 60)
+        if g is None:
+            continue
+        m["population"] = re.sub(r" ?Age-graded about \d+% \(WMA\)[^.]*\.", "", m.get("population") or "")
+        m["age_grade"], m["age_grade_text"] = g, f"{age_grade.words(g)} against the world standard for {who} ({age_grade.SOURCE})"
+
+
+def hr_words(kind, age):
+    """How the model's heart rate ends were set, for source and anchor text."""
+    own = _own_reserve()
+    rest, mx = hr_ends(kind, age)
+    if own:
+        return f"your own heart rate (resting {rest}, maximum {mx}), so the adults are compared at the same share of effort as you"
+    return f"a typical adult's heart rate (resting {rest}, maximum {mx})"
+
+
 def easy_general(kind, g, kg=RIDER_KG, hr=None):
     """A norm row for 'run' (min/mi at the run anchor, 150 bpm for the athlete) or 'bike' (W at the bike anchor, 130 bpm) against adults
     of the athlete's age band and sex. hr: the athlete's own anchor (hr_anchor.py); the typical adult's share of heart rate
@@ -228,7 +284,8 @@ def easy_general(kind, g, kg=RIDER_KG, hr=None):
     if not pts:
         return None
     age = int(g["band"].split("-")[0]) + 5
-    share = (hr - REST_HR) / max(1, (220 - age) - REST_HR)
+    rest, mx = hr_ends(kind, age)
+    share = (hr - rest) / max(1, mx - rest)
     bp = []
     for p, vmax in pts:
         v = share * (vmax - 3.5) + 3.5
@@ -236,7 +293,7 @@ def easy_general(kind, g, kg=RIDER_KG, hr=None):
     what = f"pace at {hr} bpm" if kind == "run" else f"power at {hr} bpm"
     return {"kind": "norm", "key": "gen_run_pace" if kind == "run" else "gen_bike_w", "unit": "min/mi" if kind == "run" else "W", "better": -1 if kind == "run" else 1,
             "population": f"{g['label']}, general population (modelled from fitness tests)",
-            "source": f"Estimated by the coach from {vo2_norms.SOURCE}: VO2max for {g['label']}, turned into the {what} of a typical adult (resting heart rate {REST_HR}, maximum {220 - age})",
+            "source": f"Estimated by the coach from {vo2_norms.SOURCE}: VO2max for {g['label']}, turned into the {what} at {hr_words(kind, age)}",
             "url": "https://doi.org/10.1016/j.mayocp.2021.08.020", "date": "2026-11", "n": 0, "breakpoints": sorted(bp), "sex": g["sex"], "age_band": g["band"],
             "tail": "log", "short": f"{g['label']}, general population (modelled)", "estimated": True,
             "note": "A model, not measured paces or watts: it assumes a typical adult's heart rate and the standard energy equations. Read it as where your easy effort sits among adults of your age and sex."}
@@ -259,7 +316,8 @@ def trail_general(key, g, hr=None):
     if not pts:
         return None
     age = int(g["band"].split("-")[0]) + 5
-    share = (hr - REST_HR) / max(1, (220 - age) - REST_HR)
+    rest, mx = hr_ends("run", age)
+    share = (hr - rest) / max(1, mx - rest)
     grade = CLIMB_GRADE.get(key)
     bp = []
     for p, vmax in pts:
@@ -278,8 +336,8 @@ def trail_general(key, g, hr=None):
         what, unit, better = (f"trail pace at {hr} bpm", "min/mi", -1) if key == "trailgap" else (f"trail speed per effort km at {hr} bpm", "min/km", -1)
         how = "the ACSM running equation"
     return {"kind": "norm", "key": f"gen_{key}", "unit": unit, "better": better, "population": f"{g['label']}, general population (modelled from fitness tests)",
-            "source": (f"Estimated by the coach from {vo2_norms.SOURCE}: VO2max for {g['label']}, turned into the {what} of a typical adult (resting heart rate {REST_HR}, "
-                       f"maximum {220 - age}) with {how} and {round((TRAIL_TERRAIN - 1) * 100)}% extra cost for trail footing (Pandolf 1977, Soule 1978)"),
+            "source": (f"Estimated by the coach from {vo2_norms.SOURCE}: VO2max for {g['label']}, turned into the {what} at {hr_words('run', age)} "
+                       f"with {how} and {round((TRAIL_TERRAIN - 1) * 100)}% extra cost for trail footing (Pandolf 1977, Soule 1978)"),
             "url": "https://doi.org/10.1016/j.mayocp.2021.08.020", "date": "2026-11", "n": 0, "breakpoints": sorted(bp), "sex": g["sex"], "age_band": g["band"],
             "tail": "log", "short": f"{g['label']}, general population (modelled)", "estimated": True,
             "note": "A model, not measured trail runners: it assumes a typical adult's heart rate, the standard energy equations and a 20% trail footing allowance. Read it as where your easy trail effort sits among adults of your age and sex."}
@@ -959,14 +1017,17 @@ def build(today, rows_so_far):
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)
 
     _fix = "fixed until the norm is refreshed or your group changes"
+    def _hw(k):
+        r, m = hr_ends(k, int(NG["band"].split("-")[0]) + 5 if NG else 35)
+        return f"It uses your own resting HR {r} and max HR {m}." if _own_reserve() else f"It assumes resting HR {REST_HR} and max HR 220 minus age."
     ANCHOR_GENERAL = {  # what fixes the general population scale on tiles whose baseline is a table or a model (short: see ANCHOR)
         "swim": "Cooper's 12-minute swim test categories for your age and sex (Cooper 1982), as pace per 100 yd. Five fitness categories, not percentiles.",
-        "run": f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into pace at 150 bpm (ACSM running equation). It assumes resting HR {REST_HR} and max HR 220 minus age.",
-        **{k: f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into {w} at 150 bpm (ACSM {eq}). It adds {round((TRAIL_TERRAIN - 1) * 100)}% for trail footing (Pandolf 1977, Soule 1978) and assumes resting HR {REST_HR} and max HR 220 minus age."
+        "run": f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into pace at {ANC['run']} bpm (ACSM running equation). {_hw('run')}",
+        **{k: f"Levels come from a general population model (Estimated): FRIEND VO2max norms for your age and sex, turned into {w} at {ANC['run']} bpm (ACSM {eq}). It adds {round((TRAIL_TERRAIN - 1) * 100)}% for trail footing (Pandolf 1977, Soule 1978). {_hw('run')}"
            for k, w, eq in (("trailgap", "trail pace", "running equation"), ("trailspeed", "trail speed per effort km", "running equation"),
                             ("climb", "climbing rate on a 15% grade", "walking equation"), ("climb150", "climbing rate on a 15% grade", "walking equation"),
                             ("climbsteep", "climbing rate on a 25% grade", "walking equation"))},
-        "bike": f"Levels come from a general population model (Estimated): FRIEND cycling VO2max norms for your age and sex, turned into watts at 130 bpm (ACSM cycling equation). It assumes resting HR {REST_HR} and max HR 220 minus age.",
+        "bike": f"Levels come from a general population model (Estimated): FRIEND cycling VO2max norms for your age and sex, turned into watts at {ANC['bike']} bpm (ACSM cycling equation). {_hw('bike')}",
     }
     ANCHOR_SRC = re.compile(r"Levels come from .*? for your sex(?: and age band| where published \(not yet\))?\. ")
     NO_NORM = " No population levels yet: add \"sex\" and \"birth_year\" to coach/athlete/profile.json so the norms match your age and sex; a coach scale stands in."
@@ -1271,10 +1332,12 @@ def build(today, rows_so_far):
         p5 = sorted((r for r in out if r.get("kind") == "mpt" and r["key"] == "5k"), key=lambda r: r["date"])
         secs = (_f(p5[-1]["value"]) if p5 else _f(rs5[-1].get("value")) or 0) * 60  # 5K values are minutes
         if secs:
-            ag = AG_5K_STD_SEC / secs * 100
+            import age_grade
+            _std = age_grade.standard(*_sex_age(T), "5k") or AG_5K_STD_SEC
+            ag = _std / secs * 100
             m5 = next((r for r in out if r.get("kind") == "marker" and r["key"] == "5k"), None)
             ev5 = f"Garmin best efforts from {len(efforts5)} runs since {_d(efforts5[0][0]).strftime('%b %Y')}; a best effort inside a training run is a floor on race fitness, not a race." if efforts5 else "One result on record (Oct 2024, Reported)."
-            wma5 = f"WMA age-grade as a second reference: open 5K standard {mss(AG_5K_OPEN_SEC)} × age factor {AG_FACTOR_35} at 35 = {mss(AG_5K_STD_SEC)}. "
+            wma5 = f"Age grade as a second reference: the {age_grade.SOURCE} world standard for your age and sex is {mss(_std)}. "
             if N5K:
                 if m5 is not None:
                     pf = pct_from_front(N5K, secs / 60)
@@ -2044,6 +2107,7 @@ def build(today, rows_so_far):
         if best:
             best.update(_earned(m["key"], best["date"]))
             out.append(best)
+    _age_grade(out, T)
     hr_anchor._CUR = _anc_before
     return relabel(out, ANC)
 

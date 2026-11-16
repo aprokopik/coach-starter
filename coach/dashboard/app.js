@@ -1799,13 +1799,12 @@
   }
   for (const inp of document.querySelectorAll('#z-sport input')) inp.addEventListener('change', () => { if (!inp.checked) return; state.zSport = inp.value; renderZones(); ftFocus('#z-sport input:checked'); });
 
-  function markerSummary(rows, key, endN) {
-    const pts = rows.map((r) => ({ d: dayN(r.date), v: N(r[key]) })).filter((p) => p.v !== null);
+  // tile figure = the chart's last avg28 point (6.122.0)
+  function markerSummary(rows, endN) {
+    const pts = rows.map((r) => ({ d: dayN(r.date), v: N(r.avg28), n: N(r.n28) })).filter((p) => p.v !== null && p.d <= endN).sort((a, b) => a.d - b.d);
     if (!pts.length) return null;
-    let end = endN; if (!pts.some((p) => p.d > end - 28 && p.d <= end)) end = pts[pts.length - 1].d;
-    const win = (e) => pts.filter((p) => p.d > e - 28 && p.d <= e).map((p) => p.v);
-    const now = win(end), then = win(end - 56);
-    return { now: avgOf(now), n: now.length, then: then.length ? avgOf(then) : null, asOf: end };
+    const last = pts[pts.length - 1], prev = pts.filter((p) => p.d <= last.d - 56).pop();
+    return { now: last.v, n: last.n || 0, then: prev ? prev.v : null, asOf: last.d };
   }
   // Fitness tile (Cockpit ck-tile as a button): the label (with its rank), the big latest figure and unit, the status badge
   // when the row has one, the level and block goal with their meters, then the sublines. The top stripe is the sport token
@@ -1960,11 +1959,11 @@
     // Bike power goes stale on outdoor riding (Closed loops, the athlete's pick, option 1 of five, Nov 15, 2026): the tile names the last
     // power ride, and after 14 days with none the level chip reads Out of date, the way an old trail tile says how old it is
     const BIKE_STALE_DAYS = 14, RULE_STALE = 'app.js renderFitness: Out of date when the last power ride is more than 14 days old (BIKE_STALE_DAYS)';
-    const RULE_8W = 'app.js markerSummary: the 28-day mean now against the 28 days ending 8 weeks earlier';
+    const RULE_8W = 'app.js markerSummary: the latest 28-day average against the 28-day average 8 weeks before it';
     const tiles = [];
-    const sR = markerSummary(run, 'value', TN);
+    const sR = markerSummary(run, TN);
     tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: U.paceU(), delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['flat run', 'flat runs'], none: 'No flat runs yet', asOf: sR ? sR.asOf : null });
-    const sB = markerSummary(bike, 'value', TN);
+    const sB = markerSummary(bike, TN);
     tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No indoor rides with power yet', asOf: sB ? sB.asOf : null, lastD: bike.length ? Math.max(...bike.map((r) => dayN(r.date))) : null, staleAfter: BIKE_STALE_DAYS });
     { const pn = $('f-expand'); if (pn && pn.parentNode === tilesBox) tilesBox.after(pn); }
     tilesBox.replaceChildren();
@@ -2452,6 +2451,7 @@
     if (anc.length) kvRow(dl2, 'Compared with', md(anc[0].replace(/^Levels come from /, '').replace(/^./, (c) => c.toUpperCase()), 'anchor'));
     if (ancRace) kvRow(dl2, 'Race day', md(ancRace.replace(/^Race day:\s*/, '').replace(/^./, (c) => c.toUpperCase()), 'anchor'));
     if (m.population) kvRow(dl2, 'Percentile', mf('population'));
+    if (m.age_grade_text) kvRow(dl2, 'Age grade', mf('age_grade_text'));
     else if (m.pop_norm && latest !== null) {
       const nr = kind('norm').find((x) => x.key === m.pop_norm);
       if (nr) {
@@ -2463,7 +2463,7 @@
     if (dl.children.length) wrap.append(dl);
 
     const moreS = [...whyS.slice(1), ...howS.slice(1)];
-    if (moreS.length || dl2.children.length) { const f = section('More detail'); if (dl2.children.length) f.body.append(dl2); if (moreS.length) { const ul = el('ul', 'ft-howl'); moreS.forEach((x) => ul.append(el('li', null, x))); mark(ul, 'coach', null, mw, 'why-how-rest'); f.body.append(ul); } wrap.append(f.dt); }
+    if (moreS.length || dl2.children.length) { const f = section('More detail'); const ul = el('ul', 'ft-howl'); let dd = null; for (const x of moreS) { const k = /^([A-Z][a-z]+(?: [a-z]+)?): (.+)/.exec(x); if (k) dd = kvRow(dl2, k[1], md(k[2], 'why-how-rest')); else if (dd) dd.append(' ' + x); else ul.append(el('li', null, x)); } if (dl2.children.length) f.body.append(dl2); if (ul.children.length) { mark(ul, 'coach', null, mw, 'why-how-rest'); f.body.append(ul); } wrap.append(f.dt); }
 
     const tagWrap = el('span'); if (m.basis && ts.length) { tagWrap.append(basisTag(m.basis)); if (ts.some((t) => t.basis !== m.basis)) tagWrap.append(' with ', ...[...new Set(ts.filter((t) => t.basis !== m.basis).map((b) => b.basis))].map((b) => basisTag(b)), ' bands'); }
     const scale = section('Scale', tagWrap.childNodes.length ? tagWrap : null); const sc = scale.dt, scb = scale.body;

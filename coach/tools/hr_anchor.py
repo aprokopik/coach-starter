@@ -20,8 +20,10 @@ Every tool and the page read it from here: build_dashboard.py writes it to coach
 Usage:
     python3 coach/tools/hr_anchor.py        # print this athlete's anchors
 """
+import csv
 import json
 import os
+import statistics
 import sys
 from datetime import date
 
@@ -85,6 +87,57 @@ def from_profile(prof, today=None):
                       "bikespeed": f"Bike speed at {bike} bpm", "swimspeed": f"Swim pace at {swim} bpm"}}
 
 
+# Own resting and maximum heart rate for the general population model (alpha own_hr_model, the athlete picked it Nov 16, 2026 on the
+# Truer numbers page, (link not included in the kit)). markers.easy_general and trail_general read a heart
+# rate as a share of heart rate reserve; with the person's own ends that share is their real effort, so the modelled adults are
+# compared at the same effort, not the same bpm. 220 minus age misses by 7 to 8 bpm on average (Lach 2021, n 3,374).
+REST_DAYS = 28   # resting heart rate: mean of the last 28 days that have one (data/summary.csv resting_hr)
+REST_MIN_DAYS = 7  # fewer readings than this and the typical adult's 65 stands in
+TYPICAL_REST = 65
+
+
+def resting(root="."):
+    """(mean resting HR of the last REST_DAYS readings, n) from data/summary.csv, or (None, 0)."""
+    p = os.path.join(root, "data", "summary.csv")
+    if not os.path.exists(p):
+        return None, 0
+    with open(p, encoding="utf-8") as fh:
+        vals = [_num(r.get("resting_hr")) for r in csv.DictReader(fh)]
+    vals = [v for v in vals if v and 30 <= v <= 110][-REST_DAYS:]
+    if len(vals) < REST_MIN_DAYS:
+        return None, len(vals)
+    return round(statistics.mean(vals)), len(vals)
+
+
+def reserve_from(prof, rest, today=None):
+    """{rest, max: {run, bike}, how} for the population model. Pure. Maximum: profile hr_max (per sport, else default),
+    else 220 minus age; rest: the measured mean, else TYPICAL_REST."""
+    today = today or date.today()
+    m = prof.get("hr_max")
+    mx = {}
+    for k in ("run", "bike"):
+        v = (m.get(k) or m.get("default")) if isinstance(m, dict) else m
+        mx[k] = _num(v)
+    max_how = "your maximum heart rate"
+    if not (mx["run"] and mx["bike"]):
+        age = _age(prof, today)
+        if not age:
+            return None
+        mx = {k: mx[k] or 220 - age for k in mx}
+        max_how = "220 minus your age"
+    rest_how = "your resting heart rate, 28 day average" if rest else f"a typical adult's resting heart rate ({TYPICAL_REST})"
+    return {"rest": rest or TYPICAL_REST, "max": mx, "how": f"{rest_how}; {max_how}"}
+
+
+def reserve(root=".", today=None):
+    p = os.path.join(root, PROFILE)
+    prof = {}
+    if os.path.exists(p):
+        with open(p, encoding="utf-8") as fh:
+            prof = json.load(fh)
+    return reserve_from(prof, resting(root)[0], today)
+
+
 BAND = 5  # the easy heart rate target's band when the profile names none (RULES.md 5a, Easy-day heart rate target)
 
 _CUR = None
@@ -94,6 +147,7 @@ def use(root=".", today=None):
     """Read this athlete's anchors once for the run (build_dashboard, markers.build, brief.py); later current() calls return them."""
     global _CUR
     _CUR = anchors(root, today)
+    _CUR["reserve"] = reserve(root, today)
     return _CUR
 
 
