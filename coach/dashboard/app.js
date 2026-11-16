@@ -1443,7 +1443,15 @@
     const keys = ['bike', 'run', 'swim', 'strength', 'hike', 'other'];
     const hours = state.mode === 'hours';
     const MIX = [['easy', 'Easy', 'seq-1'], ['steady', 'Steady', 'seq-3'], ['hard', 'Hard', 'seq-5'], ['unrated', 'Not rated', 'fg-3']]; // effort mix, Nov 15, 2026
-    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; for (const m of ['easy', 'steady', 'hard']) o[m] = by[w] ? (N(by[w][m + '_min']) || 0) / 60 : 0; o.total = keys.reduce((s, k) => s + o[k], 0); o.unrated = Math.max(0, o.total - o.easy - o.steady - o.hard); o.plan = plannedBy[w] || null; return o; });
+    // 6.87.1 (the athlete, Nov 16): a dashboard rating counts here before the morning run copies it to the repo
+    const repoFeel = new Map(kind('feel_session').map((f) => [String(f.activity_id), f]));
+    const grp = (e) => (e <= 3 ? 'easy' : e < 6 ? 'steady' : 'hard');
+    const liveMix = (o) => { o.live = 0; if (!window.CX.live || typeof window.CX.live.forEach !== 'function') return;
+      window.CX.live.forEach((d, id) => { const e = N(d && d.rpe), m = N(d && d.minutes); if (e === null || !m || !d.date || monday(String(d.date).slice(0, 10)) !== o.week) return;
+        const old = repoFeel.get(String(id)), oe = old ? N(old.rpe) : null, om = old ? N(old.minutes) : null;
+        if (oe !== null && om) { if (oe === e && om === m) return; o[grp(oe)] -= om / 60; } else o.rated += 1;
+        o[grp(e)] += m / 60; o.live += 1; }); };
+    const table = weeks.map((w) => { const o = { week: w }; for (const k of keys) o[k] = by[w] ? N(by[w][k]) || 0 : 0; o.load = by[w] ? N(by[w].load) || 0 : 0; o.rated = by[w] ? by[w].rated : 0; for (const m of ['easy', 'steady', 'hard']) o[m] = by[w] ? (N(by[w][m + '_min']) || 0) / 60 : 0; liveMix(o); o.total = keys.reduce((s, k) => s + o[k], 0); o.unrated = Math.max(0, o.total - o.easy - o.steady - o.hard); o.plan = plannedBy[w] || null; return o; });
     const present = keys.filter((k) => table.some((t) => t[k] > 0));
     const curIn = hours && weeks.includes(cur) && TN - dayN(cur) + 1 < 7 ? { x: cur, days: TN - dayN(cur) + 1, of: 7 } : null;
     { const lg = $('c-load-legend'); lg.replaceChildren(); lg.hidden = true; } // direct labels replace the legend
@@ -1459,7 +1467,7 @@
       title: hours ? 'Training hours by week' : 'Easy, steady and hard hours by week', window: `the 12 weeks to ${fDay(P(last))}`, period: 'week',
       marks: { source: 'weekly', key: 'week' },
       onPick: (r) => { state.week = r.x; renderWeek(); },
-      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : MIX.filter(([k]) => t[k] > 0).map(([k, lab, tone]) => ({ tone, text: `${lab}: ${f1(t[k])} h` })).concat([{ text: t.rated ? `${t.rated} session${t.rated > 1 ? 's' : ''} rated` : 'No rated sessions' }]) }; },
+      tip: (r) => { const t = r.t; return { head: `Week of ${fDay(P(t.week))}`, lines: hours ? [{ text: `${f1(t.total)} h done${t.plan ? ` · ${f1(t.plan)} h planned` : ''}` }, ...present.filter((k) => t[k] > 0).map((k) => ({ tone: SPORT_TONE[k], text: `${NAME[k]}: ${f1(t[k])} h` }))] : MIX.filter(([k]) => t[k] > 0).map(([k, lab, tone]) => ({ tone, text: `${lab}: ${f1(t[k])} h` })).concat([{ text: (t.rated ? `${t.rated} session${t.rated > 1 ? 's' : ''} rated` : 'No rated sessions') + (t.live ? `, ${t.live} saved since the morning run` : '') }]) }; },
     });
     if (hours && table.some((t) => t.plan)) refKey(box, 'Planned');
   }
