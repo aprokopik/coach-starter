@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.110.0 (2026-11-16)
+- Dashboard: an opened Week session reads as three short lines, Plan as steps, Effort as numbers and Fallback, with Why, the push contract rep, food and timing under More detail (the kit maker, Nov 16: "This is too text blocky", then "Visual looks really great"). The page sorts the coach's detail sentences; how the coach writes them is unchanged. Effort stays in plain words, not RPE (the kit maker, Nov 16: "Or is that too gimmicky/fitnessy for everyone?").
+
 ## 6.109.0 (2026-11-16)
 - Engine: block rotations can change sets, not only swap exercises; the New block card button reads "Use the changes". A rotation row's `sets` items raise a slot's sets at the block start, or, with `after`, once that lift has that many logged sessions (`lifts.py due` names it, `lifts.py raise <ex>` applies it). The Lifts tab's New block card lists set changes beside swaps.
 - Engine: alpha features (the kit maker, Nov 16, 2026: the athlete tests new features first, for a day to a week or more, before they reach the kit). coach/ops/alpha.json is the one list of features in alpha; it never ships in the kit. build_dashboard writes a kind alpha row per entry, and a page feature in alpha stays off without its row (lifts.js alpha(id)); alpha guide text sits inside owner-only markers. Kilograms on the Lifts tab (6.108.0) and set changes in block rotations start in alpha.

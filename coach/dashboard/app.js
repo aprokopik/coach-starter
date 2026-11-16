@@ -1058,21 +1058,43 @@
       const d = el('span', 'ck-row-more');
       const line = (...parts) => { const s = el('span'); s.append(...parts); d.append(s); return s; };
       const flag = (...parts) => { const s = el('span', 'wk-flag'), t = el('span'); t.append(...parts); s.append(icon('watch', 'ck-i wk-fg'), t); d.append(s); }; // flex only on the outer span: the sentence stays one item
-      if (r.detail) line(plainEl(mark(el('span', null, r.detail), 'week_view', 'detail', w)));
+      const more = r.detail ? wkLines(d, r, w) : [];
       const fl = String(r.flags || '');
       if (fl.includes('hr_high')) flag('Heart rate ran 5+ over the easy target (', ruleSpan(r.done_disc === 'run' ? `run ~${ANC().grun}` : `bike ~${ANC().gbike}`, HR_RULE), ').');
       if (r.intensity === 'easy' && ((r.rpe !== null && r.rpe !== undefined && Number(r.rpe) >= 5) || r.vs_plan === '+')) flag('Rated effort ', rpeSpan(), `${r.vs_plan === '+' ? ', harder than planned' : ''} on an easy day.`);
       if (fl.includes('over')) flag('Longer than Max (', mark(el('span', null, hmin(N(r.upper_minutes))), 'week_view', null, w, 'h:mm'), ').');
       if (fl.includes('short')) flag('Under the fallback (', mark(el('span', null, String(r.fallback_minutes)), 'week_view', 'fallback_minutes', w), ' min).');
-      if (isKey(r)) { const s = line('Key session '); if (N(r.pillar) !== null) s.append(mark(el('span', null, String(N(r.pillar))), 'week_view', 'pillar', w), ' of ', ruleSpan('3', KEY_RULE)); if (r.why) s.append(': ', mark(el('span', null, r.why), 'week_view', 'why', w)); s.append(`. ${r.type === 'rest' ? 'Keep this day free of training; walking is fine.' : "If it can't happen today, move it to another day; never drop it."}`); }
+      if (isKey(r) && r.why) more.unshift(['Why', plainEl(mark(el('span', null, r.why), 'week_view', 'why', w))]);
       if (r.status === 'fallback') line('Done as the fallback, which counts as success.');
       if (r.status === 'swapped') line(`Done as a different discipline (${NAME[r.done_disc] || r.done_disc}).`);
       if (r.done_text && (r.rpe === null || r.rpe === undefined) && dayN(r.date) <= TN) line('No effort rating yet: rate it on Today.').className = 'ck-row-s';
       if (!d.childNodes.length) line('No details.').className = 'ck-row-s';
       b.append(d);
+      if (more.length) { const x = el('details', 'wk-more'); const sm = el('summary', 'ck-row-s', 'More detail'); x.append(sm); for (const [k, v] of more) wkKv(x, k).append(v); return [b, x]; }
     }
     b.addEventListener('click', () => { if (state.open.has(key)) state.open.delete(key); else state.open.add(key); renderWeek(); wkFocus('#w-days .wk-item', (e) => e.dataset.k === key); });
     return b;
+  }
+  // Week session detail as short labelled lines (the athlete, Nov 16: "This is too text blocky"). The coach still writes one
+  // detail paragraph (week.json); the page sorts its sentences by what they say, and effort comes from target_rpe and hr_cap.
+  const WK_LAB = [['Effort', /^(RPE|effort|HR\b|heart rate)/i], ['Fallback', /\bfallback\b|^not well|^if (it|you)\b.*\b(move|skip)/i], ['Extra', /push contract|free choice|bonus/i],
+    ['Food', /maintenance day|\b(carb|eat|fuel)/i], ['When', /^(after|before|optional|log it|on base|replanned)\b|\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun) if\b/i]];
+  function wkKv(d, label) { const s = el('span', 'wk-kv'); const v = el('span', 'wk-kv-v'); s.append(el('span', 'wk-kv-k', label), v); d.append(s); return v; }
+  function wkLines(d, r, w) { // at the open row: Plan (as steps), Effort, Fallback; the rest goes to More detail (returned)
+    const sent = String(r.detail).replace(/\.\.+/g, '.').match(/[^.;]+(?:\([^)]*\)[^.;]*)*[.;]?/g) || [];
+    const by = new Map(); const add = (k, t) => { if (!by.has(k)) by.set(k, []); by.get(k).push(t); };
+    const dr = kind('day').find((x) => x.date === r.date && x.title === r.title) || {}; const rpe = dr.target_rpe, hr = N(dr.hr_cap);
+    for (let t of sent) { t = t.trim().replace(/[;.]$/, ''); if (!t || /^log it\b/i.test(t)) continue; const hit = WK_LAB.find(([, re]) => re.test(t)); const k = hit ? hit[0] : 'Plan';
+      if (k === 'Effort' && rpe) continue; // said once from the day row's own fields
+      add(k, k === 'Food' && /^maintenance day$/i.test(t) ? 'eat to maintenance' : t.replace(/^fallback:?\s+/i, '')); }
+    const txt = (t) => plainEl(mark(el('span', null, t.charAt(0).toUpperCase() + t.slice(1)), 'week_view', 'detail', w));
+    const plan = by.get('Plan') || [], more = [];
+    if (plan.length) { const first = plan[0], paren = first.match(/\([^)]*\)/g) || []; wkKv(d, 'Plan').append(txt(first.replace(/\s*\([^)]*\)/g, '').split(/,\s+/).filter((x) => !(rpe && /^(RPE|effort)\b/i.test(x))).join(' · '))); paren.forEach((x) => more.push(['Detail', x.slice(1, -1)])); plan.slice(1).forEach((x) => more.push(['Notes', x])); }
+    if (rpe || hr !== null) { const v = wkKv(d, 'Effort'); if (rpe) v.append(mark(el('span', null, String(rpe).replace('-', ' to ')), 'coach', 'target_rpe', `kind=day&date=${dr.date}&order=${dr.order}`), ' of 10'); if (hr !== null) v.append(rpe ? ' · heart rate ' : 'Heart rate ', mark(el('span', null, String(hr)), 'coach', 'hr_cap', `kind=day&date=${dr.date}&order=${dr.order}`), ' or under'); }
+    else (by.get('Effort') || []).forEach((t, i) => wkKv(d, i ? '' : 'Effort').append(txt(t)));
+    (by.get('Fallback') || []).forEach((t, i) => wkKv(d, i ? '' : 'Fallback').append(txt(t)));
+    for (const k of ['Extra', 'Food', 'When']) (by.get(k) || []).forEach((t) => more.push([k, t]));
+    return more.map(([k, t]) => [k, txt(t)]);
   }
   function tile(label, value, unit, sub, frac) {
     const t = el('div', 'tile'); t.append(el('span', 'l', label));
@@ -1381,7 +1403,7 @@
       de.append(h);
       if (openDay) {
         if (!its.length) { const ms = msOf(d); if (ms.length) { const p = el('p', 'ck-sub wk-none'); p.append(...ms.flatMap((m, i) => (i ? ['; ', msLine(m)] : [msLine(m)])), ' (season plan; the day\'s details come with the week plan)'); de.append(p); } else de.append(el('p', 'ck-sub wk-none', dayN(d) > TN ? 'No plan yet' : 'Nothing planned or recorded')); }
-        if (its.length) { const ul = el('div', 'ck-list'); for (const r of its) ul.append(itemRow(r)); de.append(ul); }
+        if (its.length) { const ul = el('div', 'ck-list'); for (const r of its) ul.append(...[].concat(itemRow(r))); de.append(ul); }
       }
       days.append(de);
     }
