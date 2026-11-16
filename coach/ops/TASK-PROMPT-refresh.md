@@ -1,6 +1,6 @@
 # Scheduled task prompt: Coach daytime refresh (every 2 hours while {{ATHLETE}} is awake, silent)
 
-The task's prompt is one line that points here ("Attach the repository {{GITHUB_OWNER}}/{{REPO}}, read coach/ops/TASK-PROMPT-refresh.md and follow the text below its line."). It must be a **Claude Code** scheduled task with the repository {{GITHUB_OWNER}}/{{REPO}} selected (claude.ai/code/routines, Advanced settings, Repository). Its hours are {{ATHLETE}}'s own waking hours: `coach/athlete/checkins.json` holds the window, and the morning check-in moves the task when the sleep pattern moves (RUNBOOK "Check-in settings"). Edit this file, never the task; kit updates replace this file and re-fill the names.
+The task's prompt is one line that points here ("Attach the repository {{GITHUB_OWNER}}/{{REPO}}, read coach/ops/TASK-PROMPT-refresh.md and follow the text below its line."). It must be a **Claude Code** scheduled task with the repository {{GITHUB_OWNER}}/{{REPO}} selected (claude.ai/code/routines, Advanced settings, Repository). A task made without a repository is a regular chat task: it cannot save, so nothing it pulls reaches the dashboard. Its hours are {{ATHLETE}}'s own waking hours: `coach/athlete/checkins.json` holds the window, and the morning check-in moves the task when the sleep pattern moves (RUNBOOK "Check-in settings"). Edit this file, never the task; kit updates replace this file and re-fill the names.
 
 ---
 
