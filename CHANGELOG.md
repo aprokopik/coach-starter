@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.121.0 (2026-11-16)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.120.0 (2026-11-16)
 - Dashboard, alpha `stage_coins` (the kit maker only; the kit maker, Nov 16, 2026: "Alpha only first"), epic strength_levels: stage marks become coins (the kit maker, Nov 16, 2026, option 8 on the Stage Coin Options page (link not included in the kit), their note "This but keep prev. Full color", then "These look good. Let's move forward"). Stage 1 is silver, stage 2 gold, stage 3 diamond. Every stage you have reached stays in full colour, the current one is a size bigger, and stages not reached yet are dashed outlines. The numbers sit in the centre of each coin ("It feels like the numbers aren't centered in the circles"). Coin rules sit under a class metrics.js stageBadge adds for the alpha switch, so everyone else keeps the plain dots; the word Level beside the coins stays hidden for screen readers only, as before. Speed budget: page files 1,107,000 to 1,108,000 bytes (+1 KB; main had 2 bytes left, the coins add 559), asked with this Merge.
 
