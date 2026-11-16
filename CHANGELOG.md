@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.86.0 (2026-11-16)
+- Engine: Habits to build. the kit maker, Nov 15, 2026: the Today card "is actually about habit forming and specifically what each individual needs to work on. For me that is special to easy days easy and lift", then picked "Coach proposes, you confirm". BLOCK-BRIEF.md 2.5: with each block brief the coach proposes 1 to 3 habits from the four plan rows, led by the rows missed most, and the athlete confirms; `profile.json habits` {rows, confirmed, note} is the one home (the kit maker: easy, lift, confirmed Nov 15). build_dashboard.py passes it as a `habits` row.
+- Dashboard: the Today card reads "Habits to build" and shows only the agreed rows, with one line saying when they were agreed and where each row left out is still tracked. No habits agreed: "Doing the plan" with all four rows, as before. Guard: coach/tests/test_habits_card.py.
+
 ## 6.85.0 (2026-11-16)
 - Package: an official evening check-in (the kit maker chose "Yes, add it" on the card, Nov 15). A tester built her own evening check-in as a regular chat task, which cannot save, so her answers and a long ride were lost two evenings running, and the chat coach told her a later run would record them, which no run can do. New `coach/ops/TASK-PROMPT-evening.md` (kit only): a short end-of-day check-in that runs as a Claude Code task with the repository selected, reads today's plan and data, asks at most three questions, saves the answers to the feel log and LOG.md and pushes to main, and stops without asking if the repo cannot be reached. Onboarding step 8 offers it on one card; the tester's CLAUDE.md makes any evening check-in from this file. RUNBOOK "Not saved yet": no later run can read a chat, so the coach asks the athlete to paste the block into a Claude Code session instead of promising the next run will save it.
 

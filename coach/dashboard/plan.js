@@ -16,6 +16,7 @@
     { id: 'easy', label: 'Easy days kept easy', done: 'easy_kept', n: 'easy_done' },
     { id: 'lift', label: 'Lifts done', done: 'lifts_done', n: 'lifts_target', n0: 'lifts_planned' },
   ];
+  const WHERE = { key: 'key sessions in Week totals', plan: 'days on plan in the Sunday check-in', easy: 'easy days in the Sunday check-in', lift: 'lifts on the Lifts tab' }; // the rows a habits card leaves out
   const KEY_DONE_RULE = 'app.js weekAdh: keys done (done, fallback, swapped, or a key rest day rested) of the week\'s key slots, three from KEY_RULE_FROM';
   const OUT_RULE = 'coach/tools/outcomes.py: days on plan = rest, fallback, nominal or upper of scored days; easy kept easy = no overrun and avg HR at or under the guardrail; lifts done = days with a lift on record, planned or not, of lifts_target (the profile\'s strength minimum, or the planned lifts when more; 6.36.0)';
 
@@ -75,7 +76,11 @@
     grid.append(head);
     const why = el('p', 'pl-why'); why.id = 't-adh-why'; why.setAttribute('aria-live', 'polite'); why.hidden = true;
     let open = null;
-    for (const r of ROWS) {
+    // Habits to build (the athlete, Nov 15, 2026: this card "is actually about habit forming and specifically what each individual needs to work on"):
+    // only the rows the coach and the athlete agreed (profile.json habits, BLOCK-BRIEF.md 2.5); none agreed shows all four
+    const hab = kind('habits')[0], pick = hab ? String(hab.rows || '').split('|').filter((k) => ROWS.some((r) => r.id === k)) : [];
+    $('t-adh-h').textContent = pick.length ? 'Habits to build' : 'Doing the plan';
+    for (const r of pick.length ? ROWS.filter((x) => pick.includes(x.id)) : ROWS) {
       const line = el('div', 'pl-row'); line.setAttribute('role', 'row');
       const lab = el('span', 'pl-lab', r.label); lab.setAttribute('role', 'rowheader'); line.append(lab);
       weeks.forEach((w, i) => {
@@ -117,6 +122,7 @@
     for (const [c, w] of [['on', 'Done'], ['miss', 'Missed'], ['', 'To come']]) { const k = el('span', 'pl-k'); k.append(el('i', c || null), w); key.append(k); }
     if (TAP) key.append(el('span', 'pl-k pl-k-tap', 'Tap a cell for why'));
     body.append(grid, key, why);
+    if (pick.length) { const hn = el('p', 'ck-note'); hn.append('Agreed ', mark(el('span', null, fDay(P(hab.confirmed))), 'coach', 'confirmed', 'kind=habits'), ' with your coach; new ones come with each block brief.'); const rest = ROWS.filter((x) => !pick.includes(x.id)).map((x) => WHERE[x.id]); if (rest.length) hn.append(' Also tracked: ', rest.join(', '), '.'); body.append(hn); }
     const r = $('t-adh-rule'); r.replaceChildren('Each step is one planned item: filled done, outlined missed, dotted still to come. ' + (TAP ? 'Tap a cell for the reason. ' : '') + 'Key sessions: the session at any size (Min, Plan or Max) or a swap; a key rest day counts when you rest. Days on plan: rest, or the session at Min, Plan or Max, scored against the plan that stood at the end of the day. Easy days kept easy: not longer than Max, average heart rate at or under the easy limit (150 running, 135 riding). Lifts done: every lift on the watch, the Lifts tab, the session form or the morning tap, planned or not, out of 2 a week (more when the plan has more); lifts still to do this week are grey. ', ruleSpan('Weeks run Monday to Sunday', OUT_RULE), '.');
   };
 })();

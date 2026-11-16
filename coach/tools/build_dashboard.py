@@ -254,6 +254,10 @@ import hr_anchor  # noqa: E402
 hr_anchor.use(".", datetime.now(ZoneInfo("America/New_York")).date())
 rows.append(hr_anchor.row(".", datetime.now(ZoneInfo("America/New_York")).date()))
 rows.extend(markers.build(datetime.now(ZoneInfo("America/New_York")).date(), rows))
+# Habits to build, the rows the Today card shows (the athlete, Nov 15, 2026); profile.json habits is their one home (BLOCK-BRIEF.md 2.5)
+_hab = (json.load(open(os.path.join("coach", "athlete", "profile.json"), encoding="utf-8")).get("habits") or {})
+if _hab.get("rows"):
+    rows.append({"kind": "habits", "rows": "|".join(_hab["rows"]), "confirmed": _hab.get("confirmed", "")})
 # Block brief for the Fitness tab's This block card (the athlete, Nov 1, 2026; coach/engine/BLOCK-BRIEF.md)
 import brief  # noqa: E402
 rows.extend(brief.rows_for_dashboard(datetime.now(ZoneInfo("America/New_York")).date(), [r for r in rows if r.get("kind") == "marker"]))
