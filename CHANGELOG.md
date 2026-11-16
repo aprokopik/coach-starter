@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.121.1 (2026-11-16)
+- Dashboard fix: the stage coins of 6.120.0 reach everyone, not just alpha (the kit maker, Nov 16, 2026: "I wanted stagecoins to be a quick fix. Feedback on an earlier feature", then "Merge the badges"). Every tile with stage marks shows them: silver 1, gold 2, diamond 3, reached stages in full colour, the current one bigger, stages not reached yet dashed, numbers centred. The alpha switch `stage_coins` is gone (released in coach/ops/alpha.json), which frees its alpha epic slot. No size budget change.
+
 ## 6.121.0 (2026-11-16)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 

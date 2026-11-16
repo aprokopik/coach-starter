@@ -1129,17 +1129,12 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .mx-node--lock { border-style: dotted; border-width: 2px; background: transparent; color: var(--ck-fg-2); }
 .ck .mx-node--lock .mx-noden { font-weight: var(--ck-w-reg, 400); }
 .ck .mx-node--fold { border-color: var(--ck-edge); }
-.ck .mx-stage { display: inline-flex; flex: none; vertical-align: middle; margin-left: 6px; }
-.ck .mx-stage-d { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: -5px; border-radius: 50%; border: 1px solid var(--ck-fg-2); background: var(--ck-surface); color: var(--ck-fg-2); font-style: normal; font-size: 11px; line-height: 1; font-weight: var(--ck-w-bold, 700); position: relative; }
-.ck .mx-stage-d:first-child { margin-left: 0; }
-.ck .mx-stage-d.is-cur { background: var(--ck-fg); border-color: var(--ck-fg); color: var(--ck-surface); z-index: 1; }
-.ck .mx-stage-d.is-none { border-style: dashed; opacity: 0.55; }
-/* Stage coins, alpha stage_coins */
-.ck .mx-coin{align-items:center}
-.ck .mx-coin .mx-stage-d{--m1:#f4f8fc;--m2:#8fa3b8;--mi:#2f3b48;border-color:var(--m2);background:radial-gradient(circle at 35% 30%,var(--m1),var(--m2));color:var(--mi);font-variant-numeric:tabular-nums;text-box:trim-both cap alphabetic}
-.ck .mx-coin .mx-stage-d:nth-child(2){--m1:#ffe58a;--m2:#b88000;--mi:#3e2b00}.ck .mx-coin .mx-stage-d:nth-child(3){--m1:#f2fdff;--m2:#3fb6e3;--mi:#053a50}
-.ck .mx-coin .mx-stage-d.is-cur{width:22px;height:22px;font-size:13px;z-index:2}.ck .mx-coin .mx-stage-d:nth-child(3).is-cur{background:conic-gradient(from 30deg,#f2fdff,#7fe3ff,#c9b8ff,#f2fdff,#3fb6e3,#f2fdff)}
-.ck .mx-coin .mx-stage-d.is-none{background:var(--ck-surface);border:1px dashed var(--ck-fg-2);color:var(--ck-fg-2);opacity:.5}
+.ck .mx-stage { display: inline-flex; align-items: center; flex: none; vertical-align: middle; margin-left: 6px; }
+/* Stage coins (the athlete, Nov 16, 2026, option 8): 1 silver, 2 gold, 3 diamond; reached stay full colour, the current one bigger, not reached dashed */
+.ck .mx-stage-d{--m1:#f4f8fc;--m2:#8fa3b8;--mi:#2f3b48;display:inline-grid;place-items:center;width:18px;height:18px;margin-left:-5px;border-radius:50%;border:1px solid var(--m2);background:radial-gradient(circle at 35% 30%,var(--m1),var(--m2));color:var(--mi);font-style:normal;font-size:11px;line-height:1;font-variant-numeric:tabular-nums;text-box:trim-both cap alphabetic;font-weight:var(--ck-w-bold,700);position:relative}
+.ck .mx-stage-d:nth-child(2){--m1:#ffe58a;--m2:#b88000;--mi:#3e2b00}.ck .mx-stage-d:nth-child(3){--m1:#f2fdff;--m2:#3fb6e3;--mi:#053a50}.ck .mx-stage-d:first-child{margin-left:0}
+.ck .mx-stage-d.is-cur{width:22px;height:22px;font-size:13px;z-index:2}.ck .mx-stage-d:nth-child(3).is-cur{background:conic-gradient(from 30deg,#f2fdff,#7fe3ff,#c9b8ff,#f2fdff,#3fb6e3,#f2fdff)}
+.ck .mx-stage-d.is-none{background:var(--ck-surface);border:1px dashed var(--ck-fg-2);color:var(--ck-fg-2);opacity:.5}
 .ck .mx-noden { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px var(--ck-s2); font-weight: var(--ck-w-bold); min-width: 0; }
 .ck .mx-detail { display: grid; gap: var(--ck-s2); padding: var(--ck-s2) var(--ck-s2) var(--ck-s3); border-left: 2px solid var(--ck-edge); margin-left: var(--ck-s2); min-width: 0; }
 .ck .mx-detail .ck-note, .ck .mx-detail .ck-sub, .ck .mx-ladder .ck-sub { margin: 0; }
