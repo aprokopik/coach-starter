@@ -524,7 +524,7 @@
       // shows the week plan for today; its first day row drives Fallback / Plan / Strong day and their size texts, its details
       // go in Help me pick, and yesterday's purpose, choice rule and question stay out. A rest day has no sizes.
       const usePlan = stale && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
-      const multi = usePlan && todays.length > 1, bnd = $('t-bounds'); if (bnd.parentNode !== $('t-presc-b')) { $('t-presc-b').append(bnd); $('t-presc-b').after($('t-presc-s'), $('t-more')); }
+      const multi = usePlan && todays.length > 1 && alpha('day_sessions'), bnd = $('t-bounds'); if (bnd.parentNode !== $('t-presc-b')) { $('t-presc-b').append(bnd); $('t-presc-b').after($('t-presc-s'), $('t-more')); }
       const sized = !pd || pd.type !== 'rest', det = $('t-pdet'); det.replaceChildren(); det.hidden = !usePlan;
       box.hidden = !usePlan; $('t-presc-a').hidden = usePlan; $('t-presc-b').hidden = !sized || multi; $('t-presc-s').hidden = !sized; $('t-purpose').hidden = usePlan || !t.purpose; $('t-rule').hidden = usePlan || !t.choice_rule;
       state.usePlan = usePlan; state.sized = sized; state.multi = multi;
@@ -539,7 +539,7 @@
             const row = el('div', 'td-sess-row'); row.append(ic, h); box.append(row);
             if (r.type !== 'rest') box.append(...(i ? [sizeBar(r, w, i), ...sessFoot(r, w)] : [bnd, $('t-presc-s'), $('t-more')]));
           }
-          if (r.detail && (!multi || !i)) det.append(noteList(r, w));
+          if (r.detail && (!multi || !i)) det.append(alpha('day_sessions') ? noteList(r, w) : plainEl(mark(el('p', 'ck-session-text', r.detail), 'coach', 'detail', w)));
         }
       }
       $('t-ask').hidden = !t.question || usePlan; // Coach asks only from today's check-in
@@ -556,7 +556,7 @@
       const sm = $('t-sess-min'); sm.replaceChildren(); sm.hidden = true;
       // the sport as one icon at the top right (6.39.0, the athlete's markup), its name read aloud; from the week plan row or the session's plan row
       const sr = pd || pr, srw = pd ? pdw : pw;
-      const sp = $('t-sport'); sp.replaceChildren(); sp.hidden = !sr || (usePlan && todays.length > 1); sp.classList.add('td-sport'); // rest days too (the athlete, Nov 16)
+      const sp = $('t-sport'); sp.replaceChildren(); sp.hidden = !sr || (usePlan && todays.length > 1 && alpha('day_sessions')); sp.classList.add('td-sport'); // rest days too (the athlete, Nov 16)
       if (!sp.hidden) sp.append(sportIcon(glyphOf(sr)), mark(el('span', 'ck-vh', String(sr.type)), 'coach', 'type', srw)); // the Week tab's sport glyph and colour
       state.sizeRow = pd || (pr ? kind('day').filter((r) => r.date === pr.date).sort((a, b) => (a.order || 0) - (b.order || 0))[0] || null : null);
       state.sizePlan = pd ? { row: pd, w: pdw } : pr ? { row: pr, w: pw } : null;
@@ -704,7 +704,7 @@
       const done = wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
       const planned = rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
       const sg = el('span', 'td-nw-sg'); sg.setAttribute('aria-hidden', 'true'); // a symbol per session, as on Next week (the athlete, Nov 16)
-      for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
+      if (alpha('day_sessions')) for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
       const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '') + (done ? ' is-done' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
       nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
       li.append(nd, el('span', 'td-dow', DOW[i]), sg, el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (n > 1 ? `, ${n} sessions` : '') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
@@ -1058,6 +1058,7 @@
   // sport glyphs from the sprite, coloured by the sport tokens; hike and walk stay neutral (outline), as before
   const SGLYPH = { bike: 'bike', run: 'run', swim: 'swim', strength: 'strength', hike: 'trail', walk: 'steps', trail: 'trail', rest: 'rest', test: 'check', race: 'flag', other: 'session' };
   // a test shows its sport (an FTP test on Zwift is a ride), not the check mark
+  function alpha(id) { return kind('alpha').some((b) => b.id === id); }
   function glyphOf(r) { return r.type === 'test' && /zwift|bike|ftp|ride/i.test(r.title || '') ? 'bike' : r.type; }
   function sportIcon(tp) {
     const s = icon(SGLYPH[tp] || 'session', 'ck-i wk-sg');
