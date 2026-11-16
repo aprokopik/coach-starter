@@ -429,6 +429,9 @@ def seed_checkins(a, running):
     picks = sch.get("checkins") or [{"kind": "morning", "time": sch.get("checkin_time", "7:45 AM")}]
     if checkin_tasks.seed(picks, path) and running:
         checkin_tasks.done("morning", path, str(ROOT / checkin_tasks.DATA_PATHS))
+    # the daytime refresh is on for everyone unless they turned it off (chosen on the card, Nov 16, 2026); a coach
+    # from before it gets it once, and the next morning check-in makes the task
+    checkin_tasks.ensure("refresh", path)
 
 
 def kit_owned(a, today):

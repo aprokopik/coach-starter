@@ -1340,11 +1340,12 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 /* 6.84.1: no scroll anchoring on the page's own nodes (a redraw re-anchored the app's scroll box near its end on the athlete's phone) */
 .cx { overflow-anchor: none; }
 
-/* Check-in settings (tasks.js, 6.87.0): one row per check-in, a time field and a switch, each a 44 px target */
+/* Check-in settings (tasks.js) */
 .ck .ct { margin-top: var(--ck-s4); }
 .ck .ct[hidden] { display: none; }
 .ck .ct-list { list-style: none; margin: 0; padding: 0; }
 .ck .ct-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--ck-s3); padding: var(--ck-s2) 0; border-bottom: 1px solid var(--ck-line); }
+.ck .ck-input.ct-ev { width: auto; min-width: 0; min-height: var(--ck-tap); padding: 0 var(--ck-s2); }
 .ck .ct-t { display: grid; gap: 2px; min-width: 0; }
 .ck .ct-t b { font-size: var(--ck-t3); font-weight: var(--ck-w-bold); color: var(--ck-fg); }
 .ck .ct-t span { font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }

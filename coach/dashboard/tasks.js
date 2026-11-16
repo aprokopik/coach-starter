@@ -1,28 +1,20 @@
-// tasks.js: "When your coach checks in" on the Check-ins tab (6.87.0; the athlete, Nov 16, 2026: "you should be able to modify and
-// enable/disable from the dashboard"; layout A of two, one list, "but there should be an add new").
-// One row per check-in the coach sends, from the coach rows kind checkin_task (coach/tools/checkin_tasks.py rows(); their one
-// home is coach/athlete/checkins.json): the name, a time field and an on/off switch. A tap saves one store document,
-// checkin_task/<id> {id, on, time "HH:MM", saved_at}; "Add a check-in" saves {id, kind, name, what, days, time, on, new: true}.
-// The coach's side (RUNBOOK "Check-in settings"): every check-in copies the documents first and stays silent when its own is
-// off, so Off counts from the tap; the next coach run moves the scheduled task to a new time and makes a new one.
-// No store or no rows: the card stays hidden, and the coach chat is the way to change a check-in.
+// tasks.js: "When your coach checks in" on the Check-ins tab (6.87.0). What it shows and saves: coach/DASHBOARD.md.
 (() => {
   const CX = window.CX;
   const A = () => CX.app;
   const $ = (id) => document.getElementById(id);
-  // the same kinds, names, words and times as coach/tools/checkin_tasks.py KINDS (test_checkin_tasks checks they match)
-  const KINDS = [['morning', 'Morning', "Today's plan and how ready you are", '07:00', 'daily'], ['evening', 'Evening', 'How today went, three questions at most', '20:30', 'daily'], ['week_review', 'Sunday week review', 'A short look back at the week and ahead to the next', '16:30', 'sun'], ['custom', 'Something else', '', '12:00', 'daily']];
-  const MAX = 8;
+  // same as checkin_tasks.py KINDS (a test checks)
+  const KINDS = [['morning', 'Morning', "Today's plan and how ready you are", '07:00', 'daily'], ['evening', 'Evening', 'How today went, three questions at most', '20:30', 'daily'], ['week_review', 'Sunday week review', 'A short look back at the week and ahead to the next', '16:30', 'sun'], ['refresh', 'Daytime refresh', 'Quiet: a finished workout reaches your dashboard the same day', '09:00', 'daily'], ['custom', 'Something else', '', '12:00', 'daily']];
+  const MAX = 8, EVERY = [1, 2, 3, 4]; // hours between daytime refresh runs (checkin_tasks.py EVERY_CHOICES)
   const clock = (t) => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); if (!m) return ''; const h = +m[1]; return `${(h % 12) || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
   const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
   let db = null, built = false, docs = new Map(), pick = '';
 
-  // what shows: the coach's rows, each with a newer tap laid over it, then check-ins added here that the coach has not seen
   function list() {
     const rows = ((A().rowsOk('coach') || []).filter((r) => r.kind === 'checkin_task')).sort((a, b) => a.order - b.order);
     const out = rows.map((r) => {
       const d = docs.get(r.id), newer = d && String(d.saved_at || '') > String(r.saved_at || '');
-      return { id: r.id, name: r.name, what: r.what || '', on: newer && 'on' in d ? !!d.on : !!r.on, time: newer && d.time ? d.time : r.time, taskTime: r.task_time || '', fresh: r.status === 'new' };
+      return { id: r.id, name: r.name, what: r.what || '', on: newer && 'on' in d ? !!d.on : !!r.on, time: newer && d.time ? d.time : r.time, taskTime: r.task_time || '', fresh: r.status === 'new', win: r.window_text || '', every: newer && d.every_h ? d.every_h : r.every_h, winMoved: !!r.until && (r.until !== r.task_until || r.time !== r.task_time || (newer && d.every_h ? d.every_h : r.every_h) !== r.task_every_h) };
     });
     for (const [id, d] of docs) if (d.new && !rows.some((r) => r.id === id)) out.push({ id, name: d.name, what: d.what || '', on: d.on !== false, time: d.time, taskTime: '', fresh: true, doc: d });
     return out;
@@ -30,15 +22,16 @@
   function sub(t) {
     if (!t.on) return ['Off', null];
     if (t.fresh) return ["Starts at your coach's next run", null];
-    if (t.taskTime && t.time !== t.taskTime) return [`Moves to ${clock(t.time)} at your coach's next run`, 'tasks.js: your checkin_task tap; the scheduled task keeps its old time until a coach run moves it'];
+    if (t.win) return [t.win.replace(/^Every [^,]*/, 'Every ' + (t.every === 1 ? 'hour' : t.every + ' hours')) + (t.winMoved ? ", from your coach's next run" : ', while you are awake'), 'coach'];
+    if (t.taskTime && t.time !== t.taskTime) return [`Moves to ${clock(t.time)} at your coach's next run`, 'your tap; the task moves at a coach run'];
     return [t.what, null];
   }
   async function save(t, patch, focusId) {
-    const st = $('ct-st'), doc = { ...(t.doc || {}), id: t.id, on: t.on, time: t.time, ...patch, saved_at: new Date().toISOString() };
+    const st = $('ct-st'), doc = { ...(t.doc || {}), id: t.id, on: t.on, time: t.time, ...(t.every ? { every_h: t.every } : {}), ...patch, saved_at: new Date().toISOString() };
     try {
       await db.doc('checkin_task/' + t.id).set(doc);
       docs.set(t.id, doc);
-      st.textContent = 'on' in patch ? (patch.on ? 'Saved. It is back on from its next time.' : 'Saved. It is off from now.') : "Saved. The new time starts after your coach's next run.";
+      st.textContent = 'every_h' in patch ? "Saved. The new pace starts after your coach's next run." : 'on' in patch ? (patch.on ? 'Saved. It is back on from its next time.' : 'Saved. It is off from now.') : "Saved. The new time starts after your coach's next run.";
     } catch (e) { st.textContent = 'Not saved. Try again, or tell the coach in chat.'; }
     paint(); const f = focusId && $(focusId); if (f) f.focus();
   }
@@ -49,7 +42,8 @@
       const txt = document.createElement('div'); txt.className = 'ct-t';
       const b = document.createElement('b'); b.textContent = t.name; b.id = 'ct-n-' + t.id;
       const s = document.createElement('span'); const [w, rule] = sub(t); s.textContent = w;
-      if (rule) { s.setAttribute('data-derived', 'checkin-time-pending'); s.setAttribute('data-rule', rule); }
+      if (rule === 'coach') { s.setAttribute('data-derived', 'refresh-window'); s.setAttribute('data-rule', 'checkin_task row window_text: every 2 hours in your waking hours (checkin_tasks.py)'); }
+      else if (rule) { s.setAttribute('data-derived', 'checkin-time-pending'); s.setAttribute('data-rule', rule); }
       txt.append(b, s);
       const time = document.createElement('input'); time.type = 'time'; time.step = '300'; time.className = 'ck-input ct-time'; time.id = 'ct-t-' + t.id; time.value = t.time; time.disabled = !t.on;
       time.setAttribute('aria-label', t.name + ' time');
@@ -57,7 +51,11 @@
       const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'ct-sw'; sw.id = 'ct-s-' + t.id; sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', String(t.on)); sw.setAttribute('aria-labelledby', b.id);
       sw.append(document.createElement('span'));
       sw.addEventListener('click', () => save(t, { on: !t.on }, sw.id));
-      li.append(txt, time, sw); ul.append(li);
+      // the daytime refresh: a window the coach sets from sleep, so no time field; "how often" instead
+      const ev = document.createElement('select'); ev.className = 'ck-input ct-ev'; ev.id = 'ct-e-' + t.id; ev.disabled = !t.on; ev.setAttribute('aria-label', t.name + ', how often');
+      for (const h of EVERY) { const o = document.createElement('option'); o.value = String(h); o.textContent = h === 1 ? 'Hourly' : `Every ${h} h`; o.selected = h === t.every; ev.append(o); }
+      ev.addEventListener('change', () => save(t, { every_h: +ev.value }, ev.id));
+      li.append(...(t.win ? [txt, ev, sw] : [txt, time, sw])); ul.append(li);
     }
     // Add a check-in: the kinds not in the list yet, and always "Something else"
     const have = new Set(items.map((t) => t.id)), box = $('ct-kinds'); box.replaceChildren();

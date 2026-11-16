@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.87.1",
+ "version": "6.88.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -100,8 +100,11 @@
   "coach/ops/HOME-BP.md",
   "coach/ops/RUNBOOK.md",
   "coach/ops/SCALE-SHORTCUT.md",
+  "coach/ops/TASK-PROMPT-evening.md",
   "coach/ops/TASK-PROMPT-morning.md",
+  "coach/ops/TASK-PROMPT-refresh.md",
   "coach/ops/TASK-PROMPT-research.md",
+  "coach/ops/TASK-PROMPT-week-review.md",
   "coach/ops/TASK-PROMPT-weekly.md",
   "coach/ops/data_paths.json",
   "coach/pillars.json",
@@ -200,8 +203,6 @@
   "coach/health.json",
   "coach/levels.json",
   "coach/lift_history.json",
-  "coach/ops/TASK-PROMPT-evening.md",
-  "coach/ops/TASK-PROMPT-week-review.md",
   "coach/outcomes.csv",
   "coach/plan.json",
   "coach/predictions.csv",
