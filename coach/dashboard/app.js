@@ -2014,7 +2014,7 @@
       opt.append(inp, mark(el('span', null, x.sport_label || x.label), 'coach', 'sport_label', 'kind=marker&key=' + x.key)); bar.append(opt);
     }
     // a plain line under the switch says what the chosen part measures (the athlete, Nov 15, 2026: "have the overall/runnable toggles be more explainable")
-    const nt = el('p', 'ck-note ft-segnote'); nt.id = 'f-sportn'; if (pick.why) nt.append(mark(el('span', null, pick.why), 'coach', 'why', 'kind=marker&key=' + pick.key)); $('c-fit').before(bar, nt);
+    const nt = el('p', 'ck-note ft-segnote'); nt.id = 'f-sportn'; if (pick.why) nt.append(mark(el('span', null, pick.why), 'coach', 'why', 'kind=marker&key=' + pick.key)); if (m.bars) $('c-fit').before(nt); else $('c-fit').before(bar, nt); // nested readings pick in the tile, no switch
     return pick;
   }
   // Fitness KPIs grouped by race type and ordered by weight (the athlete, Nov 1, 2026; coach/fitness_layout.json): a header per group with its
@@ -2047,6 +2047,7 @@
     // locked tiles, tiles the athlete added or hid, and the Add a metric list (metrics.js; the athlete, Nov 12, 2026)
     if (window.CX.metricTiles) window.CX.metricTiles(box, tiles);
     if (window.CX.pairBike) window.CX.pairBike(box);
+    if (window.CX.nestReadings) window.CX.nestReadings(box); // each reading its own panel (metrics.js)
   }
   // Tiles grouped under sport headers with the sport stripe (the athlete, Nov 1, 2026: Season so far and All-time records by sport).
   // groups: [{ label, sport, tiles: [element] }]; empty groups are skipped; an odd last tile spans the row. Phase 5 (Season):
@@ -2186,7 +2187,7 @@
   // Expand panel (the athlete, Oct 23): the chart and detail open directly under the selected tile's row; tapping the selected tile again closes it
   function placeExpand(tilesBox, panel, selKey) {
     const tiles = Array.from(tilesBox.querySelectorAll(':scope > .ft-tile'));
-    const sel = tiles.find((t) => t.getAttribute('aria-expanded') === 'true');
+    const sel = tiles.find((t) => t.getAttribute('aria-expanded') === 'true' || t.dataset.open === 'true'); // data-open: a tile of nested readings (metrics.js nestReadings)
     if (!sel || !selKey) { panel.hidden = true; tilesBox.parentNode.insertBefore(panel, tilesBox.nextSibling); return false; }
     const top = sel.offsetTop; let last = sel;
     for (const t of tiles) if (Math.abs(t.offsetTop - top) < 2) last = t;
@@ -2242,7 +2243,7 @@
     const bars = String(m.bars || '').split(',').map((k) => k.trim()).filter(Boolean).map((k) => (k === m.key ? m : kind('marker').find((x) => x.key === k))).filter(Boolean);
     if (bars.length) for (const x of bars) {
       const xw = 'kind=marker&key=' + x.key; const xr = x.tiers && x.chart ? seriesFor(x) : [];
-      const ln = el('span', 'ft-barname'); ln.append(mark(el('b', null, x.sport_label || x.label), 'coach', 'sport_label', xw), x.value && x.value !== '—' ? ((u) => { const v = el('b'); v.append(mark(el('span', null, x.value), 'coach', 'value', xw), u.startsWith('/') ? u : u ? ' ' + u : ''); return v; })(String(x.unit || '').replace('/effort km', '/km')) : el('span', 'ck-sub', 'none yet'));
+      const ln = el('span', 'ft-barname'); ln.dataset.r = x.key; ln.append(mark(el('b', null, x.sport_label || x.label), 'coach', 'sport_label', xw), x.value && x.value !== '—' ? ((u) => { const v = el('b'); v.append(mark(el('span', null, x.value), 'coach', 'value', xw), u.startsWith('/') ? u : u ? ' ' + u : ''); return v; })(String(x.unit || '').replace('/effort km', '/km')) : el('span', 'ck-sub', 'none yet'));
       extra.push(ln); if (xr.length) extra.push(withStage(levelBadge(levelFor(x, xr[xr.length - 1].value), x.key), stageChip(x))); // each bar shows the stage its own scale is on
     }
     else if (rows.length) { extra.push(withStage(levelBadge(levelFor(m, rows[rows.length - 1].value), m.key), stageChip(m))); const uc = stepChip(m, rows[rows.length - 1].value); if (uc) extra.push(uc); }

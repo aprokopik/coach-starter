@@ -232,3 +232,78 @@ def pushup_figure(health_rows, today, g):
     d, v = p
     return {"value": f"{v:g}", "num": v, "unit": "push-ups", "sub": f"Push-up test, {d.strftime('%b')} {d.day}", "scale": pushup_scale(g),
             "note": f"Push-up test on {d.strftime('%b')} {d.day}. The monthly check-in asks for a new one."}
+
+
+# alpha strength_levels (the athlete, Nov 16, 2026): slots in health order on the Fitness tab, each a percentile level among everyone
+# (strength_norms.py). Squat and hinge are one row; pull and push have a vertical and a horizontal row, each its own level.
+SLOTS = (("lift_squat", "squat", "Squat", ((None, ""),)),
+         ("lift_hinge", "hinge", "Hinge", ((None, ""),)),
+         ("lift_pull", "pull", "Pull", (("vertical", "Vertical"), ("horizontal", "Horizontal"))),
+         ("lift_push", "push", "Push", (("horizontal", "Horizontal"), ("vertical", "Vertical"))))
+NONE_WORD = {("pull", "vertical"): "No pull-up or pulldown in your routine", ("pull", "horizontal"): "No row in your routine",
+             ("push", "vertical"): "No overhead press in your routine", ("push", "horizontal"): "No bench or push-up in your routine",
+             ("squat", None): "No squat in your routine", ("hinge", None): "No hinge in your routine"}
+
+
+def slot_lift(strength_rows, exercises, pattern, plane=None):
+    """The routine's first exercise in this pattern (and plane), merged over its library row, or None."""
+    lib = {r["id"]: r for r in exercises or [] if r.get("id")}
+    for r in sorted((r for r in strength_rows or [] if r.get("kind") == "lift_ex"), key=lambda r: r.get("order", 99)):
+        L = lib.get(r.get("id")) or {}
+        if L.get("pattern") != pattern or (plane and L.get("plane") != plane):
+            continue
+        return {**L, **{k: v for k, v in r.items() if v not in (None, "")}, "name": L.get("name") or r.get("name") or r.get("id")}
+    return None
+
+
+def slot_figures(strength_rows, exercises, log_rows, g, bw, age):
+    """{tile key: figure} for the four slots. Flat fields s1_* and s2_* carry each row (the page reads nested fields as text).
+    The figure's own level, pct and next are the first row's, so the ladder and the closest-to-a-level card keep working."""
+    import strength_norms as sn
+    import vo2_norms
+    out = {}
+    for key, pat, title, planes in SLOTS:
+        f = {"name": title, "slot": pat, "what": f"Your best {title.lower()} set as a level among adults your sex, age and body weight; the steps fill as reps climb toward the next level."}
+        any_row = False
+        for i, (plane, word) in enumerate(planes, 1):
+            ex = slot_lift(strength_rows, exercises, pat, plane)
+            if not ex:
+                r = {"ex": NONE_WORD.get((pat, plane), "Not in your routine"), "plane": word, "level": "", "why": "Add one to your routine to place it", "none": 1}
+            else:
+                any_row = True
+                r = sn.row(ex, sessions(log_rows, ex.get("id")), g, bw, age, word)
+            for k, v in r.items():
+                f[f"s{i}_{k}"] = v
+        f["s_n"] = len(planes)
+        if not any_row:
+            f["hide"] = True
+        lv = f.get("s1_level") and f or ({"s1_level": f.get("s2_level"), "s1_pct": f.get("s2_pct"), "s1_next": f.get("s2_next")} if f.get("s2_level") else {})
+        if lv.get("s1_level"):
+            stg = f.get("s1_stage") if f.get("s1_level") else f.get("s2_stage")
+            pop = "people who lift" if stg == 2 else "everyone"
+            f.update({"level": lv["s1_level"], "pct": lv["s1_pct"], "next": lv["s1_next"],
+                      "rungs": "|".join(n for n, _lo, _hi in reversed(vo2_norms.FIT_BANDS)),
+                      "ladder_label": f"{(g or {}).get('label', 'Adults').capitalize()}, {pop}",
+                      "rule": ("Where your best set sits among adults your sex, age and body weight: stage 1 everyone, lifters or not; "
+                               "stage 2 people who lift, unlocked the first time a session reaches Top 20% of everyone. " + sn.SOURCE + ". "
+                               "The three steps fill as your reps climb toward the next level.")})
+        out[key] = f
+    return out
+
+
+# Health order of the Strength group (the athlete, Nov 16, 2026: "strength as a habit should be number one ... and then squat is number
+# two"); the old Strength (lifts) and Lift strength tiles give way to the slots. alpha strength_levels only.
+STRENGTH_ORDER = ("lifthabit", "lift_squat", "lift_hinge", "lift_pull", "lift_push", "pushup")
+STRENGTH_OFF = ("lifts", "liftbest")
+
+
+def strength_order(rows):
+    """The dashboard rows with the Strength group's fit_kpi rows re-ranked in health order and the old lift tiles left out."""
+    out = []
+    for r in rows:
+        if r.get("kind") == "fit_kpi" and r.get("key") in STRENGTH_OFF:
+            continue
+        if r.get("kind") == "fit_kpi" and r.get("key") in STRENGTH_ORDER:
+            r = {**r, "rank": STRENGTH_ORDER.index(r["key"]) + 1}
+        out.append(r)
+    return out

@@ -144,13 +144,14 @@
     const A = CX.app; const dl = el('dl', 'ft-kv'); const ws = A.sentences(m.what);
     const row = (lab, txt, fld, d) => { if (txt) A.kvRow(dl, lab, mark(el('span', null, txt), 'coach', d ? null : fld, mw(m), d)); };
     row('What', ws[0], 'what', ws.length > 1 ? 'what-first' : null); row('Why', ws.slice(1).join(' '), 'what', 'what-rest');
-    row('Next', m.next, 'next'); row(m.ladder === 'ready' ? 'Latest' : 'Counts', m.note, 'note');
+    row('Next', m.next, (m.fld || {}).next || 'next'); row(m.ladder === 'ready' ? 'Latest' : 'Counts', m.note, 'note');
     if (dl.childNodes.length) f.append(dl);
-    if (m.rule) { const h = A.section('How ' + String(m.ladder_label || 'these levels').replace(/\s*\(.*\)/, '').toLowerCase() + ' work'); const ul = el('ul', 'ft-howl');
+    if (m.rule) { const h = A.section('How ' + String(m.s1_ex !== undefined ? 'these levels' : m.ladder_label || 'these levels').replace(/\s*\(.*\)/, '').toLowerCase() + ' work'); const ul = el('ul', 'ft-howl');
       A.sentences(m.rule).forEach((x) => ul.append(el('li', null, x))); mark(ul, 'coach', 'rule', mw(m)); h.body.append(ul); f.append(h.dt); }
     return f;
   }
   function ladderPanel(m) {
+    const sl = strSlot(m); if (sl && m[sl + '_plane']) m = { ...m, name: `${m.name} · ${m[sl + '_plane']}`, level: m[sl + '_level'] || '', next: m[sl + '_next'] || m[sl + '_why'] || '', fld: { next: m[sl + '_next'] ? sl + '_next' : sl + '_why' } }; // one plane's own level (nested readings)
     const p = el('div', 'ft-expand mx-unlock mx-ladder'); p.id = 'mx-ladder'; if (m.ladder === 'reps') p.dataset.sport = CX.sportTok(m.sport); // the rep boxes take the tile's sport colour p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'Levels for ' + m.name);
     p.append(el('h3', 'ck-h3', m.name)); if (m.ladder === 'reps' && m.goal) { const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what); } p.append(ladderBody(m));
     // a habit that had its own chart keeps it inside the panel (Consistency, the training days per week bars; 6.47.0, back from 6.40.0)
@@ -159,7 +160,46 @@
       requestAnimationFrame(() => { if (box.isConnected) { try { A.drawMarker(mk, box, null, null, false); } catch (e) { box.replaceChildren(el('p', 'ck-note', 'The chart could not draw.')); } } }); }
     return p;
   }
-  const plainTile = (m) => (m.value !== undefined && m.value !== null && String(m.value) !== '' ? (m.level || m.rungs ? ladderTile(m) : figureTile(m)) : waitingTile(m));
+  const alpha = (id) => !!(CX.app && CX.app.kind && CX.app.kind('alpha').some((x) => x.id === id));
+  // alpha strength_levels (the athlete, Nov 16, 2026): Squat, Hinge, Pull and Push slots, each row with its exercise, best set, stage
+  // coins, a percentile level and three steps of reps toward the next level (key_lifts.slot_figures, strength_norms.py)
+  function strengthTile(m) {
+    const { mark } = CX.ck; const w = mw(m);
+    const b = el('button', 'ck-tile ck-tile-btn ft-tile mx-fig mx-str'); b.type = 'button'; b.dataset.k = m.key; b.id = 'f-' + m.key; b.dataset.sport = CX.sportTok(m.sport);
+    b.setAttribute('aria-expanded', String(ui.open === m.key)); b.setAttribute('aria-controls', 'mx-ladder');
+    const head = el('span', 'ck-tile-head'); head.append(mark(el('span', 'ck-tile-label ft-label', m.name), 'coach', 'name', w), CX.ck.icon('chevron', 'ck-chev ft-chev')); b.append(head);
+    const said = [m.name];
+    for (let i = 1; i <= (Number(m.s_n) || 1); i++) {
+      const f = (k) => m[`s${i}_${k}`], F = (k) => `s${i}_${k}`;
+      if (f('ex') === undefined) continue;
+      if (f('plane')) { const ln = el('span', 'ft-barname'); ln.dataset.r = 's' + i; ln.append(mark(el('b', null, f('plane')), 'coach', F('plane'), w), mark(el('b', null, f('value') ? `${f('value')}${f('unit') || ''}` : '—'), 'coach', F('value'), w)); b.append(ln); }
+      else if (f('value')) { const fig = el('span', 'ck-big ft-fig'); fig.append(mark(el('span', null, String(f('value'))), 'coach', F('value'), w)); if (f('unit')) fig.append(mark(el('span', 'ck-unit', f('unit')), 'coach', F('unit'), w)); b.append(fig); }
+      if (!f('plane') && !f('value')) b.append(el('span', 'ck-big ft-fig', '—'));
+      b.append(mark(el('span', 'ck-sub ft-subl', f('ex')), 'coach', F('ex'), w));
+      if (f('level')) {
+        const row = el('span', 'ft-lvrow'), cur = Number(f('stage')) || 1;
+        const st = mark(el('span', 'mx-stage ft-stage'), 'coach', F('stage'), w); st.setAttribute('role', 'img'); st.setAttribute('aria-label', `Stage ${cur} of 3: compared with ${cur === 2 ? 'people who lift' : 'everyone'}`);
+        for (const n of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (n === cur ? ' is-cur' : n > cur ? ' is-none' : ''), String(n)); d.setAttribute('aria-hidden', 'true'); st.append(d); }
+        const c = el('span', 'ft-chip'); c.append(el('span', 'ck-vh', 'Level'), ' ', mark(el('span', null, f('level')), 'coach', F('level'), w)); row.append(st, c); b.append(row);
+        const thru = Number(f('pct'));
+        if (Number.isFinite(thru)) {
+          const n = 3, x = Math.min(Math.max(thru, 0) * n, n - 1e-9), k = Math.floor(x), tt = `step ${k + 1} of ${n}, ${Math.round((x - k) * 100)}% through this step`;
+          const bar = mark(el('span', 'ft-steps'), 'coach', F('pct'), w, 'level-steps'); bar.setAttribute('role', 'img'); bar.setAttribute('aria-label', `Level ${f('level')}: ${tt}`); bar.title = tt;
+          for (let j = 0; j < n; j++) { const sg = el('span', j === k ? 'ft-step is-now' : j < k ? 'ft-step is-done' : 'ft-step'); const g = el('i'); g.style.width = `${j < k ? 100 : j === k ? Math.round((x - k) * 100) : 0}%`; sg.append(g); bar.append(sg); }
+          b.append(bar);
+        }
+        if (f('next')) b.append(mark(el('span', 'ck-sub ft-subl', f('next')), 'coach', F('next'), w));
+        said.push(`${f('plane') ? f('plane') + ' ' : ''}${f('ex')} ${f('value') || ''}, level ${f('level')}`);
+      } else {
+        if (f('why')) b.append(mark(el('span', 'ck-sub ft-subl', f('why')), 'coach', F('why'), w));
+        said.push(`${f('plane') ? f('plane') + ' ' : ''}${f('ex')}, not placed`);
+      }
+    }
+    b.setAttribute('aria-label', said.join(', '));
+    b.addEventListener('click', (e) => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = e.detail === 0 ? '#f-' + m.key : null; rerender(); });
+    return b;
+  }
+  const plainTile = (m) => alpha('strength_levels') && m.s1_ex !== undefined ? strengthTile(m) : (m.value !== undefined && m.value !== null && String(m.value) !== '' ? (m.level || m.rungs ? ladderTile(m) : figureTile(m)) : waitingTile(m));
   function unlockPanel(m, I) {
     const { mark } = CX.ck;
     const p = el('div', 'ft-expand mx-unlock'); p.id = 'mx-unlock'; p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'How to unlock ' + m.name);
@@ -201,27 +241,61 @@
 
   // Bike at 130 bpm as one tile, like Sustainable trail speed (the athlete, Nov 15, 2026: "merged and togglable", then "Handle the
   // situation the same"): the power tile shows both readings, each with its level; the speed tile stays built but hidden; the
-  // opened chart carries a Power | Speed switch (power: the app.js chart, speed: the speed tile's level panel).
+  // Power and Speed are nested readings (nestReadings below; the athlete, Nov 16, 2026: the switch is gone, a tap on a reading opens it).
   CX.pairBike = (box) => {
     const p = box.querySelector(':scope > #f-bike'), s = box.querySelector(':scope > #f-bikespeed'), o = document.querySelectorAll('#f-bkseg, #f-bknote'); o.forEach((x) => x.remove());
     if (!p || !s) return;
     s.hidden = true; const lb = p.querySelector('.ft-label > span:last-child'); if (lb) { lb.textContent = lb.textContent.replace(/power /i, ''); lb.removeAttribute('data-field'); lb.setAttribute('data-derived', 'pair-name'); }
-    const row = (name, fig) => { const r = el('span', 'ft-barname'); const v = el('b'); for (const n of fig.childNodes) v.append(n.cloneNode(true)); r.append(el('b', null, name), v); return r; };
+    const row = (name, fig, k) => { const r = el('span', 'ft-barname'); r.dataset.r = k; const v = el('b'); for (const n of fig.childNodes) v.append(n.cloneNode(true)); r.append(el('b', null, name), v); return r; };
     const pf = p.querySelector('.ft-fig'), sf = s.querySelector('.ft-fig'), lv = p.querySelector('.ft-lvrow, .ft-chip'), sub = p.querySelector('.ft-subl');
-    if (pf && lv) { lv.before(row('Power', pf)); pf.hidden = true; }
-    if (sf) { const add = [row('Speed', sf), ...['.ft-chip', '.ft-steps'].map((q) => s.querySelector(q)).filter(Boolean).map((n) => n.cloneNode(true))]; if (sub) sub.before(...add); else p.append(...add); }
+    if (pf && lv) { lv.before(row('Power', pf, 'bike')); pf.hidden = true; }
+    if (sf) { const add = [row('Speed', sf, 'bikespeed'), ...['.ft-chip', '.ft-steps'].map((q) => s.querySelector(q)).filter(Boolean).map((n) => n.cloneNode(true))]; if (sub) sub.before(...add); else p.append(...add); }
     p.setAttribute('aria-label', p.getAttribute('aria-label').replace(/^Bike power/, 'Bike') + `, speed ${sf ? sf.textContent.trim() : 'none yet'}`);
     const sp = ui.open === 'bikespeed'; if (sp) p.setAttribute('aria-expanded', 'true');
-    p.addEventListener('click', () => { if (ui.open === 'bikespeed') { ui.open = null; CX.state.fit = null; rerender(); } });
-    const seg = el('fieldset', 'ck-seg ft-seg ft-sport'); seg.id = 'f-bkseg'; seg.append(el('legend', 'ck-vh', 'Bike reading'));
-    for (const [k, lab] of [['bike', 'Power'], ['bikespeed', 'Speed']]) { const l = el('label', 'ck-seg-opt'), i = el('input', 'ck-vh-input'); i.type = 'radio'; i.name = 'f-bkseg'; i.checked = (k === 'bikespeed') === sp;
-      i.addEventListener('change', () => { ui.open = k === 'bikespeed' ? k : null; CX.state.fit = k === 'bike' ? k : null; rerender(); const f = document.querySelectorAll('#f-bkseg input')[k === 'bike' ? 0 : 1]; if (f) f.focus({ preventScroll: true }); });
-      l.append(i, lab); seg.append(l); }
     // the open panel goes back under its own row (the athlete, Nov 15)
     { const op = box.querySelector(':scope > #mx-ladder, :scope > #mx-unlock'), ot = box.querySelector(':scope > .ft-tile[aria-expanded="true"]:not([hidden])'); if (op && ot && !sp) afterRow(box, ot, op); }
-    if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); const c = el('div', 'chart'); c.id = 'c-bikespeed'; c.style.setProperty('--h', '190px'); c.setAttribute('data-source', 'coach'); pn.prepend(seg, c); const m = metrics().find((x) => x.key === 'bikespeed'); if (m && CX.app.speedChart) CX.app.speedChart(c, m); } }
-    else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(seg, n); } else if (c) c.before(seg); }
+    if (sp) { const pn = document.getElementById('mx-ladder'); if (pn) { const top = p.offsetTop; let last = p; for (const t of box.querySelectorAll(':scope > .ft-tile:not([hidden])')) if (Math.abs(t.offsetTop - top) < 2) last = t; last.after(pn); const c = el('div', 'chart'); c.id = 'c-bikespeed'; c.style.setProperty('--h', '190px'); c.setAttribute('data-source', 'coach'); pn.prepend(c); const m = metrics().find((x) => x.key === 'bikespeed'); if (m && CX.app.speedChart) CX.app.speedChart(c, m); } }
+    else if (CX.state.fit === 'bike') { const c = document.getElementById('c-fit'), w = metrics().find((x) => x.key === 'bike'); if (w && w.what) { const n = el('p', 'ck-note ft-segnote'); n.id = 'f-bknote'; n.append(CX.ck.mark(el('span', null, w.what), 'coach', 'what', mw(w))); if (c) c.before(n); } }
   };
+
+  // Nested readings (the athlete, Nov 16, 2026, "treat these as nested cards", shaded panels): a tile with two readings (Bike at 130 bpm
+  // Power and Speed, Sustainable trail speed, Climbing, the strength Pull and Push planes) shows each reading as its own panel
+  // with the sport rail. The tile is no longer one button: each panel is, and opens that reading's own chart or ladder under the
+  // tile; the open one turns a soft shade of its sport. Runs after pairBike, before app.js places the chart (placeExpand).
+  let nxFocus = null;
+  const strSlot = (m) => { if (!m || m.s1_ex === undefined) return null; if (ui.slot && m[ui.slot + '_ex'] !== undefined) return ui.slot;
+    for (let i = 1; i <= (Number(m.s_n) || 1); i++) if (m[`s${i}_level`]) return 's' + i; return 's1'; };
+  CX.nestReadings = (box) => {
+    const S = CX.state;
+    for (const t of Array.from(box.querySelectorAll(':scope > .ft-tile'))) {
+      const rows = Array.from(t.children).filter((c) => c.classList.contains('ft-barname') && c.dataset.r); if (rows.length < 2) continue;
+      const k = t.dataset.k, str = t.classList.contains('mx-str'), first = rows[0].dataset.r;
+      const sm = str ? metrics().find((x) => x.key === k) : null;
+      const isOpen = (r) => k === 'bike' ? (r === 'bike' ? S.fit === 'bike' : ui.open === 'bikespeed') : str ? ui.open === k && strSlot(sm) === r : S.fit === k && (S.fitSport[k] || first) === r;
+      const d = el('div', t.className); d.classList.remove('ck-tile-btn'); d.classList.add('nx');
+      for (const a of ['id', 'data-k', 'data-sport', 'data-source', 'data-where', 'hidden']) if (t.hasAttribute(a)) d.setAttribute(a, t.getAttribute(a));
+      const name = ((t.querySelector('.ft-label') || {}).textContent || '').replace(/^\d+\s*/, '').trim();
+      let cur = null, any = false;
+      for (const c of Array.from(t.childNodes)) {
+        if (c.nodeType === 1 && c.classList.contains('ft-barname') && c.dataset.r) {
+          const r = c.dataset.r, o = isOpen(r); cur = el('button', 'nx-card' + (o ? ' is-open' : '')); cur.type = 'button'; cur.id = `nx-${k}-${r}`; any = any || o;
+          cur.setAttribute('aria-expanded', String(o)); cur.setAttribute('aria-controls', str || r === 'bikespeed' ? 'mx-ladder' : 'f-expand');
+          cur.addEventListener('click', () => tapReading(k, r, str, first, sm)); d.append(cur);
+        } else if (c.nodeType === 1 && (c.classList.contains('ck-tile-head') || c.classList.contains('ft-fig') || (c.id && /-d\d+$/.test(c.id)))) cur = null; // the tile's own title, figure and sublines stay on the tile
+        (cur || d).append(c);
+      }
+      for (const b of d.querySelectorAll('.nx-card')) b.setAttribute('aria-label', `${name}: ${b.textContent.replace(/\s+/g, ' ').trim()}`);
+      if (any) d.dataset.open = 'true'; t.replaceWith(d);
+    }
+    if (nxFocus) { const f = document.getElementById(nxFocus); nxFocus = null; if (f) f.focus({ preventScroll: true }); }
+  };
+  function tapReading(k, r, str, first, sm) {
+    const S = CX.state; nxFocus = `nx-${k}-${r}`;
+    if (k === 'bike') { if (r === 'bike') { const was = S.fit === 'bike'; ui.open = null; S.fit = was ? null : 'bike'; } else { const was = ui.open === 'bikespeed'; S.fit = null; ui.open = was ? null : 'bikespeed'; } }
+    else if (str) { const was = ui.open === k && strSlot(sm) === r; S.fit = null; ui.open = was ? null : k; ui.slot = was ? null : r; }
+    else { const was = S.fit === k && (S.fitSport[k] || first) === r; ui.open = null; S.fit = was ? null : k; S.fitSport[k] = r; }
+    rerender();
+  }
 
   // ---------- saving ----------
   function pick(key, on) {

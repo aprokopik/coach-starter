@@ -33,6 +33,8 @@ import ladders  # noqa: E402
 import bike_speed  # noqa: E402
 import swim_speed  # noqa: E402
 import key_lifts  # noqa: E402
+import strength_norms  # noqa: E402
+import alpha  # noqa: E402
 import vo2_norms  # noqa: E402
 import hr_anchor  # noqa: E402
 
@@ -376,6 +378,11 @@ def rows(root=".", today=None):
         fig[key] = kf or {"name": ex.get("name"), "sub": f"Log {ex.get('name')} on the Lifts tab to start its levels."}
     for _pat, key in key_lifts.PATTERNS:
         fig.setdefault(key, {"hide": True})  # no loaded lift of this pattern in the routine: no tile
+    if alpha.on("strength_levels", os.path.join(root, "coach", "ops", "alpha.json")):
+        # alpha strength_levels (the athlete, Nov 16, 2026): every slot is a percentile level among everyone, then people who lift
+        # (strength_norms.py); push and pull have a vertical and a horizontal row each
+        for key, f in key_lifts.slot_figures(srows, exlib, slog, grp, bw, age).items():
+            fig[key] = f
     lifts = (read_json(os.path.join(root, LIFTS), {}) or {}).get("rows", [])
     lev = ladders.levels(cat, profile, acts, lifts, summ, plan_on_record(root), (read_json(os.path.join(root, RACES), {}) or {}).get("rows", []), today, fig, train_days=manual_training_days(root), walker=ladders.walks_are_training(root))
     lad = {l["key"]: l for l in cat.get("ladders", [])}

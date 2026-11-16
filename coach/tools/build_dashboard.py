@@ -173,6 +173,12 @@ for r in read_json("coach/races.json", {"rows": []}).get("rows", []):
 for name in ("coach/zones.json", "coach/benchmarks.json", "coach/strength.json", "coach/routines.json", "coach/my_routines.json", "coach/levels.json", "coach/norms.json", "coach/fitness_layout.json", "coach/race_tree.json"):
     for r in read_json(name, {"rows": []}).get("rows", []):
         rows.append(dict(r))
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import alpha  # noqa: E402
+import key_lifts  # noqa: E402
+if alpha.on("strength_levels"):
+    rows[:] = key_lifts.strength_order(rows)  # alpha strength_levels: Strength group in health order, old lift tiles off
 
 # Per-exercise lift history and block-start rotation proposals for the Lifts tab (coach/tools/lifts.py, Oct 24, 2026)
 import sys
