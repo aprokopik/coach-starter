@@ -16,6 +16,8 @@
   const A = () => CX.app || {};
   let db = null, loaded = false; const kept = new Map(); // id -> badge saved in the store
   const ui = { open: null, node: null, all: false, wide: new Set() };
+  let memo = null; // one draw's skill series and badges, so the Season tab reads each series once (speed budget)
+  const ser = () => { if (memo && memo.ser) return memo.ser; const v = A().skillSeries ? A().skillSeries() : []; if (memo) memo.ser = v; return v; };
   const BASIS = { research: ['series-8', 'Research'], race: ['series-2', 'Race target'], coach: ['chart-threshold', 'Coach estimate'] };
   const basisOf = (b) => BASIS[b] || BASIS.coach;
   const SPORT = (k) => { const s = A().SKILL_ICON ? A().SKILL_ICON(k) : 'badge'; return s; };
@@ -27,7 +29,7 @@
     const { skillSeries, ladderOf, levelOf, autoStage, kind, startDay, stageInfo } = { ...A(), stageInfo: CX.stageInfo };
     if (!skillSeries || !ladderOf) return [];
     const start = (startDay && startDay()) || '0000'; const out = [];
-    for (const { m, rows } of skillSeries()) {
+    for (const { m, rows } of ser()) {
       if (rows.length < 2) continue; const better = Number(m.better) || 1; const beyond = (v, e) => (better === 1 ? v >= e : v <= e);
       const lad = ladderOf(m); const latest = rows[rows.length - 1].value; const now = levelOf(m, latest); let si = null; try { si = stageInfo ? stageInfo(m.key) : null; } catch (e) { si = null; }
       const stage = si ? si.cur : 0;
@@ -41,7 +43,7 @@
     if (autoStage && kind) for (const m of kind('marker')) { // stages unlocked since the start, one per tile (a paired marker is read on its tile)
       if (!m.scales || kind('marker').some((x) => String(x.pair || '').split(',').map((k) => k.trim()).includes(m.key))) continue;
       let au = null; try { au = autoStage(m); } catch (e) { au = null; } if (!au || !au.promoted || au.unlocked < 2 || String(au.promoted) < start) continue;
-      const sr = (skillSeries().find((x) => x.m.key === m.key) || {}).rows || A().seriesFor(m); if (!sr.some((r) => String(r.date) < String(au.promoted))) continue; // the first reading is a start, not a step up
+      const sr = (ser().find((x) => x.m.key === m.key) || {}).rows || A().seriesFor(m); if (!sr.some((r) => String(r.date) < String(au.promoted))) continue; // the first reading is a start, not a step up
       out.push({ id: `${m.key}|stage${au.unlocked}`, key: m.key, label: m.label, rank: `Stage ${au.unlocked}`, stageUp: au.unlocked, lv: 0, of: 0, stage: au.unlocked, basis: 'research', date: String(au.promoted).slice(0, 10), held: au.cur >= au.unlocked });
     }
     return out;
@@ -119,7 +121,7 @@
   // no badges, it shows only as this one marker.
   function startOf(key) {
     const { skillSeries, levelOf, startDay } = A(); if (!skillSeries || !levelOf) return null; const start = (startDay && startDay()) || '0000';
-    const s = skillSeries().find((x) => x.m.key === key); if (!s) return null; const before = s.rows.filter((r) => String(r.date) < start); if (!before.length) return null;
+    const s = ser().find((x) => x.m.key === key); if (!s) return null; const before = s.rows.filter((r) => String(r.date) < start); if (!before.length) return null;
     const r = before[before.length - 1]; const lv = levelOf(s.m, r.value); return lv ? { label: lv.band.label, n: lv.n, of: lv.max, date: start, when: String(r.date).slice(0, 10) } : null;
   }
   function startCell(sp, label, el, fDay) {
@@ -127,7 +129,8 @@
     const ring = el('span', 'eb-start'); ring.textContent = 'Start'; c.append(ring, el('b', 'eb-rank', sp.label), el('span', 'eb-when', fDay(sp.date))); return c;
   }
   function renderShelf() {
-    const box = $('r-eb'); if (!box) return; const { el, icon, P } = A(); if (!el) return; const fDay = (s) => A().fDay(P(s));
+    const box = $('r-eb'); if (!box) return; const pn = $('r-p-badges'); if (pn && pn.hidden) return; // folded: drawn when Badges is chosen
+    const { el, icon, P } = A(); if (!el) return; const fDay = (s) => A().fDay(P(s));
     const list = badges(); const body = el('div', 'eb-body');
     const cap = $('r-eb-cap'); if (cap) cap.textContent = list.length ? `${list.length} earned` : '';
     if (!list.length) { body.append(el('p', 'ck-note', 'Your first badge comes with your first new level. Every level you reach from your start date earns one, and you keep it.')); box.replaceChildren(body); return; }
@@ -241,7 +244,7 @@
     return p;
   }
 
-  function render() { if (!$('r-tree')) mount(); renderShelf(); renderTree(); }
+  function render() { if (!$('r-tree')) mount(); memo = {}; try { renderShelf(); renderTree(); } finally { memo = null; } }
   function mount() { // the Race tree card under the season summary; Badges is a panel inside it (index.html #r-p-badges)
     const { el, icon } = A(); const after = $('r-st'); if (!after || !el) return;
     const a = el('article', 'ck-tile sn-earn eb-space'); a.id = 'r-tree'; a.setAttribute('aria-labelledby', 'r-rt-h'); const hd = el('div', 'ck-tile-head sn-head'); const h = el('h2', 'ck-h3'); h.id = 'r-rt-h'; h.append(icon('flag'), 'Race tree');
@@ -249,6 +252,7 @@
   }
   const wrap = () => { const orig = CX.renderRaces; if (!orig || orig.__eb) return; const f = () => { orig(); try { render(); } catch (e) { /* the rest of Season still draws */ } }; f.__eb = true; CX.renderRaces = f; };
   wrap();
+  { const r = document.querySelector('input[name=r-st][value=badges]'); if (r) r.addEventListener('change', () => setTimeout(() => { if (r.checked) { memo = {}; try { renderShelf(); } finally { memo = null; } } }, 0)); }
   (async () => {
     try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
     if (db) { try { const d = await db.doc('badges/earned').get(); const v = d && d.exists ? d.data() : null; let items = v ? v.items : null; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }

@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.99.1 (2026-11-16)
+- Dashboard: the Season tab draws within its speed budget again. The publish check of 6.96.0 timed Season at 720 to 870 ms against 700. Badges now read each skill's history once per draw instead of once per skill, and the Badges panel draws only when it is chosen (it starts folded). Season now draws in about 590 to 670 ms. Nothing you see changes.
+
 ## 6.99.0 (2026-11-16)
 - Dashboard: habit, readiness and coach guide panels on Fitness read as labelled lines (What, Why, Next, Counts or Latest), and the ladder rule moves into a closed "How ... levels work" fold, one sentence a line (the kit maker, Nov 15: "All your proposals look great!" on the text trim before and after page). `metric_catalog.json` ladder rules are rewritten as short sentences; every fact stays.
 - Dashboard: Today's "What counts" is one labelled line per row the card shows, plus Weeks: Monday to Sunday. Rows the card leaves out are no longer explained there. The colour key under the grid already says Done, Missed and To come.
