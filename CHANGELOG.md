@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.84.2 (2026-11-15)
+- Dashboard: the Fitness tile jump record comes out of openlog.js (6.84.0) now that the jump is fixed (the kit maker, Nov 15, 2026, after 6.84.1 on their phone: "We are good!"). Store doc open_log/2026-11-15-jump stays as the record of the cause.
+- Dashboard: an opened tile's level panel sits right under its own row again (the kit maker, Nov 15, 2026, a screenshot: Long ride opened below Rides to plan). Since 6.83.0 the Bike speed tile is hidden after the panel is placed, which moves every tile after it up a place; metrics.js pairBike now puts an open panel back under its tile's row. Long ride and Swim pace were off; all 33 tiles checked in the harness.
+
 ## 6.84.1 (2026-11-15)
 - Dashboard: a Fitness tile tap no longer throws the page to its end (the kit maker, Nov 15, 2026: "Its still jumping"). The jump record from their phone (store open_log/2026-11-15-jump, five taps) showed the cause: the Claude app scrolls a box around the page, and about 0.1 s after a tap, as the tab redrew, that box jumped to near its end (3,341 to 6,203 px on Lift pull) with no scroll or focus call from the page, the browser re-anchoring on content below the emptied tiles. The page's own nodes now take no part in scroll anchoring (style.css `.cx { overflow-anchor: none }`), and for 0.6 s after a tap app.js holds the tapped tile (or Bike at 130 bpm under its switch) at its place on screen until a finger scrolls. The jump record stays until their phone confirms. Guard: coach/tests/test_tile_hold.py.
 

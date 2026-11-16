@@ -31,29 +31,6 @@
   window.addEventListener('unhandledrejection', (e) => { if (rec.errors.length < 10) rec.errors.push([ms(), 'promise: ' + String(e.reason && (e.reason.message || e.reason.code) || e.reason).slice(0, 200), '']); });
   // taps: each tap and how long until the page handled it, so a dead button shows
   rec.taps = []; document.addEventListener('click', (e) => { if (rec.taps.length < 20) { const t = e.target && e.target.closest ? e.target.closest('button, a, [role=tab]') : null; rec.taps.push([ms(), Math.round(performance.now() - e.timeStamp), t ? (t.className || t.tagName).toString().slice(0, 40) : 'none']); } }, true);
-  // 6.84.0 jump record (the athlete, Nov 15, 2026: "still getting shunted to the bottom when I open a card on fitness tab"; never seen in the
-  // test browser): in the 1.5 s after a Fitness tile tap, every scroll and every page call that scrolls or focuses, saved to open_log/<day>-jump
-  const nm = (e) => (!e ? 'none' : e === document.scrollingElement || e === document ? 'doc' : e.id ? '#' + e.id : String(e.className || e.tagName).slice(0, 30));
-  const scroller = (n) => { for (let e = n; e; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)) return e; return document.scrollingElement; };
-  let jump = null, jumps = 0;
-  for (const [o, f] of [[Element.prototype, 'scrollIntoView'], [HTMLElement.prototype, 'focus'], [Element.prototype, 'scrollTo'], [window, 'scrollTo'], [window, 'scrollBy']]) {
-    const orig = o[f]; if (typeof orig !== 'function') continue;
-    o[f] = function (...a) { if (jump && jump.calls.length < 12) jump.calls.push([ms() - jump.t, f, nm(this === window ? null : this), String(new Error().stack || '').split('\n').slice(1, 4).map((l) => l.trim().split('/').pop().slice(0, 50)).join(' < ')]); return orig.apply(this, a); };
-  }
-  document.addEventListener('scroll', (e) => { if (jump && jump.moves.length < 20) { const t = e.target === document ? document.scrollingElement : e.target; jump.moves.push([ms() - jump.t, nm(t), Math.round(t.scrollTop)]); } }, true);
-  document.addEventListener('click', (e) => {
-    const tile = e.target && e.target.closest ? e.target.closest('#f-tiles .ft-tile, #f-bkseg, #f-sport') : null;
-    if (!tile || jump || jumps >= 5) return; jumps++;
-    const sc = scroller(tile), id = tile.id;
-    jump = { at: new Date().toISOString(), t: ms(), tile: id, sc: nm(sc), y0: Math.round(sc.scrollTop), top0: Math.round(tile.getBoundingClientRect().top), sh0: sc.scrollHeight, ch: sc.clientHeight, wy0: Math.round(window.scrollY), moves: [], calls: [] };
-    setTimeout(async () => {
-      const j = jump; jump = null; const tl = document.getElementById(id);
-      Object.assign(j, { y1: Math.round(sc.scrollTop), sh1: sc.scrollHeight, wy1: Math.round(window.scrollY), top1: tl ? Math.round(tl.getBoundingClientRect().top) : null, active: nm(document.activeElement), vv: window.visualViewport ? [Math.round(visualViewport.pageTop), Math.round(visualViewport.height)] : null });
-      try { const db = await window.claude.use('db'), ref = db.doc('open_log/' + j.at.slice(0, 10) + '-jump'); let list = [];
-        try { const d = await ref.get(); const v = d && d.exists ? d.data() : null; list = v && typeof v.jumps === 'string' ? JSON.parse(v.jumps) : []; } catch (e2) { list = []; }
-        list.push(j); await ref.set({ jumps: JSON.stringify(list.slice(-10)), saved_at: new Date().toISOString() }); } catch (e2) { /* the tap itself is unaffected */ }
-    }, 1500);
-  }, true);
   // the datasets and each draw
   try {
     const data = dash.data.bind(dash), onData = dash.onData.bind(dash);
