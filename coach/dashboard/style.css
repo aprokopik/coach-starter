@@ -1467,3 +1467,4 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .lx-pickwhy { font-size: var(--ck-t2); } .ck .lx-pickwhy b { color: var(--ck-good); } .ck .lx-picklifts { font-size: var(--ck-t2); } .ck .lx-pickedit { margin: 0; font-size: var(--ck-t1); } .ck .lx-pickpend { color: var(--ck-watch); font-weight: var(--ck-w-bold); font-size: var(--ck-t2); }
 .ck .wk-kv{display:grid;grid-template-columns:5.5em 1fr;gap:var(--ck-s3)}.ck .wk-kv-k{color:var(--ck-fg-2)}.ck .wk-kv-v{min-width:0}
 .ck .wk-more{display:grid;gap:4px;padding:0 var(--ck-s2) var(--ck-s2) 40px;font-size:var(--ck-t2);line-height:var(--ck-l2)}.ck .wk-more>summary{min-height:36px;display:flex;align-items:center;cursor:pointer;color:var(--ck-fg-2)}
+.ck .sn-more{padding:0}.ck .sn-more>.sn-facts{padding-top:2px}

@@ -2581,7 +2581,7 @@
   }
   window.CX.render = render;
   // the helpers season.js (loaded next) reads
-  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, stamp, state, truthy };
+  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, plainEl, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, stamp, state, truthy };
   Object.assign(window.CX, { stageInfo, lineChart, legend, inSpan, spanStart, spanName, drawWeight, sportCol, sportTok, sportGroups, seasonTile, blockContext, kind, ck: { icon, badge, neutralChip, mark, ruleSpan, cardState, dsState },
     weekSoFar: (w) => { const d = TN - dayN(w) + 1; return d >= 1 && d < 7 ? { x: w, days: d, of: 7 } : null; } }); // the open week of a per-week bar chart
   // Check-ins due on Today (Phase 6): checkins.js renderStrip writes the due count into #t-ci's data-n, the names into

@@ -5,12 +5,20 @@
 (() => {
   // race priority in plain words (A, B, C are the coach's own shorthand; the races.json field keeps them)
   const PRI = (p) => ({ A: 'Main', B: 'Build-up', C: 'Training' }[p] || p);
-  const { $, CKC, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, kind, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, spaced, sportGroups, stamp, state, truthy } = window.CX.app;
+  const { $, CKC, kvRow, plainEl, sentences, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, kind, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, spaced, sportGroups, stamp, state, truthy } = window.CX.app;
   // Race start time (the athlete, Nov 7, 2026): start_time is 'HH:MM' local at the start line, start_basis posted or expected
   // (the previous edition's time); an expected time shows with ≈, the way an approximate date does.
   const fStart = (r) => { const m = /^(\d{1,2}):(\d{2})$/.exec(String((r && r.start_time) || '').trim()); if (!m) return ''; const h = +m[1];
     const t = m[2] === '00' && h === 0 ? 'midnight' : m[2] === '00' && h === 12 ? 'noon' : `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
     return (String(r.start_basis || '').toLowerCase() === 'posted' ? '' : '≈') + t; };
+
+  // Race and block cards as short labelled lines (the athlete, Nov 16: one line per fact at rest, the rest one tap away, like the
+  // Week sessions). The coach and race watch still write whole sentences (races.json, plan.json); the page shows the first
+  // one without its brackets and puts the brackets and the rest under More detail.
+  const unbr = (x) => { let y = x, z; do { z = y; y = y.replace(/\s*\([^()]*\)/g, ''); } while (y !== z); return y; };
+  const head1 = (t) => { const full = String(t || '').trim(), a = sentences(unbr(full).split(/;\s+/)[0])[0] || '', at = plainEl(el('span', null, a.replace(/[.;]$/, '').trim())).textContent; return { at, more: at !== full.replace(/[.;]$/, '') }; };
+  const snMore = (rows) => { rows = rows.filter((r) => r[1]); if (!rows.length) return null; const x = el('details', 'wk-more sn-more'); x.append(el('summary', 'ck-row-s', 'More detail')); const dl = el('dl', 'sn-facts'); for (const [k, v] of rows) kvRow(dl, k, v); x.append(dl); return x; };
+  const nextReg = (r) => { const n = String(r.reg_dates || '').split(';').map((x) => x.split('|')).filter((x) => x[0] && x[1] && x[0] >= TODAY).sort()[0]; return n ? { d: n[0], what: n[1].split(/[,(]/)[0].replace(/ expected to open\b/, ' opens').trim(), exp: n[2] === 'expected' } : null; };
 
   // ---------- SEASON SO FAR (endowed progress: credit already earned) ----------
   // Phase 5: Cockpit tiles (seasonTile) with every figure, unit and date marked; the panel has the shared states.
@@ -323,11 +331,17 @@
     const cnt = el('div', 'sn-count'); const big = el('span', 'ck-big'); big.append(mkSpan(n >= 0 ? String(n) : '✓', 'coach', null, rwh, 'days-until')); cnt.append(big, el('span', 'ck-unit', n === 1 ? 'day to go' : n >= 0 ? 'days to go' : 'done'));
     const dl = el('dl', 'sn-facts');
     const startDd = () => { if (!fStart(r)) return null; const dd = el('dd'); dd.append(mkSpan(fStart(r), 'coach', null, rwh, 'start-time'), String(r.start_basis || '').toLowerCase() === 'posted' ? ' (posted)' : ' (last edition\'s time, not yet posted)');
-      if (r.start_note) { dd.append(el('br')); dd.append(mark(el('small', 'ck-sub', r.start_note), 'coach', 'start_note', rwh)); } return dd; };
-    for (const [k, v, f] of [['Where', r.location, 'location'], ['Distance', r.distance, 'distance'], ['Start', startDd, null], ['Result', r.result, 'result'], ['Goal', r.goal, 'goal'], ['Registration', r.status !== 'registered' && r.registration ? `${r.registration}${r.reg_checked ? ' (checked ' + fDay(P(r.reg_checked)) + ')' : ''}` : '', null], ['Forecast', r.forecast, 'forecast'], ['Limit', r.limit, 'limit']]) { if (typeof v === 'function') { const dd = v(); if (dd) dl.append(el('dt', null, k), dd); } else if (v) dl.append(el('dt', null, k), mark(el('dd', null, v), 'coach', f, rwh, f ? null : 'formatted')); }
+      return dd; };
+    // at rest one short line per fact; the rest of each sentence, the start note and the race watch's notes go under More detail
+    const H = {}; for (const f of ['location', 'distance', 'goal', 'forecast', 'limit']) H[f] = head1(r[f]);
+    const at = (f) => { const same = H[f].at === String(r[f]).trim(); return H[f].at && mark(el('dd', null, H[f].at), 'coach', same ? f : null, rwh, same ? null : 'first sentence of ' + f + ', in plain words'); };
+    const reg = !['registered', 'done'].includes(r.status) ? nextReg(r) : null;
+    const regDd = () => { if (!reg) return null; const dd = mark(el('dd'), 'coach', null, rwh, 'next date in reg_dates'); dd.append(reg.what, ' · ', fDay(P(reg.d)) + (reg.d.slice(0, 4) !== TODAY.slice(0, 4) ? ', ' + reg.d.slice(0, 4) : ''), reg.exp ? ' (expected)' : ''); return dd; };
+    for (const [k, v] of [['Where', () => at('location')], ['Distance', () => at('distance')], ['Start', startDd], ['Result', () => r.result && mark(el('dd', null, r.result), 'coach', 'result', rwh)], ['Goal', () => at('goal')], ['Sign up', regDd], ['Forecast', () => at('forecast')], ['Limit', () => at('limit')]]) { const dd = v(); if (dd) dl.append(el('dt', null, k), dd); }
     hero.append(head, name, cnt);
     if (r.status === 'done' && r.stats) { const st = el('div', 'sn-stats'); for (const pair of String(r.stats).split(';')) { const [v, l] = pair.split('|'); const s1 = mark(el('span'), 'coach', null, rwh, 'stats'); s1.append(el('b', null, v), l || ''); st.append(s1); } hero.append(st); }
     hero.append(dl);
+    let wxSrc = null;
     if (r.wx_hi != null && r.wx_hi !== '' && r.status !== 'done') {
       const fc = r.wx_kind === 'forecast';
       const wx = el('div', 'sn-wx'); wx.setAttribute('data-source', 'coach'); wx.setAttribute('data-where', rwh);
@@ -335,13 +349,15 @@
       const side = el('span', 'sn-wxside'); side.append(el('span', 'ck-eyebrow', fc ? 'Race-day forecast' : 'Typical for the date'), mark(el('span', null, r.wx_text || ''), 'coach', 'wx_text', rwh));
       wx.append(t, side);
       if (r.water) { const wa = el('span', 'sn-wxl', 'Water: '); wa.append(mark(el('span', null, r.water), 'coach', 'water', rwh)); wx.append(wa); }
-      if (r.wx_plan) { const pl = el('span', 'sn-wxl'); pl.append(el('b', null, 'Plan for it: '), mark(el('span', null, r.wx_plan), 'coach', 'wx_plan', rwh)); wx.append(pl); }
-      const src = el('span', 'sn-wxl sn-wxsrc', fc ? 'Forecast · ' : 'Estimated · '); src.append(mark(el('span', null, r.wx_src || ''), 'coach', 'wx_src', rwh));
+      wxSrc = el('span', null, fc ? 'Forecast · ' : 'Estimated · '); const src = wxSrc; src.append(mark(el('span', null, r.wx_src || ''), 'coach', 'wx_src', rwh));
       if (r.wx_at) src.append(' · updated ', mark(el('span', null, fDay(P(r.wx_at))), 'coach', null, rwh, 'formatted'));
       if (!fc) src.append(' · a forecast replaces this from ', ruleSpan('7', 'season.js fillRaceHub: forecast from 7 days out'), ' days out');
-      wx.append(src);
       hero.append(wx);
     }
+    const sp = (f) => r[f] && mark(el('span', null, r[f]), 'coach', f, rwh), rest = (f) => H[f].more && sp(f);
+    const mo = snMore([['Goal', rest('goal')], ['Where', rest('location')], ['Distance', rest('distance')], ['Start', sp('start_note')], ['Sign up', sp('registration')], ['Forecast', rest('forecast')], ['Limit', rest('limit')],
+      ['Weather', r.status !== 'done' && sp('wx_plan')], ['Source', r.status !== 'done' && wxSrc]]);
+    if (mo) hero.append(mo);
     // the race page link: a 44 px Cockpit button (was a 40 px caption link; Week review note)
     if (r.url) { const a = el('a', 'ck-btn ck-btn--secondary ck-btn--sm sn-rlink', 'Race page'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.append(icon('external')); hero.append(a); }
     const until = kind('day').filter((d) => dayN(d.date) >= TN && dayN(d.date) <= dayN(r.date)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0)));
@@ -490,10 +506,14 @@
         btn.addEventListener('click', () => { state.openBlock = state.openBlock === it.key ? null : it.key; renderRaces(); const b2 = $('r-blk-' + it.key); if (b2) b2.focus({ preventScroll: true }); });
         li.append(btn);
         if (cur) { const m = el('span', 'ck-zone-track sn-bmeter'); m.append(el('i', 'ck-zone-fill')); const fr = Math.min(1, (TN - dayN(it.start) + 1) / (dayN(it.end) - dayN(it.start) + 1)); CKC().meter(m, { frac: fr, sentence: `${it.label}: ${Math.round(fr * 100)}% of the block's days gone`, marks: { source: 'coach', where: bw } }); li.append(m); }
-        if (open) {
-          const more = el('div', 'sn-blkmore'); more.id = 'r-blkm-' + it.key; if (it.objectives) more.append(mkSpan(it.objectives, 'coach', 'objectives', bw));
-          const ul2 = el('ul', 'sn-pillars'); for (const k of ['pillar_1', 'pillar_2', 'pillar_3']) if (it[k]) { const li2 = el('li'); if (it[k + '_short']) li2.append(mark(el('b', null, it[k + '_short']), 'coach', k + '_short', bw), ': '); li2.append(mkSpan(it[k], 'coach', k, bw)); ul2.append(li2); } more.append(ul2);
-          for (const [lab, f] of [['Guide', 'guide'], ['Fuel', 'energy'], ['Volume', 'volume']]) if (it[f]) { const p = el('span'); p.append(el('b', null, lab + ': '), mkSpan(it[f], 'coach', f, bw)); more.append(p); }
+        if (open) { // Aim, the three key sessions and Volume, one short line each; fuel, the week guide and the rest under More detail
+          const more = el('div', 'sn-blkmore'); more.id = 'r-blkm-' + it.key; const dl = el('dl', 'sn-facts sn-bfacts'), mo = [];
+          const line = (k, f, t) => { const h = head1(t === undefined ? it[f] : t), same = t === undefined && h.at === String(it[f]).trim(); if (!h.at) return; kvRow(dl, k, mark(el('span', null, h.at.charAt(0).toUpperCase() + h.at.slice(1)), 'coach', same ? f : null, bw, same ? null : 'first sentence of ' + f + ', in plain words')); if (h.more) mo.push([k, mark(el('span', null, it[f]), 'coach', f, bw)]); };
+          line('Aim', 'objectives');
+          for (const k of ['pillar_1', 'pillar_2', 'pillar_3']) if (it[k]) { const m = /^([^:]{1,40}):\s+/.exec(it[k]); line(it[k + '_short'] || 'Session', k, m && m[1].split(' ').length <= 5 && !/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(m[1]) ? it[k].slice(m[0].length) : it[k]); }
+          line('Volume', 'volume');
+          for (const [lab, f] of [['Fuel', 'energy'], ['Weeks', 'guide']]) if (it[f]) mo.push([lab, mark(el('span', null, it[f]), 'coach', f, bw)]);
+          more.append(dl); const x = snMore(mo); if (x) more.append(x);
           li.append(more);
         }
       } else {
