@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.84.1 (2026-11-15)
+- Dashboard: a Fitness tile tap no longer throws the page to its end (the kit maker, Nov 15, 2026: "Its still jumping"). The jump record from their phone (store open_log/2026-11-15-jump, five taps) showed the cause: the Claude app scrolls a box around the page, and about 0.1 s after a tap, as the tab redrew, that box jumped to near its end (3,341 to 6,203 px on Lift pull) with no scroll or focus call from the page, the browser re-anchoring on content below the emptied tiles. The page's own nodes now take no part in scroll anchoring (style.css `.cx { overflow-anchor: none }`), and for 0.6 s after a tap app.js holds the tapped tile (or Bike at 130 bpm under its switch) at its place on screen until a finger scrolls. The jump record stays until their phone confirms. Guard: coach/tests/test_tile_hold.py.
+
 ## 6.84.0 (2026-11-15)
 - Dashboard: Bike speed at 130 bpm has its own chart under the Speed switch, each flat outdoor ride and its 28-day average, drawn like the power chart (the kit maker, Nov 15, 2026: "I also have no data for bike speed at 130 charted"). The rides come from the figure's new `rides` field (bike_speed.py, "date mph|...", the last year), so the chart fills at the next data update.
 - Dashboard: the Morning check-in card no longer comes back on later opens once today's answers are saved, with or without Done (the kit maker, Nov 15, 2026: "Morning check still pops up at the top"; the store showed Done never saved, so the finished card returned on every open). The answers stay on the Check-in tab.

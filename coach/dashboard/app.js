@@ -1525,6 +1525,17 @@
   // the segmented controls on this tab are native radios (Cockpit ck-seg): sync the checked one to the state key
   function segRadio(id, value) { for (const i of document.querySelectorAll(`#${id} input`)) i.checked = i.value === String(value); }
   // a re-render rebuilds a control, so the one that was used gets the focus back
+  // A Fitness tile tap keeps the tile where it was (the athlete, Nov 15, 2026: "still getting shunted to the bottom"). His phone's record
+  // (store open_log/2026-11-15-jump): the app scrolls a box around the page, and as the tab redraws that box jumped near its end with
+  // no scroll call from the page. So for 0.6 s after a tap the tapped tile is held at its place on screen, until a finger scrolls.
+  { const sbox = (n) => { for (let e = n.parentElement; e; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)) return e; return document.scrollingElement; };
+    document.addEventListener('click', (e) => {
+      const t = e.target && e.target.closest ? e.target.closest('#f-tiles .ft-tile, #f-bkseg, #f-sport') : null; if (!t) return;
+      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id, p = $(id); if (!p) return;
+      const sc = sbox(p), top = p.getBoundingClientRect().top, end = performance.now() + 600; let off = false;
+      addEventListener('touchmove', () => { off = true; }, { passive: true, once: true });
+      const hold = () => { const n = $(id); if (off || !n) return; const d = n.getBoundingClientRect().top - top; if (Math.abs(d) > 2) sc.scrollTop += d; if (performance.now() < end) requestAnimationFrame(hold); };
+      requestAnimationFrame(hold); }, true); }
   const ftFocus = (sel) => { const t = document.querySelector(sel); if (t) t.focus({ preventScroll: true }); };
 
   function renderTrends() {
