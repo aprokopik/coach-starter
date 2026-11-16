@@ -12,7 +12,8 @@ to be where everything's served up to me for managing. The raw data can still li
     python3 coach/tools/alpha.py ingest <features.json> [<feedback.json>]
                                                        the athlete's board taps into alpha.json: a ring he picked that the
                                                        code has not reached yet is kept as `wanted`, his notes as
-                                                       `feedback`; prints the release work the taps ask for
+                                                       `feedback`, his Works for me tap as `validated`; prints the
+                                                       release work the taps ask for
     python3 coach/tools/alpha.py backlog-export        JSON for the board's backlog rows, from coach/BACKLOG.md
     python3 coach/tools/alpha.py backlog-ingest <backlog.json>
                                                        the athlete's backlog taps into coach/BACKLOG.md (a Board: line)
@@ -33,7 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 FILE = ROOT / "coach" / "ops" / "alpha.json"
 BACKLOG = ROOT / "coach" / "BACKLOG.md"
 RINGS = ("alpha", "beta", "live")
-ALPHA_CAP = 5  # the athlete, Nov 16, 2026: at most 5 features in alpha at once, released together
+ALPHA_EPIC_CAP = 3  # the athlete, Nov 16, 2026: "Alpha I'll cap at 3 epics" (was 5 features); a row with no epic counts as its own
 
 
 def load(path=None):
@@ -46,6 +47,11 @@ def load(path=None):
 def ring(row):
     s = row.get("status", "alpha")
     return "beta" if s == "released" else s
+
+
+def alpha_epics(rows):
+    """Distinct epics among rows in alpha; a row with no `epic` is an epic of its own."""
+    return {r.get("epic") or "solo:" + r.get("id", "") for r in rows if ring(r) == "alpha"}
 
 
 def on(fid, path=None):
@@ -94,6 +100,22 @@ def ingest(features, feedback=(), path=None, today=None):
                 r["wanted"], changed = want, True
             asks.append(f"{r['id']}: {ring(r)} -> {want} (release PR)")
         elif r.pop("wanted", None) is not None:
+            changed = True
+        ep = f.get("epic") or None
+        if ep and r.get("epic") != ep:  # epic membership lives on the board; alpha.json keeps a copy for the cap test
+            r["epic"], changed = ep, True
+        v = f.get("validate") or {}
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except ValueError:
+                v = {}
+        day = str(v.get("at") or "")[:10] if v.get("ok") is True else None
+        if r.get("validated") != day:  # the athlete's Works for me tap on the board (Nov 16: validation and verification)
+            if day:
+                r["validated"] = day
+            else:
+                r.pop("validated", None)
             changed = True
     for n in feedback:
         r = rows.get(n.get("feature"))
