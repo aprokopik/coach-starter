@@ -1338,6 +1338,7 @@ def build_flags(f, th):
             flags.append({"rule": "10 cutoffs", "text": f"{race['name']} has no time limit on file; every A/B race forecast must state its cutoff margin."})
     flags += registration_flags(f)
     flags += bp_week_flags(f)
+    flags += new_scale_flags(date.fromisoformat(f["meta"]["date"]))
     bc = wt.get("body_comp") or {}
     flags += heartbeat_flags(f)
     flags += goal_flags(f)
@@ -1375,6 +1376,25 @@ def section_bp_week(today):
         return nw
     except Exception as e:  # never block the check-in
         return {"error": f"bp_cadence.py failed: {e}"}
+
+
+def new_scale_flags(today):
+    """A comparison that first showed on a Fitness tile today or yesterday (markers.py first_seen; alpha race_toggles, 6.124.0):
+    one line, said once, so a new race field or a filed norms table never arrives unannounced."""
+    try:
+        rows = read_json("coach/dashboard/coach.json", {}).get("rows", [])
+        y = (today - timedelta(days=1)).isoformat()
+        out = []
+        for m in rows:
+            if m.get("kind") != "marker" or m.get("section") == "pair" or not m.get("scales"):
+                continue
+            for sc in json.loads(m["scales"]):
+                if sc.get("first_seen") and sc["first_seen"] >= y and sc.get("id") != "general":
+                    lvl = str(sc.get("rank") or "").split(" (")[0]
+                    out.append(f"New on {m.get('label') or m['key']}: {sc.get('label')}" + (f" (you'd be {lvl})" if lvl else ""))
+        return [{"rule": "new comparison (race_toggles)", "text": "; ".join(out[:3]) + ". Say it once, as news, not as a level up."}] if out else []
+    except Exception as e:  # never block the check-in
+        return [{"rule": "data quality", "text": f"New comparison check failed ({e})."}]
 
 
 def bp_week_flags(f):

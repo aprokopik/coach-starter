@@ -154,7 +154,25 @@ def _pct(p):
     return {100 / 3: "33rd", 200 / 3: "67th", 99.5: "99.5th"}.get(p) or f"{round(p)}th"
 
 
-def fitness_tiers(pts, mode, label):
+# Stage 2, endurance athletes (the athlete, Nov 16, 2026: "I'm still looking for a 5K and VO2 to have more than just population"):
+# Wiecha 2023, eLife 12:e86291 (CC BY), 4,424 male amateur runners and cyclists tested to exhaustion in one lab network, mean
+# age about 36, derivation cohorts: runners on a treadmill 53.8 +/- 6.67 (n 1,998), cyclists on a cycle ergometer 51.7 +/- 7.99
+# (n 656). Men only (too few women in the database) and not split by age; a normal fit to the mean and SD (Estimated).
+ATHLETES = {"treadmill": (53.8, 6.67, "male amateur runners"), "cycle": (51.7, 7.99, "male amateur cyclists")}
+ATH_SOURCE = "Wiecha 2023 (eLife, lab tested amateur endurance athletes)"
+ATH_URL = "https://doi.org/10.7554/eLife.86291"
+_ZP = {10: -1.2816, 20: -0.8416, 30: -0.5244, 40: -0.2533, 50: 0.0, 60: 0.2533, 70: 0.5244, 80: 0.8416, 90: 1.2816}
+
+
+def athlete_points(mode, g):
+    """[(percentile, value)] for amateur endurance athletes of the athlete's sport mode, or [] (men only)."""
+    if not g or g.get("sex") != "male" or mode not in ATHLETES:
+        return []
+    mu, sd, _w = ATHLETES[mode]
+    return [(p, round(mu + _ZP[p] * sd, 1)) for p in PCTS]
+
+
+def fitness_tiers(pts, mode, label, src="FRIEND 2022"):
     """The Fitness ladder in the athlete's population bands, run on treadmill norms and bike on cycle norms."""
     if not pts:
         return []
@@ -164,8 +182,8 @@ def fitness_tiers(pts, mode, label):
         lo = None if a is None else value_at(pts, a)
         hi = None if b is None else value_at(pts, b)
         span = f"under the {_pct(b)} percentile" if a is None else f"past the {_pct(a)} percentile" if b is None else f"{_pct(a)} to {_pct(b)} percentile"
-        est = ", Estimated: a normal tail fitted to the registry's 50th and 90th" if (a or 0) >= 90 and (b is None or b > 90) else ""
-        extra = ", the Health target (60th) sits here" if mode == "treadmill" and (a or 0) <= 60 < (b or 101) else ""
-        extra += ", about 49 is the lowest-risk plateau (Kokkinos 2022)" if mode == "treadmill" and (lo or 0) <= PLATEAU < (hi or 999) else ""
-        out.append((name, lo, hi, f"{span}, {w}, FRIEND 2022 {label}{extra}{est}"))
+        est = (", Estimated: a normal tail fitted to the registry's 50th and 90th" if src.startswith("FRIEND") else ", Estimated: a normal fit") if (a or 0) >= 90 and (b is None or b > 90) else ""
+        extra = ", the Health target (60th) sits here" if src.startswith("FRIEND") and mode == "treadmill" and (a or 0) <= 60 < (b or 101) else ""
+        extra += ", about 49 is the lowest-risk plateau (Kokkinos 2022)" if src.startswith("FRIEND") and mode == "treadmill" and (lo or 0) <= PLATEAU < (hi or 999) else ""
+        out.append((name, lo, hi, f"{span}, {w}, {src} {label}{extra}{est}"))
     return out

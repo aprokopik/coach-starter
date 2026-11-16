@@ -340,7 +340,7 @@
       }
     }
     for (const [tile, st] of stateOf) { // stage ups (the athlete, Nov 14, 2026): a stage reached in the last 7 days and still in use
-      const au = st.auto; if (st.manual || !au.promoted || dayN(au.promoted) <= TN - 7 || au.cur < 2 || au.graceEnd) continue; const m = kind('marker').find((x) => x.key === tile); if (!m) continue;
+      const au = st.auto; if (st.manual || !au.promoted || dayN(au.promoted) <= TN - 7 || au.cur < 2 || au.graceEnd) continue; if (au.scale && au.scale.first_seen && dayN(au.scale.first_seen) > dayN(au.promoted)) continue; // a scale that arrived after the reading: unlocked quietly, no gold screen (6.124.0) const m = kind('marker').find((x) => x.key === tile); if (!m) continue;
       out.push({ id: `${tile}|stage-${au.cur}|${au.promoted}`, key: tile, label: m.label, stage: au.cur, scale: au.scale.label, date: au.promoted, goal: null });
     }
     // one entry per skill: its highest new LV (a jump of two shows once, as the higher LV), goals after levels
@@ -1846,8 +1846,10 @@
   const scalesMemo = new WeakMap(); // Speed (6.76.0): a marker's scales text is read once per row, not on every draw
   const scalesOf = (m) => { if (!m || !m.scales) return []; if (scalesMemo.has(m)) return scalesMemo.get(m); let out = []; try { const v = typeof m.scales === 'string' ? JSON.parse(m.scales) : m.scales; out = Array.isArray(v) ? v : []; } catch (e) { out = []; } scalesMemo.set(m, out); return out; };
   const scaleTile = (m) => { const o = kind('marker').find((x) => String(x.pair || '').split(',').map((k) => k.trim()).includes(m.key)); return o ? o.key : m.key; };
-  const scaleSort = (sc) => sc.slice().sort((x, y) => (Number(x.stage) || 2) - (Number(y.stage) || 2) || (y.stage_label === 'Your race') - (x.stage_label === 'Your race'));
+  const scaleSort = (sc) => sc.slice().sort((x, y) => (Number(x.stage) || 2) - (Number(y.stage) || 2) || (y.stage_label === 'Your race') - (x.stage_label === 'Your race') || (Number(x.km) || 0) - (Number(y.km) || 0)); // races shortest first
   const stageNo = (s) => Number(s.stage) || 2;
+  const coin = (n) => { const c = el('i', 'ft-coin'); c.dataset.s = String(n || 1); c.setAttribute('aria-hidden', 'true'); return c; }; // the stage coin colours: silver, gold, diamond (the athlete, 6.124.0)
+  const isNewScale = (s) => !!(s && s.first_seen && TN - dayN(s.first_seen) <= 14); // New for 14 days after it first shows (6.124.0)
   const scaleLevel = (m, s, v) => { if (v === null || v === undefined) return ''; const st = standingOf({ ...m, tiers: s.tiers, splits: s.splits, basis: s.basis }, v); return st.band ? st.band.label : ''; };
   // does a value earn the stage above this scale: Top 20% or better, or the best category of a scale with no percentiles
   function earnsNext(m, s, v) {
@@ -1899,7 +1901,7 @@
     const tile = scaleTile(m); const at = new Date().toISOString(); const loc = localPicks(); loc[tile] = { id, at };
     try { localStorage.setItem('cx-scales2', JSON.stringify(loc)); localStorage.removeItem('cx-scales'); } catch (e) { /* per-viewer convenience only */ }
     if (window.CX.saveScale) window.CX.saveScale(tile, id, at);
-    state.scaleOpen = m.key; applyScales(); renderFitness(); ftFocus(`#f-scales input[value="${id}"]`);
+    state.scaleOpen = $('f-race') ? null : m.key; applyScales(); renderFitness(); ftFocus($('f-race') ? `#f-race input[value="${id}"]` : `#f-scales input[value="${id}"]`);
   }
   // for the Map (metrics.js), Skills and the ribbon: the stage in use, its scale's name, the stages on file, and how it got there
   function stageInfo(key) {
@@ -1923,26 +1925,33 @@
     const k = chip.querySelector('.ft-chip-k'); if (k) k.className = 'ck-vh'; // beside the discs the chip shows only the level name; screen readers still hear "Level"
     const row = el('span', 'ft-lvrow'); chip.replaceWith(row); row.append(badge, chip); return frag; };
   function scalePicker(m, v) {
-    const sc = scaleSort(scalesOf(m)); if (sc.length < 2) return null; const tile = scaleTile(m); const st = stateOf.get(tile); const au = st ? st.auto : null;
+    let wait = []; try { wait = m.stage_wait ? JSON.parse(m.stage_wait) : []; } catch (e) { wait = []; }
+    let rw = []; try { rw = m.race_wait ? JSON.parse(m.race_wait) : []; } catch (e) { rw = []; }
+    const sc0 = scalesOf(m).length ? scalesOf(m) : [{ id: 'general', label: 'General population', stage: 1, stage_label: 'Foundation', tiers: m.tiers, splits: m.splits, basis: m.basis }];
+    const sc = scaleSort([...sc0, ...rw.map((w) => ({ ...w, stage: 2, stage_label: sc0.some((x) => x.stage_label === 'Race') && !sc0.some((x) => x.stage_label === 'Your race') ? 'Race' : 'Your race', _wait: true }))]); if (sc0.length < 2 && !wait.length && !rw.length) return null; const tile = scaleTile(m); const st = stateOf.get(tile); const au = st ? st.auto : null;
     const box = el('fieldset', 'ft-scales'); box.id = 'f-scales'; box.append(el('legend', null, 'Your path'));
-    const radio = (id, checked, disabled) => { const inp = el('input'); inp.type = 'radio'; inp.name = 'f-scale-' + m.key; inp.value = id; inp.checked = checked; inp.disabled = !!disabled; if (!disabled) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, id); }); return inp; };
+    const ro = raceToggles(); // alpha race_toggles: read only
+    const radio = (id, checked, disabled) => { if (ro) return el('span', 'ck-vh', checked ? 'In use' : ''); const inp = el('input'); inp.type = 'radio'; inp.name = 'f-scale-' + m.key; inp.value = id; inp.checked = checked; inp.disabled = !!disabled; if (!disabled) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, id); }); return inp; };
     // No separate Automatic row (the athlete, Nov 15, 2026): the scale in use is the one checked. The scale automatic stages pick carries
     // a "Recommended by your fitness" pill; choosing it goes back to automatic, choosing another holds until you choose again.
     let last = '';
     for (const s of sc) {
-      const n = stageNo(s); const locked = au && n > au.unlocked;
-      const head = `Stage ${n} · ${s.stage_label || 'Your sport'}${locked ? ' · Locked' : ''}`; if (head !== last) { box.append(el('div', 'ft-stage', head)); last = head; }
+      const n = stageNo(s);
+      const locked = au && n > au.unlocked;
+      const head = `Stage ${n} · ${s.stage_label || 'Your sport'}${locked ? ' · Locked' : ''}`; if (head !== last) { const hd = el('div', 'ft-stage'); hd.append(coin(n), head); box.append(hd); last = head; }
       if (locked && head.endsWith('Locked') && !box.querySelector(`[data-lock="${n}"]`)) { const p = el('p', 'ft-stage-none', `Unlocks the first time a reading reaches Top 20% (or the top category) on stage ${n - 1}.`); p.dataset.lock = n; box.append(p); }
-      const isAuto = !!(au && au.scale && s.id === au.scale.id); const inUse = s.id === m.compare;
-      const opt = el('label', 'ft-scale-opt' + (locked ? ' is-locked' : ''));
+      if (s._wait) { const o = el(ro ? 'div' : 'label', 'ft-scale-opt is-locked' + (ro ? ' is-static' : '')), t = el('span'); t.append(el('b', null, s.label), ' · No data yet'); o.append(radio(s.id, false, true), t); box.append(o); continue; }
+      const isAuto = !!(au && au.scale && s.id === au.scale.id); const inUse = s.id === (m.compare || 'general');
+      const opt = el(ro ? 'div' : 'label', 'ft-scale-opt' + (locked ? ' is-locked' : '') + (ro ? ' is-static' : ''));
       const t = el('span'); const lv = scaleLevel(m, s, v); t.append(el('b', null, s.label), lv ? ` · ${lv}` : '');
       const pills = el('span', 'ft-scale-pills');
-      if (isAuto) pills.append(el('span', 'ft-here', 'Recommended by your fitness')); // the athlete, Nov 15, 2026: "recommended", and no "Your pick" pill
+      if (ro && inUse) pills.append(el('span', 'ft-here ft-inuse', 'In use')); if (isAuto) pills.append(el('span', 'ft-here', 'Recommended by your fitness')); if (isNewScale(s)) pills.append(el('span', 'ft-here', 'New')); // the athlete, Nov 15, 2026: "recommended", and no "Your pick" pill
       if (pills.childNodes.length) t.append(pills);
       if (isAuto && au.graceEnd) t.append(el('span', 'ft-stage-none', ` Held to ${fDay(P(au.graceEnd))}, then back a stage unless a reading earns it again.`));
       opt.append(radio(isAuto ? 'auto' : s.id, inUse, locked), t); box.append(opt);
     }
-    if (!sc.some((s) => Number(s.stage) === 3)) { box.append(el('div', 'ft-stage', 'Stage 3 · Elite'), el('p', 'ft-stage-none', 'Not on file yet. The coach is looking for one.')); }
+    // a stage with no scale for this person's group says so; the same list feeds the monthly research scan (compare.py gaps)
+    for (const w of wait) { const hd = el('div', 'ft-stage'); hd.append(coin(w.stage), w.stage === 3 ? 'Stage 3 · Elite' : 'Stage 2 · Trained'); box.append(hd, el('p', 'ft-stage-none', `Not on file yet for ${w.who}. The coach is looking for one.`)); }
     return box;
   }
   function renderFitness() {
@@ -1992,12 +2001,37 @@
     if (!tilesBox.querySelector('.ft-tile, .mx-map')) { cardState(card, 'empty', 'No fitness markers yet. They fill in as your sessions sync.'); return; }
     const panel = $('f-expand');
     if (!placeExpand(tilesBox, panel, state.fit)) { state.fit = null; return; }
-    if (state.fit === 'run' || state.fit === 'bike') { for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); } $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
-    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false, true); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { why: m.why && !m0.pair ? m.why : null })); }
+    if (state.fit === 'run' || state.fit === 'bike') { for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); } $('f-expand').querySelectorAll(':scope > .ft-basis').forEach((x) => x.remove()); $('f-detail').replaceChildren(); racePick(kind('marker').find((x) => x.key === state.fit) || {}); const wr = calcRow(state.fit); if (wr && wr.why_hr) $('f-detail').append(dLine(`Why ${String(wr.why_hr).split(' ')[0]} bpm: `, mark(el('span', null, wr.why_hr), 'coach', 'why_hr', 'kind=marker&key=' + wr.key))); drawFitChart(run, bike); }
+    else { const m0 = kind('marker').find((x) => x.key === state.fit); if (!m0) { state.fit = null; return renderFitness(); } const m = sportPick(m0); racePick(m); drawMarker(m, $('c-fit'), $('c-fit-legend'), null, false, true); $('f-note').textContent = ''; $('f-detail').replaceChildren(markerDetail(m, { why: m.why && !m0.pair ? m.why : null })); }
   }
   // A marker row with pair names a second marker for the same tile (the athlete, Nov 8, 2026: the Aerobic engine tile, VO2max per sport). The open
   // tile gets a switch above its chart (Run / Bike, from each row's sport_label) and shows one sport at a time, with that sport's own ladder.
   // The paired row has section 'pair', so it is never a tile. One sport only: no pair, no switch. Returns the marker to draw.
+  // Race toggles (the athlete, Nov 16, 2026: "like we do the run times ... You would unlock a new toggle for that metric"; ultras too): a race
+  // registered, planned or done unlocks its field (coach/race_fields.json) on every tile it can rank. The row reads Everyone, then each
+  // field: on file it switches the scale (the same pick as Your path) and shows its own level; with no norms yet it waits, hatched.
+  // Compare with (alpha race_toggles, 6.124.0): a pill of coins under the distance switch, the one in use opens into a chip with its name only, one line; hidden
+  // until stage 1 is complete (the athlete: "I dont want these to show up until someone has completed stage 1 ... avoid multiple rows")
+  const raceToggles = () => kind('alpha').some((b) => b.id === 'race_toggles');
+  const scaleShort = (s) => (s.id === 'general' ? 'Everyone' : s.short || String(s.label).replace(/ \(.*\)$/, '').replace(/ finishers$/, '').replace(/^IRONMAN /, ''));
+  function racePick(m) {
+    const o = $('f-race'); if (o) o.remove();
+    if (!raceToggles()) return;
+    const au = (stateOf.get(scaleTile(m)) || {}).auto; if (!au || au.unlocked < 2) return;
+    let wait = []; try { wait = m.race_wait ? JSON.parse(m.race_wait) : []; } catch (e) { wait = []; }
+    const sc = scalesOf(m); if (sc.length < 2) return; const v = (tileSeries(m) || []).slice(-1).map((r) => r.value)[0];
+    const wrap = el('div', 'ft-cmp'); wrap.id = 'f-race';
+    const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
+    for (const s of scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))])) {
+      const lock = !s._wait && stageNo(s) > au.unlocked, off = s._wait || lock, isAuto = !!(au.scale && s.id === au.scale.id), on = !s._wait && (m.compare || 'general') === s.id;
+      const sub = s._wait ? 'No data yet' : lock ? 'Locked' : scaleLevel(m, s, v);
+      const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && isNewScale(s) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;
+      const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + m.key; inp.value = isAuto ? 'auto' : s.id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${scaleShort(s)}, stage ${stageNo(s)}, ${sub}`);
+      if (!off) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, inp.value); });
+      const c = coin(stageNo(s)); l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', scaleShort(s))); box.append(l); // the chip names the scale only, no level (the athlete)
+    }
+    wrap.append(box); const sp = $('f-sport'); if (sp) sp.after(wrap); else $('c-fit').before(wrap); // directly under the distance switch (the athlete)
+  }
   function sportPick(m) {
     for (const id of ['f-sport', 'f-sportn']) { const o = $(id); if (o) o.remove(); }
     if (m.key === 'climb') return m; // no selector on Climbing: its opened tile is the run by run chart with all three grades (the athlete, Nov 12, 2026)

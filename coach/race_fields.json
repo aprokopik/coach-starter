@@ -1,0 +1,14 @@
+{
+ "about": "Race fields (the athlete, Nov 16, 2026: \"when the race changes, I'd want to consider this like we do the run times where there's a 5K, 10K, half marathon, marathon comparison toggle. You would unlock a new toggle for that metric\"; \"This could go for ultras as well ... any metric that when you're in stage 2 ... comparing against race-specific events\"). The one home of which race fields exist, how a race on coach/races.json is matched to one, and which Fitness tiles each can rank. A race registered, planned or done unlocks its field's toggle on every tile it serves; a finished race keeps it. A race row may name its field (\"field\": <id>) when it offers several distances; otherwise `sport` must match the race's sport and `match` its distance and name (lower case), first row that fits wins, so longer events come first. `km` is the race distance: toggles list shortest first (the athlete, 6.124.0: \"50K should come before 100K\"). Norms for a field live in coach/norms.json rows with \"compare\": <id>; a tile with none on file shows the toggle as Looking for data. Ids follow coach/race_tree.json where the tree has the distance (tri703 is the older id of the tree's 70.3 node).",
+ "rows": [
+  {"id": "trifull", "km": 226, "label": "Full IRONMAN finishers", "short": "Full", "sport": "triathlon", "match": "112 mi|140\\.6|2\\.4 mi swim|226 ?km|full", "tiles": ["t40k", "bike", "run", "swim"]},
+  {"id": "tri703", "km": 113, "label": "IRONMAN 70.3 finishers", "short": "70.3", "sport": "triathlon", "match": "56 mi|70\\.3|1\\.2 mi swim|113 ?km|half", "tiles": ["t40k", "bike", "run", "swim"]},
+  {"id": "run200m", "km": 322, "label": "200+ mile finishers", "short": "200+ mi", "sport": "run", "match": "\\b[2-9]\\d\\d ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "run100m", "km": 161, "label": "100 mile finishers", "short": "100 mi", "sport": "run", "match": "\\b100 ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "run100k", "km": 100, "label": "100K trail finishers", "short": "100K", "sport": "run", "match": "\\b(100|110) ?(k|km)\\b", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "run50m", "km": 80, "label": "50 mile finishers", "short": "50 mi", "sport": "run", "match": "\\b50 ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "run50k", "km": 50, "label": "50K trail finishers", "short": "50K", "sport": "run", "match": "\\b50 ?k\\b", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "runmar", "km": 42.2, "label": "Marathon finishers", "short": "Marathon", "sport": "run", "match": "26\\.2|(?<!half )marathon", "tiles": ["5k", "run", "durability"]},
+  {"id": "bike160", "km": 161, "label": "Century ride finishers", "short": "Century", "sport": "ride", "match": "\\b1\\d\\d mi|(?<!metric )century", "tiles": ["t40k", "bike"]}
+ ]
+}

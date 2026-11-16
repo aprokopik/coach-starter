@@ -361,7 +361,7 @@ def wkg_general(g):
 
 # Each person's own targets (A coach for any person, 6.89.0): a target that names a race or a forecast lives in
 # profile.json `fitness_targets` (run, bike, swim, wkg), never in this file; without one the tile gets a plain coach guide.
-# The 70.3 comparison is offered only to someone with a triathlon on their race list.
+# The 70.3 comparison is offered only to someone with a 70.3 on their race list (race_unlocked).
 GENERIC_TARGET = {
     "run": "Faster at the same heart rate, block over block; each block brief sets the next step (coach guide)",
     "bike": "More power at the same heart rate, block over block; each block brief sets the next step (coach guide)",
@@ -378,16 +378,56 @@ def own_target(key, root="."):
     return t or GENERIC_TARGET[key]
 
 
-def next_triathlon(today=None, root="."):
-    """The next triathlon on the person's race list (name), or None: the 70.3 comparisons are offered only then."""
+def race_unlocked(today=None, root="."):
+    """{field id: {field, race, date, done}}: the race fields the person's race list unlocks (compare.unlocked)."""
     try:
-        rows = json.load(open(os.path.join(root, "coach/races.json"))).get("rows", [])
-    except (OSError, ValueError, AttributeError):
-        return None
-    t = str(today or date.today())
-    tri = sorted((r for r in rows if r.get("kind") == "race" and "triathlon" in str(r.get("sport", "")).lower()
-                  and r.get("status") != "done" and str(r.get("date", "")) >= t), key=lambda r: r.get("date", ""))
-    return tri[0].get("name") if tri else None
+        import compare
+        rows = json.load(open(os.path.join(root, "coach/races.json")))
+    except (OSError, ValueError, ImportError):
+        return {}
+    return compare.unlocked(rows if isinstance(rows, list) else rows.get("rows", []))
+
+
+def _race_wait(out, unlocked, group=None):
+    """Race toggles still waiting for data (the athlete, 6.124.0: a race on the list unlocks a toggle on every metric its field
+    can rank). A tile its unlocked fields serve, with no scale on file for one of them, carries that field in `race_wait`
+    (JSON: id, label, short, race), so the page shows the toggle as Looking for data; scales on file live in `scales`."""
+    try:
+        import compare
+        keys = compare.TILE_KEYS
+    except ImportError:
+        return
+    tile_of = {k: t for t, ks in keys.items() for k in ks}
+    for m in out:
+        if m.get("kind") != "marker":
+            continue
+        tile = tile_of.get(m["key"], m["key"])
+        try:
+            have = {s["id"] for s in json.loads(m["scales"])} if m.get("scales") else {m.get("compare") or "general"}
+        except ValueError:
+            have = set()
+        wait = [{"id": k, "label": u["field"]["label"], "short": u["field"]["short"], "km": u["field"].get("km"), "race": u["race"]}
+                for k, u in unlocked.items() if tile in u["field"]["tiles"] and k not in have]
+        if wait:
+            m["race_wait"] = json.dumps(wait, ensure_ascii=False)
+    # Stages still missing for this person (the athlete, 6.124.0: "If data is missing on a user that's not the athlete, how will I know, or how
+    # will it know to research?"): each ranked tile names the stages with no scale on file for their group, so Your path says so and
+    # `compare.py gaps` hands the list to the monthly research scan.
+    try:
+        fit = {r["key"] for r in json.load(open("coach/fitness_layout.json")).get("rows", []) if r.get("kind") == "fit_kpi"}
+    except (OSError, ValueError):
+        fit = set()
+    who = group["label"] if group else "your age and sex"
+    for m in out:
+        if m.get("kind") != "marker" or m.get("section") not in ("fitness", "calc") or m["key"] not in fit or not m.get("tiers") or m["key"] == "consistency" or not (m.get("scales") or m.get("basis") == "research"):
+            continue
+        try:
+            have = {int(s.get("stage") or 2) for s in json.loads(m["scales"])} if m.get("scales") else {1}
+        except ValueError:
+            continue
+        miss = [{"stage": n, "who": who} for n in (2, 3) if n not in have]
+        if miss:
+            m["stage_wait"] = json.dumps(miss, ensure_ascii=False)
 
 
 def tile_compare(root="."):
@@ -943,7 +983,18 @@ def build(today, rows_so_far):
     N5K, NSW, NWKG, NDUR = (fit_ladder.pick(NR, k, NG) for k in ("5k", "hm703_swim_pace", "wkg", "marathon_decoupling"))
     NRUN, NBIKE = run_pace_norm(fit_ladder.pick(NR, "hm703_run", NG)), bike_w_norm(fit_ladder.pick(NR, "hm703_bike", NG))
     CMP = tile_compare()
-    TRI = next_triathlon(T)  # the 70.3 comparisons only for someone with a triathlon ahead (A coach for any person)
+    try:
+        import alpha
+        RT = alpha.on("race_toggles")  # alpha: race toggles, 5K and VO2 steps 2 and 3, missing stages named
+    except ImportError:
+        RT = False
+    # race fields the athlete's races unlock (coach/race_fields.json); a finished race keeps its field. Alpha off: a 70.3 only while a
+    # triathlon is still ahead, as before
+    UNLOCKED = race_unlocked(T)
+    if not RT:
+        _tri = next((u for k, u in UNLOCKED.items() if k in ("tri703", "trifull") and not u["done"] and str(u["date"]) >= str(T)), None)
+        UNLOCKED = {"tri703": dict(_tri, done=False)} if _tri else {}
+    TRI = "tri703" in UNLOCKED  # the 70.3 comparisons only for someone with a 70.3 on the list, ahead or done (A coach for any person)
     GEN_ROWS = []
     # W/kg scales for the FTP tile, its W/kg row and the 20-minute best: the general population model first (the default),
     # then every W/kg population on file as a comparison
@@ -983,11 +1034,18 @@ def build(today, rows_so_far):
     # to): 1 the general population, 2 the people who do the athlete's race or sport, 3 the elite of the sport.
     try:
         import compare
-        _races = json.load(open("coach/races.json"))
-        MY_RACE_SCALES = {x["id"]: x["race"] for x in compare.suggest(_races if isinstance(_races, list) else _races.get("rows", []), json.load(open("coach/fitness_layout.json")), NR, str(T))}
-        RACE_IDS = {r[1] for r in compare.RACE_SCALES}
-    except (OSError, ValueError, ImportError):
-        MY_RACE_SCALES, RACE_IDS = {}, set()
+        RACE_SHORT = {f["id"]: f["short"] for f in compare.race_fields()}
+        RACE_KM = {f["id"]: f.get("km") for f in compare.race_fields()}
+    except ImportError:
+        RACE_SHORT, RACE_KM = {}, {}
+    RACE_IDS = set(RACE_SHORT)
+    MY_RACE_SCALES = {k: v["race"] for k, v in UNLOCKED.items()}
+    if not RT:  # as before the alpha: every goal race still ahead names its scale "Your race"
+        try:
+            _races = json.load(open("coach/races.json"))
+            MY_RACE_SCALES = {x["id"]: x["race"] for x in compare.suggest(_races if isinstance(_races, list) else _races.get("rows", []), json.load(open("coach/fitness_layout.json")), NR, str(T))}
+        except (OSError, ValueError, NameError):
+            pass
 
     def stage_of(sid):
         if sid == "general":
@@ -997,6 +1055,23 @@ def build(today, rows_so_far):
         if sid in MY_RACE_SCALES:
             return 2, "Your race"
         return 2, "Race" if sid in RACE_IDS or sid == "stand_in" else "Your sport"
+
+    # When each scale first showed on a tile (the athlete, 6.124.0: new scales and races must arrive smoothly): carried forward from the
+    # last build's coach.json, today for a scale the tile did not have, blank for a tile the last build did not have (a first
+    # build or a new tile is not news). The page tags a scale New for 14 days; the morning check-in names it once.
+    PREV_SEEN = {}
+    try:
+        for _m in json.load(open("coach/dashboard/coach.json")).get("rows", []):
+            if _m.get("kind") == "marker":
+                _ss = json.loads(_m["scales"]) if _m.get("scales") else [{"id": _m.get("compare") or "general"}]
+                PREV_SEEN[_m["key"]] = {x["id"]: x.get("first_seen", "") for x in _ss}
+    except (OSError, ValueError, KeyError, TypeError):
+        PREV_SEEN = {}
+
+    def first_seen(key, sid):
+        if key not in PREV_SEEN:
+            return ""
+        return PREV_SEEN[key].get(sid, str(T))
 
     def with_scales(key, scales, apply):
         """Annotate marker `key` once per scale and keep every result on the row (field scales, JSON) so the page's Scale
@@ -1011,7 +1086,7 @@ def build(today, rows_so_far):
                 m["anchor"] = ANCHOR_GENERAL[key]
             elif isinstance(norm, dict) and norm.get("population") and m.get("anchor"):  # the Anchor line names the scale in use, never another one
                 m["anchor"] = ANCHOR_SRC.sub(lambda _x: f"Levels come from {norm.get('short') or norm['population']}. ", m["anchor"], count=1)
-            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
+            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **({"short": RACE_SHORT[sid], "km": RACE_KM.get(sid)} if sid in RACE_SHORT else {}), "first_seen": first_seen(key, sid), **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
         m["compare"] = scales[0][0]
         if len(scales) > 1:
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)
@@ -1069,6 +1144,30 @@ def build(today, rows_so_far):
             if (lo is None or v >= lo) and (hi is None or v < hi):
                 return l
         return ""
+
+    # age grade classes as the run time stages 2 and 3, for the 5K and every other distance (the athlete, 6.124.0)
+    AG_SCALES = (("club_ag", "Club runners (age grade)", (("Regional class", 70, None), ("Local class", 60, 70), ("Recreational", None, 60)),
+                  "Compared with club runners: local class (60%) and regional class (70%) are the usual club standards."),
+                 ("elite_ag", "Elite (age grade)", (("World standard", 100, None), ("World class", 90, 100), ("National class", 80, 90), ("Below national class", None, 80)),
+                  "Compared with elite runners: national class (80%), world class (90%) and the world standard for your age (100%)."))
+
+    def ag_tiers(std, rows):
+        """Category bands in minutes from an age grade standard (seconds): (label, faster bound, slower bound, words)."""
+        return [(l, None if hi is None else round(std / (hi / 100) / 60, 2), None if lo is None else round(std / (lo / 100) / 60, 2),
+                 (f"under {hi:g}%" if lo is None else f"{lo:g}%+" if hi is None else f"{lo:g}% to {hi:g}%") + " age-graded") for l, lo, hi in rows]
+
+    def ag_scale(key, std, v, rows, who):
+        """A run distance's age grade category scale; v is the current time in minutes."""
+        def fn():
+            import age_grade
+            tt = ag_tiers(std, rows)
+            nb = next(((l, hi) for l, lo, hi, _n in reversed(tt) if hi is not None and hi <= v), None)
+            annot(key, "", (f"{mss((v - nb[1]) * 60)} to {nb[0]} ({htime(nb[1])})" if nb else "in the top category"), tt, tier_of(v, tt),
+                  f"{who} The bands are age grade classes from the {age_grade.SOURCE} for your age and sex (world standard {htime(std / 60)}): categories, not percentiles.",
+                  scale="research")
+            m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == key)
+            m_.pop("splits", None)
+        return fn
 
     def dist_marker(section, order, key, label, sport_label, seg, eff, scales, each, how, conv=None):
         """One race-time-by-distance marker (best of the window up to each session, dots each session's own) with its ladder.
@@ -1189,7 +1288,7 @@ def build(today, rows_so_far):
                 st = fit_ladder.tiers(NSW, 1, lambda v: f"{mss(v)} /100 yd", floor=SWIM_CUTOFF[1])
                 rk, after = ladder("swim", NSW, sec, st, 1.0, extra=(SWIM_CUTOFF,))
                 word = "women" if NSW.get("sex") == "female" else "men"
-                annot("swim", f"Top half of 70.3 {word} ({mss(half)} /100 yd) by {TRI or 'your triathlon'}; {own_target('swim')}",
+                annot("swim", f"Top half of 70.3 {word} ({mss(half)} /100 yd) by {UNLOCKED['tri703']['race'] if TRI else 'your triathlon'}; {own_target('swim')}",
                       f"{sec - half:+.0f} s vs the top-half line · {mss(199 - sec)} per 100 yd inside the cutoff pace", st + [SWIM_CUTOFF], rk,
                       "Compared with IRONMAN 70.3 finishers. Bands are 70.3 swim percentiles (" + NSW['source'].split(':')[0] + ", normal approximation from the published mean and SD; the top 1% and 0.5% from a log-normal tail, Estimated), converted to pace per 100 yd over 2,112 yd; the bottom band is the 70.3 cutoff. Pool moving pace against open-water race times, so rough. One swim on record, 25 yd pool, moving time")
                 after()
@@ -1256,6 +1355,7 @@ def build(today, rows_so_far):
                    "Estimated", "line")
             out[-1].update(tile_label="Run time")  # the tile is named for what it is; its distance is the first word of the line under the figure (the athlete, Nov 12, 2026)
             # the same figure at other distances, behind the tile's Distance switch; no level ladder until norms exist for them
+            import age_grade
             others = []
             for dk, dl, split, lo, hi, seg in RUN_DIST:
                 if dk == "5k":
@@ -1277,7 +1377,7 @@ def build(today, rows_so_far):
                 # published finisher results for the half and the marathon, a coach estimate between the 5K and the half for the others
                 nd = fit_ladder.pick(NR, dk, NG)
                 v2 = (c2 or (None, ser["points"][-1][1]))[1]
-                if nd:
+                def gen2(dk=dk, nd=nd, v2=v2):
                     ft2 = fit_ladder.tiers(nd, 2, htime)
                     rk2, after2 = ladder(dk, nd, v2, ft2, 1 / 60)
                     nb2 = next(((l, hi_) for l, lo_, hi_, _n in reversed(ft2) if hi_ is not None and hi_ <= v2), None)
@@ -1286,6 +1386,14 @@ def build(today, rows_so_far):
                           + f"{nd['source']} ({nd['url']}). " + ("The top 1% and 0.5% and the bottom 10% and 20% come from a log-normal tail (Estimated)." if not nd.get("estimated") else nd.get("note", "")),
                           scale="coach" if nd.get("estimated") else None)
                     after2()
+                sc2 = [("general", "General population", gen2)] if nd else []
+                # every distance gets the 5K's stages 2 and 3 from its own age grade standard (the athlete, 6.124.0: "Why doesn't the run time have stages?")
+                std2 = age_grade.standard(*_sex_age(T), dk) if RT else None
+                if std2 and sc2:
+                    sc2 += [(sid, lab, ag_scale(dk, std2, v2, rows_, who)) for sid, lab, rows_, who in AG_SCALES]
+                    if CMP.get("5k"):
+                        sc2.sort(key=lambda x: x[0] != CMP["5k"])
+                with_scales(dk, sc2, lambda fn: fn())
                 others.append(dk)
             if others:
                 m5row = next(r for r in out if r.get("kind") == "marker" and r["key"] == "5k")
@@ -1342,14 +1450,35 @@ def build(today, rows_so_far):
                 if m5 is not None:
                     pf = pct_from_front(N5K, secs / 60)
                     m5["_pop"] = f"About {ordinal(100 - pf)} percentile of {N5K['population']} ({pf:.0f}% faster than you; n about {N5K['n']:,}). Age-graded about {ag:.0f}% (WMA): half the speed of the age-adjusted world standard."
-                ft = fit_ladder.tiers(N5K, 2, lambda v: mss(v * 60))
-                rk, after = ladder("5k", N5K, secs / 60, ft, 1 / 60)
-                nb = next(((l, hi) for l, lo, hi, _n in reversed(ft) if hi is not None and hi <= secs / 60), None)  # the next band up (faster)
                 sub20 = fit_ladder.percentile(N5K, 20.0)
-                annot("5k", f"Nov 28 baseline sets the Dec 19 goal; sub-20 (about the {ordinal(sub20)} percentile of {N5K.get('short', N5K['population'])}) is the long-term goal",
-                      f"{secs - 1200:+.0f} s vs 20:00" + (f" · {secs - nb[1] * 60:+.0f} s to {nb[0]} ({mss(nb[1] * 60)})" if nb else ""), ft, rk,
-                      f"Bands are finisher percentiles for your age group and sex: {N5K['source']} ({N5K['url']}); the top 1% and 0.5% and the bottom 10% and 20% come from a log-normal tail (Estimated). " + wma5 + ev5)
-                after()
+                goal5 = f"Nov 28 baseline sets the Dec 19 goal; sub-20 (about the {ordinal(sub20)} percentile of {N5K.get('short', N5K['population'])}) is the long-term goal"
+
+                def gen5():
+                    ft = fit_ladder.tiers(N5K, 2, lambda v: mss(v * 60))
+                    rk, after = ladder("5k", N5K, secs / 60, ft, 1 / 60)
+                    nb = next(((l, hi) for l, lo, hi, _n in reversed(ft) if hi is not None and hi <= secs / 60), None)  # the next band up (faster)
+                    annot("5k", goal5, f"{secs - 1200:+.0f} s vs 20:00" + (f" · {secs - nb[1] * 60:+.0f} s to {nb[0]} ({mss(nb[1] * 60)})" if nb else ""), ft, rk,
+                          f"Bands are finisher percentiles for your age group and sex: {N5K['source']} ({N5K['url']}); the top 1% and 0.5% and the bottom 10% and 20% come from a log-normal tail (Estimated). " + wma5 + ev5)
+                    after()
+
+                def ag5(rows, who):
+                    """A category scale from the age grade standard for the athlete's own age and sex (stages 2 and 3 for the 5K,
+                    the athlete, 6.124.0: "I'm still looking for a 5K and VO2 to have more than just population")."""
+                    def fn():
+                        tt = ag_tiers(_std, rows)
+                        nb = next(((l, hi) for l, lo, hi, _n in reversed(tt) if hi is not None and hi <= secs / 60), None)
+                        annot("5k", goal5, (f"{secs - nb[1] * 60:+.0f} s to {nb[0]} ({mss(nb[1] * 60)})" if nb else "in the top category"), tt, tier_of(secs / 60, tt),
+                              f"{who} The bands are age grade classes from the {age_grade.SOURCE} for your age and sex (world standard {mss(_std)}): categories, not percentiles. " + ev5,
+                              scale="research")
+                        m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == "5k")
+                        m_.pop("splits", None)
+                    return fn
+                sc5 = [("general", "General population", gen5)]
+                if RT and age_grade.standard(*_sex_age(T), "5k"):
+                    sc5 += [(sid, lab, ag5(rows_, who)) for sid, lab, rows_, who in AG_SCALES]
+                if CMP.get("5k"):
+                    sc5.sort(key=lambda x: x[0] != CMP["5k"])
+                with_scales("5k", sc5, lambda fn: fn())
             else:
                 annot("5k", "Nov 28 baseline sets the Dec 19 goal; sub-20 is the long-term goal", f"{secs - 1200:+.0f} s vs 20:00", AG_WMA_TIERS, tier_of(secs / 60, AG_WMA_TIERS), wma5 + ev5 + NO_NORM, scale="research")
             if m5 is not None:
@@ -1832,17 +1961,33 @@ def build(today, rows_so_far):
                + (" (this watch may report whole numbers only, so the line moves in steps; trainer power calibration can push it high)" if mode == "cycle" else "")
                + ". Read a sport only against its own norms: the same person scores lower on a bike than on a treadmill. Estimated.",
                "Estimated", "line")
+        whole = all(float(r[col]) == int(float(r[col])) for r in rows)
+
+        def vo2_scale(tt, ppts, rank_txt, basis):
+            def fn():
+                nb = next(((l, lo) for l, lo, _hi, _n in tt if lo is not None and lo > v), None)  # the next band up
+                pc_ = vo2_norms.percentile(v, ppts)
+                annot(key, "", (f"{nb[1] - v:.1f} to {nb[0]} ({nb[1]})" if nb else "in the top band"), tt,
+                      tier_of(v, tt) + (f" ({ordinal(pc_)} percentile, {rank_txt})" if isinstance(pc_, int) else ""), basis)
+                m_ = next(r for r in out if r.get("kind") == "marker" and r["key"] == key)
+                # more, smaller steps in the upper bands; never finer than the watch reports (whole numbers on some cycling estimates)
+                m_["splits"] = ",".join(str(x) for x in vo2_norms.fitness_splits(tt, 1.0 if whole else 0.1))
+            return fn
         if tiers:
-            nb = next(((l, lo) for l, lo, _hi, _n in tiers if lo is not None and lo > v), None)  # the next band up
-            annot(key, "", (f"{nb[1] - v:.1f} to {nb[0]} ({nb[1]})" if nb else "in the top band"), tiers,
-                  lvl + (f" ({ordinal(pc)} percentile, {gl}, {vo2_norms.MODE_WORD[mode]})" if isinstance(pc, int) else ""),
-                  f"FRIEND registry 2022 {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms, {gl}, {G['how']} (lab tests, RER 1.0 or more). Garmin's estimate can sit several points off a lab value. Estimated.")
+            vsc = [("general", "General population", vo2_scale(tiers, pts, f"{gl}, {vo2_norms.MODE_WORD[mode]}",
+                    f"FRIEND registry 2022 {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms, {gl}, {G['how']} (lab tests, RER 1.0 or more). Garmin's estimate can sit several points off a lab value. Estimated."))]
+            apts = vo2_norms.athlete_points(mode, G)
+            if RT and apts and section in ("fitness", "pair"):
+                mu, sd, who = vo2_norms.ATHLETES[mode]
+                vsc.append(("athletes", "Endurance athletes (lab tested)", vo2_scale(vo2_norms.fitness_tiers(apts, mode, who, vo2_norms.ATH_SOURCE), apts, who,
+                            f"Compared with {who}: {vo2_norms.ATH_SOURCE} ({vo2_norms.ATH_URL}), mean {mu} and SD {sd}, all ages (mean about 36), "
+                            "a normal fit (Estimated). They chose to train and to be tested, so this is a trained group, not the general population. Garmin's estimate can sit several points off a lab value.")))
+            if CMP.get("aerobic"):
+                vsc.sort(key=lambda x: x[0] != CMP["aerobic"])
+            with_scales(key, vsc, lambda fn: fn())
         else:
             annot(key, "", NO_GROUP)
         m = next(r for r in out if r.get("kind") == "marker" and r["key"] == key)
-        if tiers:  # more, smaller steps in the upper bands; never finer than the watch reports (whole numbers on some cycling estimates)
-            whole = all(float(r[col]) == int(float(r[col])) for r in rows)
-            m["splits"] = ",".join(str(x) for x in vo2_norms.fitness_splits(tiers, 1.0 if whole else 0.1))
         m["sport_label"], m["chart_title"] = sport, f"{sport} VO2max, {vo2_norms.MODE_WORD[mode].replace(' tests', '')} norms"
         return m, v, lvl
 
@@ -2108,6 +2253,8 @@ def build(today, rows_so_far):
             best.update(_earned(m["key"], best["date"]))
             out.append(best)
     _age_grade(out, T)
+    if RT:
+        _race_wait(out, UNLOCKED, NG)
     hr_anchor._CUR = _anc_before
     return relabel(out, ANC)
 

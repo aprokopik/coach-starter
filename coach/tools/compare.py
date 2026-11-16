@@ -11,6 +11,7 @@ are the rows in coach/norms.json that carry "compare": "<id>" and a "compare_lab
   python3 coach/tools/compare.py set t40k tri703      read the Bike time tile against IRONMAN 70.3 finishers
   python3 coach/tools/compare.py set t40k general     back to the baseline
   python3 coach/tools/compare.py suggest              scales that fit this athlete's goals and races: on file, or to look for
+  python3 coach/tools/compare.py gaps                 every race toggle and stage with no data on file for this person (from the build)
 
 The athlete can also switch in the dashboard: a tile's Scale panel lists every scale on file ("Compare with"), and the tap
 arrives as metric_compare/<tile>, which `catalog.py ingest` writes to the same field. The default is always the general
@@ -21,6 +22,7 @@ Then rebuild the dashboard as usual. To add a population, file its rows in coach
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 LAYOUT, NORMS = "coach/fitness_layout.json", "coach/norms.json"
@@ -28,15 +30,44 @@ LAYOUT, NORMS = "coach/fitness_layout.json", "coach/norms.json"
 TILE_KEYS = {"t40k": ("t20k", "t40k", "t90k", "t100k", "t100mi"), "swim": ("swim100", "swim400", "swim750", "swim1500", "hm703_swim_pace"),
              "5k": ("mile", "5k", "10k", "half", "marathon"), "run": ("hm703_run",), "bike": ("hm703_bike",), "ftp": ("wkg",)}
 BUILT_IN = {"run": {"tri703": "IRONMAN 70.3 finishers"}, "bike": {"tri703": "IRONMAN 70.3 finishers"}}  # scales markers.py derives itself
-# Which comparison fits which kind of goal race: (pattern on "sport distance name", id, label, the tiles it would serve).
-RACE_SCALES = (
-    (r"triathlon.*(56 mi|70\.3)|70\.3", "tri703", "IRONMAN 70.3 finishers", ("t40k", "bike", "run", "swim")),
-    (r"triathlon.*(112 mi|full|140\.6)|full ironman", "tri140", "Full IRONMAN finishers", ("t40k", "bike", "run", "swim")),
-    (r"ride.*(100 mi|century)|century", "century", "Century ride finishers", ("t40k",)),
-    (r"trail run.*(100k|100 km|110 km|100m)|ultra", "ultra100k", "100K trail ultra finishers", ("trailspeed", "trail", "5k")),
-    (r"trail run.*50k", "trail50k", "50K trail finishers", ("trailspeed", "trail", "5k")),
-    (r"marathon", "marathon", "Marathon finishers", ("5k", "run")),
-)
+FIELDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "race_fields.json")  # the one home of race fields
+
+
+def race_fields():
+    """The race fields in coach/race_fields.json, in match order."""
+    try:
+        return json.load(open(FIELDS, encoding="utf-8"))["rows"]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
+RACE_SCALES = tuple((f["match"], f["id"], f["label"], tuple(f["tiles"])) for f in race_fields())
+
+
+def field_of(race):
+    """The race field a race row belongs to (its row in race_fields.json), or None: the row's own `field` first, else the
+    first field whose sport and pattern fit."""
+    import re
+    fs = race_fields()
+    if race.get("field"):
+        return next((f for f in fs if f["id"] == race["field"]), None)
+    sport = str(race.get("sport", "")).lower()
+    text = f"{race.get('distance', '')} {race.get('name', '')}".lower()
+    return next((f for f in fs if f["sport"] in sport and re.search(f["match"], text)), None)
+
+
+UNLOCKS = ("registered", "planned", "done")  # a race being explored or considered does not unlock a toggle yet
+
+
+def unlocked(races):
+    """{field id: {field, race, date, done}} for every race registered, planned or done (the athlete, Nov 16, 2026: a race unlocks its
+    toggle; a finished race keeps it). The soonest race still ahead names the field, else the earliest finished one."""
+    out = {}
+    for r in sorted((x for x in races if x.get("kind") == "race" and x.get("status") in UNLOCKS), key=lambda x: (x.get("status") == "done", str(x.get("date")))):
+        f = field_of(r)
+        if f and f["id"] not in out:
+            out[f["id"]] = {"field": f, "race": r.get("name"), "date": r.get("date"), "done": r.get("status") == "done"}
+    return out
 
 
 def options(norm_rows, tile):
@@ -49,20 +80,33 @@ def options(norm_rows, tile):
 def suggest(races, layout, norm_rows, today):
     """[{race, id, label, on_file: [tiles], look_for: [tiles]}] for each goal race still ahead (registered, planned or
     exploring) that has a fitting comparison; tiles are limited to those on the athlete's Scorecard."""
-    import re
     tiles = {r["key"] for r in layout.get("rows", []) if r.get("kind") == "fit_kpi"}
     out, seen = [], set()
     for r in sorted((x for x in races if x.get("kind") == "race" and str(x.get("date") or "") >= today and x.get("status") in ("registered", "planned", "exploring")),
                     key=lambda x: (x.get("status") != "registered", str(x.get("date")))):
-        text = f"{r.get('sport', '')} {r.get('distance', '')} {r.get('name', '')}".lower()
-        for pat, cid, label, serves in RACE_SCALES:
-            if cid in seen or not re.search(pat, text):
-                continue
-            seen.add(cid)
-            mine = [t for t in serves if t in tiles]
-            have = [t for t in mine if cid in options(norm_rows, t)]
-            out.append({"race": r.get("name"), "date": r.get("date"), "id": cid, "label": label, "on_file": have, "look_for": [t for t in mine if t not in have]})
-            break
+        f = field_of(r)
+        if not f or f["id"] in seen:
+            continue
+        cid, label, serves = f["id"], f["label"], f["tiles"]
+        seen.add(cid)
+        mine = [t for t in serves if t in tiles]
+        have = [t for t in mine if cid in options(norm_rows, t)]
+        out.append({"race": r.get("name"), "date": r.get("date"), "id": cid, "label": label, "on_file": have, "look_for": [t for t in mine if t not in have]})
+    return out
+
+
+def gaps(rows):
+    """Comparison data this person is missing, from the built dashboard rows (markers.py race_wait and stage_wait): one line per
+    tile and want, for the monthly research scan and the morning check. Group and race kind only, never a reading."""
+    out = []
+    for m in rows:
+        if m.get("kind") != "marker" or m.get("section") == "pair":  # a switch's other rows repeat their tile
+            continue
+        name = m.get("label") or m["key"]
+        for w in json.loads(m.get("race_wait") or "[]"):
+            out.append(f"{name}: stage 2, {w['label']} (for {w['race']})")
+        for w in json.loads(m.get("stage_wait") or "[]"):
+            out.append(f"{name}: stage {w['stage']}, {'elite' if w['stage'] == 3 else 'trained'} norms for {w['who']}")
     return out
 
 
@@ -95,6 +139,14 @@ def main(argv):
         races = json.load(open("coach/races.json"))
         for x in suggest(races if isinstance(races, list) else races.get("rows", []), layout, norms, date.today().isoformat()):
             print(f"{x['label']} ({x['id']}), for {x['race']} on {x['date']}: on file for {', '.join(x['on_file']) or 'no tile'}; look for {', '.join(x['look_for']) or 'nothing more'}")
+        return 0
+    if len(argv) >= 1 and argv[0] == "gaps":
+        try:
+            built = json.load(open("coach/dashboard/coach.json"))
+        except (OSError, ValueError):
+            print("build the dashboard first (coach/tools/build_dashboard.py)")
+            return 1
+        print("\n".join(gaps(built.get("rows", []) if isinstance(built, dict) else built)) or "no gaps")
         return 0
     if len(argv) == 3 and argv[0] == "set":
         try:
