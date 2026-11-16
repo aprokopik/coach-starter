@@ -40,7 +40,10 @@
   const metrics = () => CX.kind('cat_metric').slice().sort((a, b) => Number(a.order) - Number(b.order)).map((m) => ({ ...m, needs: arr(m.needs), missing: arr(m.missing), shown: truthy(m.shown) }));
   // on the dashboard now: the layout, changed by any tap not yet written into it
   const isOn = (m) => (picks.has(m.key) ? !!picks.get(m.key).on : m.shown);
-  const rerender = () => { if (CX.render) CX.render(); };
+  // the tapped control stays put through re-renders (the athlete, Nov 16: the Map jumped); a scroll lets go
+  let anchor = null; ['touchmove', 'wheel'].forEach((t) => window.addEventListener(t, () => { anchor = null; }, { passive: true }));
+  const rerender = () => { if (focusNext && !scrollNext) { const a = document.querySelector(focusNext); anchor = a ? { sel: focusNext, top: a.getBoundingClientRect().top, until: Date.now() + 4000 } : null; } if (CX.render) CX.render(); };
+  const hold = (box) => { if (!anchor) return; if (Date.now() > anchor.until) { anchor = null; return; } const a = box.querySelector(anchor.sel); if (!a) return; const d = a.getBoundingClientRect().top - anchor.top; if (Math.abs(d) > 1) window.scrollBy(0, d); };
 
   function lockIcon() {
     const NS = 'http://www.w3.org/2000/svg'; const s = document.createElementNS(NS, 'svg'); s.setAttribute('class', 'ck-i mx-lk'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
@@ -422,7 +425,7 @@
   CX.metricTiles = (box, tiles) => {
     const M = metrics(); if (!M.length) return;
     const I = inputs(); const byKey = new Map(M.map((m) => [m.key, m]));
-    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) { f.focus({ preventScroll: true }); if (scrollNext) f.scrollIntoView({ block: 'start' }); } } scrollNext = false; };
+    const finish = () => { if (ui.err) { const e = el('p', 'ck-note mx-err'); e.setAttribute('role', 'alert'); e.textContent = ui.err; box.append(e); } if (focusNext) { const f = box.querySelector(focusNext); focusNext = null; if (f) { f.focus({ preventScroll: true }); if (scrollNext) f.scrollIntoView({ block: 'start' }); } } scrollNext = false; hold(box); if (!box.cxHold && window.ResizeObserver) { box.cxHold = new ResizeObserver(() => hold(box)); box.cxHold.observe(box); } };
     if (ui.view === 'map') {
       const ex = document.getElementById('f-expand'); if (ex && box.contains(ex)) { ex.hidden = true; box.after(ex); } // the chart panel lives in the box while a tile is open: keep it
       const nb = nextBox(M, tiles); box.replaceChildren(viewBar(), ...(nb ? [nb] : []), mapView(M, I, tiles)); finish(); return;
