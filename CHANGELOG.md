@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.86.1 (2026-11-16)
+- Tools: a kit update can load the dashboard page with no tool to download. A tester's update to 6.85.0 finished except the page: her session could not download terser, the largest page script is over the store's 256 KB cap as written (266 KB), so `pack_dashboard.py` refused it and her page kept its older look. Now, when terser cannot run, scripts lose their comment lines and indentation instead (`plain()`, no tool; the largest script is 213 KB that way) and the page loads. `coach/tests/test_pack_plain.py` fails when any page file comes within 16 KB of the cap without a minifier. With terser nothing changes.
+
 ## 6.86.0 (2026-11-16)
 - Engine: Habits to build. the kit maker, Nov 15, 2026: the Today card "is actually about habit forming and specifically what each individual needs to work on. For me that is special to easy days easy and lift", then picked "Coach proposes, you confirm". BLOCK-BRIEF.md 2.5: with each block brief the coach proposes 1 to 3 habits from the four plan rows, led by the rows missed most, and the athlete confirms; `profile.json habits` {rows, confirmed, note} is the one home (the kit maker: easy, lift, confirmed Nov 15). build_dashboard.py passes it as a `habits` row.
 - Dashboard: the Today card reads "Habits to build" and shows only the agreed rows, with one line saying when they were agreed and where each row left out is still tracked. No habits agreed: "Doing the plan" with all four rows, as before. Guard: coach/tests/test_habits_card.py.

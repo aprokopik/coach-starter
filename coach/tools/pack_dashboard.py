@@ -9,8 +9,9 @@ Usage: python3 coach/tools/pack_dashboard.py <out_dir> [--only name,name] [--ful
 
 Smaller files (6.76.0, speed): the phone downloads every page file on each open, so the packed copy drops what only a
 reader needs. Scripts go through terser (compress, local names shortened; names shared on window stay), styles and markup
-lose comments and indentation. The repo files stay as written. --full packs them unchanged. Without node the script
-packs them unchanged and says so.
+lose comments and indentation. The repo files stay as written. --full packs them unchanged. Without node, or when terser
+cannot be downloaded, scripts lose their comment lines and indentation instead (plain(), no tool needed) and the script
+says so; coach/tests/test_pack_plain.py keeps every page file under the cap that way.
 Also: python3 coach/tools/pack_dashboard.py --assemble <out.html>   builds one local HTML (styles and scripts inlined)
 for the 390 px render check in coach/DASHBOARD.md; it is never published.
 """
@@ -42,22 +43,34 @@ TERSER = ["npx", "-y", "terser@5.29.2", "--compress", "passes=2", "--mangle", "-
 _warned = []
 
 
+def plain(text):
+    """A script made smaller with no tool at all: comment-only lines and indentation dropped. Used when terser cannot run
+    (6.86.1: a tester's session could not download it, the largest script is over the store's cap as written, and her
+    page update stopped). A file with a template literal that spans lines is left as written, since its lines are text."""
+    lines = text.splitlines()
+    if any(line.count("`") % 2 for line in lines):
+        return text
+    return "\n".join(s for s in (line.strip() for line in lines) if s and not s.startswith("//"))
+
+
 def small(name, text):
     """The packed text of one page file: minified script, styles and markup without comments and indentation."""
     if name.endswith(".js"):
-        if name == "charts.js" or not shutil.which("npx"):  # charts.js is already built small
-            if name != "charts.js" and not _warned:
-                _warned.append(1); print("note: npx not found, scripts packed unchanged")
+        if name == "charts.js":  # already built small
             return text
+        if os.environ.get("COACH_PACK_PLAIN") or not shutil.which("npx"):
+            if not _warned:
+                _warned.append(1); print("note: terser not used, scripts packed with comments and indentation dropped")
+            return plain(text)
         with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as fh:
             fh.write(text); src = fh.name
         try:
-            out = subprocess.run(TERSER + [src], capture_output=True, text=True, check=True).stdout
-        except (subprocess.CalledProcessError, OSError) as e:
-            print(f"note: terser failed on {name}, packed unchanged ({e})"); return text
+            out = subprocess.run(TERSER + [src], capture_output=True, text=True, check=True, timeout=120).stdout
+        except (subprocess.SubprocessError, OSError) as e:
+            print(f"note: terser failed on {name}, packed with comments and indentation dropped ({str(e)[:120]})"); return plain(text)
         finally:
             os.unlink(src)
-        return out
+        return out or plain(text)
     if name.endswith(".css"):
         text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     elif name.endswith(".html"):
