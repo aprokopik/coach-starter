@@ -551,7 +551,7 @@
   dash.onData(() => { if (window.CX.state && window.CX.state.page === 'lifts') renderLifts(); });
 
   (async () => {
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     if (db) {
       try { const q = await db.collection('lift_log').get(); logs = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, { date: x.id, ...x.data() }])); }
       catch (e) { status('Could not load your sets.', 'err'); }

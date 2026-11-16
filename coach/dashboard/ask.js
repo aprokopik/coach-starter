@@ -226,7 +226,7 @@
     if (built || !$('t-qc')) return; // built once per page load; answers move it on
     const wv = rowsOk('week_view'); if (!wv) return;
     built = true;
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     if (!db) return; // nowhere to save: ask nothing
     const Y = isoN(dayN(TODAY) - 1);
     const get = async (p) => { try { const d = await db.doc(p).get(); return d.exists ? d.data() : null; } catch (e) { return null; } };

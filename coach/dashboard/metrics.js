@@ -512,7 +512,7 @@
   }
 
   (async () => {
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     // 6.77.3: the five store reads run side by side, not one after another (each is a network round trip on the phone;
     // the athlete, Nov 15: the level up screen showed 7 s after open, after this chain)
     let sc = 0, lv = 0;

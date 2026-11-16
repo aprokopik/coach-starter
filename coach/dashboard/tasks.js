@@ -90,7 +90,7 @@
     const card = $('ct'); if (!card || !A()) return;
     if (!built) {
       built = true;
-      try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+      try { db = await window.CX.store(); } catch (e) { db = null; }
       if (!db) return;
       try { const q = await db.collection('checkin_task').get(); docs = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, JSON.parse(JSON.stringify(x.data()))])); } catch (e) { docs = new Map(); }
       if (window.CK && window.CK.init) window.CK.init(card); // the Add a check-in disclosure

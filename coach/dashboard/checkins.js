@@ -436,7 +436,7 @@
 
   let readyFn; const ready = new Promise((r) => { readyFn = r; });
   (async () => {
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     if (!db) { loadErr = 'Your answers can be saved only inside the dashboard.'; loaded = true; renderTab(); readyFn(); return; }
     try {
       const q = await db.collection('checkin').get();

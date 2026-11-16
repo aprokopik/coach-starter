@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
     p.on('pageerror', e => errs.push(e.message.slice(0, 120)));
     
     await p.goto('file://' + process.argv[2]); await p.waitForTimeout(1500);
-    if (mode === 'throwing') await p.evaluate(async () => { const db = await window.claude.use('db'); const d0 = db.doc; db.doc = (x) => { throw new TypeError('store refused'); }; });
+    if (mode === 'throwing') await p.evaluate(() => { window.__throwStore = true; }); // 6.105.0: the store is frozen, as live; the stand-in throws on request
     const H = await p.evaluate(() => document.documentElement.scrollHeight); await p.setViewportSize({ width: 390, height: H }); await p.waitForTimeout(1500);
     const top = await p.evaluate(() => Math.round(document.querySelector('.td-lvx-card').getBoundingClientRect().top));
     await p.locator('.td-lvx-ok').tap({ timeout: 4000 }); await p.waitForTimeout(400);

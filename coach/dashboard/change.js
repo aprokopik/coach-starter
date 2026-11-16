@@ -81,7 +81,7 @@
     if (!$('t-chg-btn') || !A()) return;
     if (!built) {
       built = true;
-      try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+      try { db = await window.CX.store(); } catch (e) { db = null; }
       if (!db) return; // nowhere to save: say it in chat
       try { const d = await db.doc('day_change/' + A().TODAY).get(); saved = d.exists ? d.data() : null; } catch (e) { saved = null; }
       if (saved && !saved.cleared) { pick = REASONS.some(([v]) => v === saved.reason) ? saved.reason : ''; $('t-chg-note').value = saved.note || ''; $('t-chg-min').checked = !!saved.use_min; }

@@ -211,7 +211,7 @@
   CX.renderBlock = renderBlock;
   const redraw = () => { if (CX.state && CX.state.page === 'trends') renderBlock(); const p = $('r-p-block'); if (p && !p.hidden) renderBlock($('r-block')); };
   (async () => {
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     if (db) { try { const q = await db.collection('brief_choice').get(); choices = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, x.data()])); } catch (e) { choices = new Map(); } }
     loaded = true; redraw();
   })();

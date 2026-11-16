@@ -148,15 +148,22 @@
   // window.claude.use('db'): in-memory, empty store (no saved check-ins / feel / lift logs). HARNESS-ONLY.
   const store = new Map(); // Phase 5 Check-in: H.store and H.writes (every set, in order, as JSON text) for the save round-trip; window.__seed (an init script) pre-fills docs
   H.store = store; H.writes = []; if (window.__seed) for (const k in window.__seed) store.set(k, JSON.parse(JSON.stringify(window.__seed[k])));
-  const snap = (id, v) => ({ id, exists: v !== undefined, data: () => (v === undefined ? undefined : JSON.parse(JSON.stringify(v))) });
-  const db = {
-    doc: (path) => ({
-      get: async () => { if (window.__slowReads) await new Promise((r) => setTimeout(r, window.__slowReads)); return snap(path.split('/').pop(), store.get(path)); }, // 6.77.4: __slowReads holds doc reads too (the phone's store is a network round trip)
-      set: async (v) => { if (window.__failWrites) { H.failed = (H.failed || 0) + 1; const e = new Error('harness: write refused'); e.code = 'unavailable'; throw e; } if (window.__slowWrites) await new Promise((r) => setTimeout(r, window.__slowWrites)); H.writes.push([path, JSON.stringify(v)]); store.set(path, JSON.parse(JSON.stringify(v))); }, // Phase 5 Lifts: __slowWrites (ms) holds each write, so the Saving and restored words can be seen;: window.__failWrites makes every write fail (the retrying state)
-    }),
-    collection: (name) => ({
-      get: async () => { if (window.__slowReads) await new Promise((r) => setTimeout(r, window.__slowReads)); return ({ docs: [...store.entries()].filter(([k]) => k.startsWith(name + '/')).map(([k, v]) => snap(k.slice(name.length + 1), v)) }); }, // Lifts review: __slowReads (ms) delays every collection read
-    }),
-  };
+  // 6.105.0: the stand-in follows the live runtime contract (0.2.96, db.d.ts and claude.d.ts): the namespace, every ref and
+  // every snapshot and its data() are frozen; a body must be a plain JSON object under 256 KiB. On Nov 15 the stand-in was a
+  // plain object, so the 6.77.0 Proxy around the store worked here and threw on every call on the phone (taps-not-saving RCA).
+  const deep = (o) => { if (o && typeof o === 'object' && !Object.isFrozen(o)) { Object.freeze(o); for (const k of Object.keys(o)) deep(o[k]); } return o; };
+  const snap = (id, v) => Object.freeze({ id, exists: v !== undefined, metadata: Object.freeze({ fromCache: false, hasPendingWrites: false }), data: () => (v === undefined ? undefined : deep(JSON.parse(JSON.stringify(v)))) });
+  const hold = (ms) => (ms ? new Promise((r) => setTimeout(r, ms)) : null);
+  const body = (v) => { if (!v || typeof v !== 'object' || Array.isArray(v) || Object.getPrototypeOf(v) !== Object.prototype) throw new TypeError('db: a document body must be a plain object'); const t = JSON.stringify(v); if (t.length > 262144) { const e = new Error('db: body over 256 KiB'); e.code = 'invalid_argument'; throw e; } return t; };
+  const db = Object.freeze({
+    doc: (path) => { if (window.__throwStore) throw new TypeError('store refused'); if (typeof path !== 'string' || path.split('/').length % 2) throw new TypeError('db.doc: path needs an even number of segments'); return Object.freeze({
+      path,
+      get: async () => { await hold(window.__slowReads); return snap(path.split('/').pop(), store.get(path)); }, // 6.77.4: __slowReads holds doc reads too (the phone's store is a network round trip)
+      set: async (v) => { const t = body(v); if (window.__failWrites) { H.failed = (H.failed || 0) + 1; const e = new Error('harness: write refused'); e.code = 'unavailable'; throw e; } await hold(window.__slowWrites); H.writes.push([path, t]); store.set(path, JSON.parse(t)); }, // __slowWrites (ms) holds each write; __failWrites makes every write fail (the retrying state)
+    }); },
+    collection: (name) => { if (window.__throwStore) throw new TypeError('store refused'); return Object.freeze({
+      get: async () => { await hold(window.__slowReads); return Object.freeze({ docs: Object.freeze([...store.entries()].filter(([k]) => k.startsWith(name + '/') && k.split('/').length === name.split('/').length + 1).map(([k, v]) => snap(k.slice(name.length + 1), v))) }); },
+    }); },
+  });
   if (!/[?&]nodb\b/.test(location.search)) window.claude = Object.assign(window.claude || {}, { use: async (cap) => (cap === 'db' ? db : cap === 'mcp' ? (window.__mcp || null) : null) }); // window.__mcp (an init script): a stand-in for the mcp capability (fresh.js)
 })();

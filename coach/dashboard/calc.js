@@ -35,7 +35,7 @@
       elev: c((x) => x * 0.3048), elevU: l('ft', 'm'), wt: c((x) => x * 0.45359237), wtU: l('lb', 'kg'), speed: c((x) => x * 1.609344),
       speedU: l('mph', 'km/h'), swimU: l('/100 yd', '/100 m'), yd: c((x) => x * 0.9144), ydU: l('yd', 'm') };
   })();
-  window.CX = { N, dayN, isoN, monday, round, fixed, fmt, U };
+  window.CX = Object.assign(window.CX || {}, { N, dayN, isoN, monday, round, fixed, fmt, U });
 
   dash.calc('night', {
     title: 'Last night vs your normal',

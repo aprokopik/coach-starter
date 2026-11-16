@@ -254,7 +254,7 @@
   wrap();
   { const r = document.querySelector('input[name=r-st][value=badges]'); if (r) r.addEventListener('change', () => setTimeout(() => { if (r.checked) { memo = {}; try { renderShelf(); } finally { memo = null; } } }, 0)); }
   (async () => {
-    try { db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    try { db = await window.CX.store(); } catch (e) { db = null; }
     if (db) { try { const d = await db.doc('badges/earned').get(); const v = d && d.exists ? d.data() : null; let items = v ? v.items : null; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }
       if (Array.isArray(items)) for (const b of items) if (b && b.id) kept.set(String(b.id), b); } catch (e) { /* drawn from the record */ } }
     loaded = true; if (window.CX.state && window.CX.state.page === 'races') render();

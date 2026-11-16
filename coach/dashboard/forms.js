@@ -237,7 +237,7 @@
   });
 
   (async () => {
-    db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db') : null;
+    db = await window.CX.store();
     if (!db) {
       for (const id of ['fm-status', 'fs-status']) status(id, 'Saving is not available in this view; reply to the check-in instead.', 'err');
       morningView(null); sessionView(); formState($('t-feel'), null); formState($('t-session'), null); return;
