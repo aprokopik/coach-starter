@@ -109,6 +109,29 @@ Empty in a new coach. The monthly research scan fills it: each rule this coach a
 - Limits: most underlying data come from untrained or novice lifters; concurrent (strength plus endurance) effects could not be judged for lack of data.
 - Certainty moderate · Fit moderate · New
 
+### TR-18 Held et al. 2026: maximizing adaptations in concurrent training (umbrella review)
+- Sports Med. https://doi.org/10.1007/s40279-026-02401-y · umbrella review of 17 meta-analyses (144 studies, 1,492 participants, mean AMSTAR 10.4) · FULL (author PDF)
+- Finding: concurrent vs endurance only: aerobic capacity equal (SMD 0.05), strength higher (0.59). Concurrent vs lifting only: aerobic capacity higher (0.77), strength (0.17), power (0.21) and hypertrophy (−0.04) trivially different. Lifting before endurance favoured strength (SMD 1.69, very wide error) with aerobic gains unaffected. Heavier loads gave more strength under concurrent training.
+- Limits: mostly untrained or recreational adults, about 10 week studies; few trained athletes, where interference may be larger and lands on strength more than endurance.
+- Certainty moderate · Fit moderate · Applied
+
+### TR-19 Pelland et al. 2025: resistance training dose response, weekly volume and frequency
+- Sports Med 56(2):481–505. https://doi.org/10.1007/s40279-025-02344-w · Bayesian meta-regressions, 67 studies, 2,058 participants (mean age 25) · SEC (blog summary and abstract; full text blocked)
+- Finding: more weekly sets give more strength and muscle with diminishing returns. Strength flattens after about 5 to 6 direct sets a week of a movement; hypertrophy needs at least about 4 to 6 and keeps rising toward 10 to 20 sets per muscle a week. Frequency adds strength (1 to 2 to 3 sessions, smaller each step) but not muscle once volume is equal.
+- Certainty moderate · Fit moderate · Applied
+
+### TR-20 Lixandrão et al. 2024: higher volume offsets hypertrophy non-response in older adults
+- J Appl Physiol. https://doi.org/10.1152/japplphysiol.00670.2023 · within-subject RCT, 85 older adults (about 68 y), 10 weeks knee extension 2x/week, 1 set one leg vs 4 sets the other · ABS (summaries)
+- Finding: 51 of 85 did not grow on 1 set; nearly all grew on 4 sets. Responders also gained more size on 4 sets; strength gains similar.
+- Limits: older, untrained, one exercise.
+- Certainty moderate · Fit low · New
+
+### TR-21 Mattioni Maturana et al. 2026: dose response of exercise duration on VO2max, HIIT vs MICT
+- Sports Med. https://doi.org/10.1007/s40279-026-02528-y · dose-response meta-analysis, 69 RCTs, 2,387 participants · FULL (author PDF)
+- Finding: HIIT beat MICT by 1.2 mL/kg/min (d 0.38). HIIT reaches 80% of its VO2max effect at about 33 min a week of session time (about 15 min of hard work); MICT needs about 133 min and had not plateaued at 200 min.
+- Limits: mostly sedentary or low fitness; intensity anchored to %HRmax or %VO2max, not thresholds.
+- Certainty moderate · Fit low to moderate · Applied
+
 ## IR: Injury, load, recovery and sleep
 
 ### IR-01 Soligard et al. 2016: IOC consensus on load and injury

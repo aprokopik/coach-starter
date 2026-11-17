@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.133.0 (2026-11-17)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.132.0 (2026-11-17)
 - Dashboard, alpha `race_toggles` (epic Compare with anyone; the kit maker picked "Swim, bike and VO2" for the next elite stage 3, Nov 16, 2026): the swim distance tiles (100 to 1,500) and the bike time tiles (20K to 100 miles) get stage 3, "Masters record holders": bands are a share of the masters national record for the athlete's own age group and sex (record pace, within 10%, within 20%, further), read like age grade on the run tiles. Records in `coach/elite_records.json`: US Masters Swimming short course yard freestyle records and USA Cycling masters road time trial records (40 km where filed, else 20 km). Distances with no record of their own are read off the nearest filed ones and say Estimated.
 - Dashboard: a diamond (stage 3) coin shows in the Compare with pill only once stage 3 is unlocked (a stage 2 reading at Top 20%); before that the pill shows Everyone and the gold coins (the kit maker, Nov 16, 2026). The pill itself still appears only from Top 20% on stage 1.
