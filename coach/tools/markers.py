@@ -13,6 +13,7 @@ import os
 import re
 from datetime import date, datetime, timedelta
 
+import ag703_rows
 import fit_ladder
 import ride_dist
 import trail_effort
@@ -104,7 +105,8 @@ def ordinal(n):
 
 
 def norm_rows():
-    return json.load(open("coach/norms.json")).get("rows", []) if os.path.exists("coach/norms.json") else []
+    rows = json.load(open("coach/norms.json")).get("rows", []) if os.path.exists("coach/norms.json") else []
+    return ag703_rows.build(rows)  # 70.3 age group rows are worked out here from the small Table 1, never stored (see ag703_rows.py)
 
 
 def pct_from_front(norm, v):

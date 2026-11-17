@@ -3,14 +3,14 @@
 numbers page, "For stage 2 yes", and picked "Loose ends, then 70.3 table", Nov 16, 2026).
 
 IRONMAN publishes no split table by age group. Knechtle et al. 2023 (Sports Medicine - Open 9:88, CC BY 4.0) Table 1 gives the
-finish time mean and SD for every age group and sex (823,459 finishes, 2004 to 2020). This tool takes each all-ages 70.3 split row
-in coach/norms.json (compare tri703) and writes one row per age group: the split centre moves by that group's finish mean over
-the all-ages mean, and its spread by the group's SD over the all-ages SD (the all-ages figures pooled from Table 1 itself, which
-gives back the paper's 625,393 men and 198,066 women). Assumption, said on every row: a group's splits move in step with its
-finish time. Rows carry "derived": "ag703" and are rewritten on each run; coach/norms.json stays the only home of the numbers.
+finish time mean and SD for every age group and sex (823,459 finishes, 2004 to 2020). markers.norm_rows() takes each all-ages
+70.3 split row in coach/norms.json (compare tri703) and adds one row per age group in memory: the split centre moves by that
+group's finish mean over the all-ages mean, and its spread by the group's SD over the all-ages SD (the all-ages figures pooled from
+Table 1 itself, which gives back the paper's 625,393 men and 198,066 women). Assumption, said on every row: a group's splits move
+in step with its finish time. Nothing is stored: the 26 lines of T1 below and the all-ages rows are the only homes (the athlete, Nov 16,
+2026: "make it lighter, but still keep functionality"; the 198 stored rows were about 240 KB).
 
-    python3 coach/tools/ag703_rows.py          # rewrite the rows
-    python3 coach/tools/ag703_rows.py --check  # exit 1 if norms.json is out of date
+    python3 coach/tools/ag703_rows.py   # print how many rows it works out
 
 Standard library only.
 """
@@ -81,12 +81,5 @@ def build(rows):
 
 if __name__ == "__main__":
     with open(FILE, encoding="utf-8") as fh:
-        doc = json.load(fh)
-    rows = build(doc["rows"])
-    if "--check" in sys.argv:
-        sys.exit(0 if json.dumps(rows) == json.dumps(doc["rows"]) else 1)
-    doc["rows"] = rows
-    with open(FILE, "w", encoding="utf-8") as fh:
-        json.dump(doc, fh, indent=1, ensure_ascii=False)
-        fh.write("\n")
-    print(f"{sum(1 for r in rows if r.get('derived') == 'ag703')} age group 70.3 rows")
+        rows = json.load(fh)["rows"]
+    print(f"{sum(1 for r in build(rows) if r.get('derived') == 'ag703')} age group 70.3 rows, worked out in memory")
