@@ -61,6 +61,10 @@ NONLIFT_PULL = {"male": (0.25, 4.0, 0.6), "female": (0.05, 2.0, 0.6)}
 AGE = ((40, 1.0), (50, 0.95), (60, 0.88), (70, 0.80), (200, 0.70))
 STAGES = ((1, "Everyone"), (2, "Trained"), (3, "Elite"))
 UNLOCK = 80.0  # Top 20% of a stage unlocks the next one
+# The Compare with coins show on a lift once its best set reaches the longevity goal: Top third of everyone, the strongest
+# third of men in Ruiz et al. 2008 (BMJ 337:a439) had the lowest death rates (the athlete, Nov 16, 2026: "not until you have at
+# least reached the longevity goal"; the line is this one number).
+LONGEVITY = 100 * 2 / 3
 
 
 def age_factor(age):
@@ -214,9 +218,16 @@ def row(ex, sess, g, bw, age, name=None):
     load, reps = top_set(sess[d])
     x = reading(ex, load, reps, bw)
     best = max(reading(ex, l, r, bw) for s in sess.values() for l, r in s)
-    unlocked = (percentile(best, std, sex, bw, age, 1) or 0) >= UNLOCK
+    best1 = percentile(best, std, sex, bw, age, 1) or 0
+    unlocked = best1 >= UNLOCK
     stage = 2 if unlocked else 1
     p = percentile(x, std, sex, bw, age, stage)
+    # Compare with: coins from the longevity goal on; once Trained is the stage in use, the Everyone coin reads this level
+    cmp = {"cmp": 1} if best1 >= LONGEVITY - 1e-9 else {}
+    if unlocked:
+        p1 = percentile(x, std, sex, bw, age, 1)
+        if p1 is not None:
+            cmp.update({"level1": band(p1)[0], "pctl1": round(p1, 1)})
     lvl, thru, nxt, edge = band(p)
     if nxt:
         target = value_at(edge, std, sex, bw, age, stage)
@@ -235,4 +246,4 @@ def row(ex, sess, g, bw, age, name=None):
     est = " · Estimated" if gp.get("k") not in (None, 1, 1.0) else ""
     return {**base, "value": f"{lw} × {reps:g}" if lw else f"{reps:g}", "unit": "" if lw else (" a side" if ex.get("per_side") else " reps"),
             "level": lvl, "pct": round(thru, 3), "next": nx + est, "stage": stage, "have": "1,2", "pctl": round(p, 1),
-            "when": f"{d.strftime('%b')} {d.day}"}
+            "when": f"{d.strftime('%b')} {d.day}", **cmp}

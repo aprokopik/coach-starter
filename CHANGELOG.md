@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.127.0 (2026-11-16)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.126.4 (2026-11-16)
 - Dashboard fix: the 70.3 age group levels (6.126.0) are worked out when the coach ranks, from the 26 lines of the age group table and the all-ages rows, instead of 198 stored rows (the kit maker, Nov 16, 2026: "How can we simplify this or make it lighter, but still keep functionality?"). coach/norms.json drops about 240 KB and so does coach.json, which the page never read them from; every level and label stays the same. `python3 coach/tools/ag703_rows.py` now only counts them.
 - Tools: coach.json speed budget 1,050,000 to 1,060,000 (+10 KB, from PR 258, folded in on the kit maker's "Merge both"): the habit week figures, strength slot ids and race fields of 6.123.0 to 6.125.0 put a fresh build about 1 KB over.

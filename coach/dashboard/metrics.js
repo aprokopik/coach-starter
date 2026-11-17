@@ -158,9 +158,11 @@
     return f;
   }
   function ladderPanel(m) {
-    const sl = strSlot(m); if (sl && m[sl + '_plane']) m = { ...m, name: `${m.name} · ${m[sl + '_plane']}`, level: m[sl + '_level'] || '', next: m[sl + '_next'] || m[sl + '_why'] || '', fld: { next: m[sl + '_next'] ? sl + '_next' : sl + '_why' } }; // one plane's own level (nested readings)
+    const sl = strSlot(m); const ev = sl ? liftEveryone(m, sl) : false; // the Everyone coin on a lift past Trained reads the level among everyone
+    if (ev) m = { ...m, [sl + '_level']: m[sl + '_level1'], [sl + '_next']: '', ladder_label: String(m.ladder_label || '').replace('people who lift', 'everyone') };
+    if (sl && m[sl + '_plane']) m = { ...m, name: `${m.name} · ${m[sl + '_plane']}`, level: m[sl + '_level'] || '', next: m[sl + '_next'] || m[sl + '_why'] || '', fld: { next: m[sl + '_next'] ? sl + '_next' : sl + '_why' } }; // one plane's own level (nested readings)
     const p = el('div', 'ft-expand mx-unlock mx-ladder'); p.id = 'mx-ladder'; if (m.ladder === 'reps') p.dataset.sport = CX.sportTok(m.sport); // the rep boxes take the tile's sport colour p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'Levels for ' + m.name);
-    p.append(el('h3', 'ck-h3', m.name)); if (m.ladder === 'reps' && m.goal) { const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what); } p.append(ladderBody(m));
+    p.append(el('h3', 'ck-h3', m.name)); if (sl && has(m[sl + '_cmp'])) p.append(liftCoins(m, sl)); if (m.ladder === 'reps' && m.goal) { const what = el('p', 'ck-note'); what.append(CX.ck.mark(el('span', null, m.what), 'coach', 'what', mw(m))); p.append(what); } p.append(ladderBody(m));
     // a habit that had its own chart keeps it inside the panel (Consistency, the training days per week bars; 6.47.0, back from 6.40.0)
     const A = CX.app || {}; const mk = A.kind ? A.kind('marker').find((x) => x.key === m.key && x.chart) : null;
     if (mk && A.drawMarker) { const box = el('div', 'chart mx-ladder-chart'); box.id = 'mx-ladder-chart'; box.style.setProperty('--h', '170px'); box.dataset.source = 'coach'; p.append(box);
@@ -272,6 +274,25 @@
   // Power and Speed, Sustainable trail speed, Climbing, the strength Pull and Push planes) shows each reading as its own panel
   // with the sport rail. The tile is no longer one button: each panel is, and opens that reading's own chart or ladder under the
   // tile; the open one turns a soft shade of its sport. Runs after pairBike, before app.js places the chart (placeExpand).
+  // Compare with on a lift (the athlete, Nov 16, 2026: option B "Always show, Trained locked", "not until you have at least reach the
+  // longevity goal"): the coins show once the lift's best set reaches Top third of everyone (strength_norms.LONGEVITY, field
+  // s{i}_cmp). Everyone, then Trained (people who lift) locked until Top 20% of everyone, then Elite dashed (no table yet).
+  // Once Trained is the stage in use, the Everyone coin reads the level among everyone (s{i}_level1); the pick stays on this device.
+  const LIFT_CMP = 'cx-liftcmp';
+  const liftPick = (k) => { try { return (JSON.parse(localStorage.getItem(LIFT_CMP) || '{}') || {})[k] || 'auto'; } catch (e) { return 'auto'; } };
+  const liftEveryone = (m, sl) => Number(m[sl + '_stage']) >= 2 && has(m[sl + '_level1']) && liftPick(m.key + '.' + sl) === 'general';
+  function liftCoins(m, sl) {
+    const { mark } = CX.ck; const k = m.key + '.' + sl, stage = Number(m[sl + '_stage']) || 1, ev = stage < 2 || liftPick(k) === 'general';
+    const wrap = el('div', 'ft-cmp mx-liftcmp'); wrap.id = 'f-race'; const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
+    const opts = [['general', 1, 'Everyone', ev, false, stage < 2 ? m[sl + '_level'] : m[sl + '_level1']], ['trained', 2, 'Trained', !ev, stage < 2, stage < 2 ? 'Locked until Top 20% of everyone' : m[sl + '_level']], ['elite', 3, 'Elite', false, true, 'No data yet']];
+    for (const [id, n, name, on, off, sub] of opts) {
+      const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (id === 'elite' ? ' is-wait' : '')); l.title = `${name} · ${sub || ''}`;
+      const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + k; inp.value = id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${name}, stage ${n}, ${sub || ''}`);
+      if (!off) inp.addEventListener('change', () => { if (!inp.checked) return; try { const o = JSON.parse(localStorage.getItem(LIFT_CMP) || '{}') || {}; o[k] = id === 'trained' ? 'auto' : id; localStorage.setItem(LIFT_CMP, JSON.stringify(o)); } catch (e) { /* this device only */ } rerender(); });
+      const c = el('i', 'ft-coin'); c.dataset.s = String(n); c.setAttribute('aria-hidden', 'true'); l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', name)); box.append(l);
+    }
+    wrap.append(box); return mark(wrap, 'coach', sl + '_cmp', mw(m), 'longevity-goal');
+  }
   let nxFocus = null;
   const strSlot = (m) => { if (!m || !has(m.s1_ex)) return null; if (ui.slot && has(m[ui.slot + '_ex'])) return ui.slot;
     for (let i = 1; i <= (Number(m.s_n) || 1); i++) if (m[`s${i}_level`]) return 's' + i; return 's1'; };
