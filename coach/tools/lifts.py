@@ -15,7 +15,7 @@ Usage (from the repo root):
   python3 coach/tools/lifts.py library [--have a,b,...]   the exercise library by movement; with --have, what fits that equipment
   python3 coach/tools/lifts.py start <id,id,...> [--per-week N] [--minutes M] [--name NAME]
                                                           a first routine for a coach that has none (after the athlete's yes)
-  python3 coach/tools/lifts.py start --kit bodyweight,bands,dumbbells,gym [--per-week N] [--minutes M]
+  python3 coach/tools/lifts.py start --kit bodyweight,bands,dumbbells,gym [--per-week N] [--minutes M] [--style upper_lower|ppl]
                                                           the starter routine for that kit (onboarding card 4); --routine ID names one
   python3 coach/tools/lifts.py list                       rotation rows with status
   python3 coach/tools/lifts.py due [date]                 what the run has to do about rotation today
@@ -702,9 +702,29 @@ def starter_for(kit):
     return next((rid for k, rid in KIT_STARTER if k in kit), None)
 
 
-def start_from_routine(rid, per_week, minutes, replace=False):
+# Splits at setup (onboarding card 4, "How do you like to lift?"; the athlete approved the setup card Nov 17, 2026, and splits as
+# rotation A in 6.142.0): the starter's own lifts go to Upper body and Lower body days by movement pattern, core on both,
+# and each split lift gets twice its sets (at most 4) so the week's work matches the full body routine at the same days a
+# week (volume, not how often a muscle is trained, drives the gain when the work is equal). Push, pull, legs starts as upper
+# and lower: a starter routine has one push and one pull, too few for a day each.
+SPLIT_UPPER, SPLIT_LOWER, SPLIT_BOTH = {"push", "pull", "shoulder"}, {"squat", "hinge", "calf", "single_leg_warmup"}, {"core"}
+SPLIT_STYLES = ("upper_lower", "ppl")
+
+
+def split_days(rows, lib):
+    """The lift_routine `days` for an upper and lower split of these lift_ex rows; None when either day would be empty."""
+    pat = lambda r: (lib.get(r["id"]) or {}).get("pattern", "")
+    up = [r["ex"] for r in rows if pat(r) in SPLIT_UPPER | SPLIT_BOTH]
+    lo = [r["ex"] for r in rows if pat(r) in SPLIT_LOWER | SPLIT_BOTH or pat(r) not in SPLIT_UPPER | SPLIT_BOTH]
+    if not any(pat(r) in SPLIT_UPPER for r in rows) or not any(pat(r) in SPLIT_LOWER for r in rows):
+        return None
+    return [{"key": "upper", "label": "Upper body", "ex": up}, {"key": "lower", "label": "Lower body", "ex": lo}]
+
+
+def start_from_routine(rid, per_week, minutes, replace=False, style=None):
     """Write a starter routine from coach/routines.json into coach/strength.json as the routine the person is on: its own
-    plan, blocks and name, under its own id so the Routine picker marks it. Slots are numbered by block (1a, 1b, 2a)."""
+    plan, blocks and name, under its own id so the Routine picker marks it. Slots are numbered by block (1a, 1b, 2a).
+    style upper_lower or ppl splits it into Upper body and Lower body days (split_days)."""
     doc, lib = read_json(STRENGTH), library()
     if any(r.get("kind") == "lift_routine" for r in doc.get("rows", [])) and not replace:
         print("There is a routine already. Exercises change through the rotation (lifts.py propose); --replace starts over."); return 1
@@ -722,15 +742,25 @@ def start_from_routine(rid, per_week, minutes, replace=False):
         n = seen.get(e["block"], 0); seen[e["block"]] = n + 1
         slot = e["block"] if e["block"] == "W" and n == 0 else e["block"] + "abcdefghi"[n]
         rows.append({"kind": "lift_ex", "routine": rid, **e, "ex": slot})
+    days = split_days([r for r in rows if r["kind"] == "lift_ex"], lib) if style in SPLIT_STYLES else None
+    if days:
+        both = set(days[0]["ex"]) & set(days[1]["ex"])
+        for r in rows:
+            if r["kind"] == "lift_ex" and r["ex"] not in both and (lib.get(r["id"]) or {}).get("pattern") != "single_leg_warmup":
+                r["sets"] = min(4, 2 * int(r.get("sets") or 2))
+        rows[0].update({"days": days, "when": f"Upper and lower take turns, any {per_week} days that fit"})
+    elif style in SPLIT_STYLES:
+        print("This starter has no upper and lower lifts to split: it runs full body.")
     rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time.", False),
-             ("Timing", f"Any {per_week} days that fit your week; hard leg work at least 48 h before a long or key session.", False),
+             ("Timing", (f"Upper body and Lower body take turns on any {per_week} days that fit; " if days else f"Any {per_week} days that fit your week; ")
+              + "hard leg work at least 48 h before a long or key session.", False),
              (f"Busy week ({rows[0]['busy_minutes']} min)", "The first four lifts.", False),
              ("Stop signals", "Pain that is sharp, one-sided or changes how you move: stop that lift and tell your coach.", True)]
     for n, (label, text, warn) in enumerate(rules, 1):
         rows.append({"kind": "lift_rule", "routine": rid, "order": n, "label": label, "text": text, **({"warn": True} if warn else {})})
     doc["rows"] = rows
     write_json(STRENGTH, doc)
-    print(f"Wrote {row['name']} ({len(ex)} lifts, {per_week} a week, {minutes} min) to {STRENGTH}. It shows on the Lifts tab after the next dashboard rebuild.")
+    print(f"Wrote {row['name']} ({len(ex)} lifts, {per_week} a week, {minutes} min{', as Upper body and Lower body days' if days else ''}) to {STRENGTH}. It shows on the Lifts tab after the next dashboard rebuild.")
     return 0
 
 
@@ -742,9 +772,12 @@ def cmd_start(args):
         rid = opt("--routine", None) or starter_for(opt("--kit", "").split(","))
         if not rid:
             print("Not written: --kit names none of bodyweight, bands, dumbbells, gym"); return 1
-        return start_from_routine(rid, opt("--per-week", None), opt("--minutes", None), "--replace" in args)
+        st = opt("--style", None)
+        if st not in (None, "full_body", *SPLIT_STYLES):
+            print("Not written: --style is full_body, upper_lower or ppl"); return 1
+        return start_from_routine(rid, opt("--per-week", None), opt("--minutes", None), "--replace" in args, st)
     if not args or args[0].startswith("--"):
-        print("usage: lifts.py start <id,id,...> | --kit bodyweight,bands,dumbbells,gym | --routine ID  [--per-week N] [--minutes M] [--name NAME] [--replace]"); return 2
+        print("usage: lifts.py start <id,id,...> | --kit bodyweight,bands,dumbbells,gym | --routine ID  [--per-week N] [--minutes M] [--style full_body|upper_lower|ppl] [--name NAME] [--replace]"); return 2
     doc, lib = read_json(STRENGTH), library()
     if any(r.get("kind") == "lift_routine" for r in doc.get("rows", [])) and "--replace" not in args:
         print("There is a routine already. Exercises change through the rotation (lifts.py propose); --replace starts over."); return 1

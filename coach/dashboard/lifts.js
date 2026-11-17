@@ -52,6 +52,9 @@
   // this phone (lx-today) and in the day's saved log (routine), so a reload keeps it; the routine itself never changes.
   const TK = 'lx-today';
   let todayPick = (() => { try { const v = JSON.parse(localStorage.getItem(TK) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  // the day of a split picked for today (Do today on the routine page; this phone only until a set saves the day in lift_log)
+  let dayPick = (() => { try { const v = JSON.parse(localStorage.getItem('lx-day') || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  const setDay = (k) => { dayPick = { ...dayPick, [date]: k }; try { localStorage.setItem('lx-day', JSON.stringify(dayPick)); } catch (e) { /* this phone only */ } };
   const setToday = (id) => { todayPick = { ...todayPick, [date]: id }; try { localStorage.setItem(TK, JSON.stringify(todayPick)); } catch (e) { /* this phone only */ } };
   // Made by you on this phone (A2 G/H and A3, the athlete's comments Nov 16): lift_mine/<id> holds a routine picked lift by lift
   // or saved from another (Keep this routine?, + Save to my routines); lift_ask/<id> holds a Tell the coach request. The
@@ -78,6 +81,7 @@
   const dayOf = (ph, d, rid) => {
     const D = arr(ph.days); if (!D.length) return null; const at = (k) => Math.max(0, D.findIndex((x) => x.key === k));
     const own = logs.get(d); if (own && own.day && D.some((x) => x.key === own.day)) return { i: at(own.day), D };
+    if (dayPick[d] && D.some((x) => x.key === dayPick[d])) return { i: at(dayPick[d]), D };
     const prev = [...logs.values()].filter((x) => x && x.day && x.date < d && (!x.routine || x.routine === rid) && D.some((y) => y.key === x.day)).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
     return { i: prev ? (at(prev.day) + 1) % D.length : 0, D };
   };
@@ -92,6 +96,9 @@
     if (dt) {
       const cur = dt.D[dt.i], nx = dt.D[(dt.i + 1) % dt.D.length], dx = new Set(arr(src.days_ex).length ? arr(src.days_ex) : arr(src.sets_ex));
       day = { key: cur.key, label: cur.label, next: nx.key !== cur.key ? nx.label : '', hint: cur.hint || '' };
+      // a split is one bundle (the athlete, Nov 17, 2026: "multiple days, set up into one bundle"): every day with its own lifts, in
+      // order from today's, for the routine's own page
+      if (dt.D.every((d) => arr(d.ex).length)) { const all = ex, L = dt.D.length; day.bundle = dt.D.map((d, k) => ({ key: d.key, label: d.label, at: (k - dt.i + L) % L, ex: all.filter((e) => arr(d.ex).includes(e.ex)) })).sort((x, y) => x.at - y.at); }
       if (arr(cur.ex).length) { const only = new Set(arr(cur.ex)); ex = ex.filter((e) => only.has(e.ex)); }
       ex = ex.map((e) => (dx.has(e.ex) ? { ...e, ...(N(cur.lo) ? { lo: N(cur.lo) } : {}), ...(N(cur.hi) ? { hi: N(cur.hi) } : {}), day_key: cur.key, day_hint: cur.hint || '' } : e));
       const nt = cur.notes && typeof cur.notes === 'object' ? cur.notes : {}; blocks = m.blocks.map((b) => (nt[b.block] ? { ...b, note: nt[b.block] } : b));
@@ -601,7 +608,8 @@
     if (rView === 'list') {
       top.append(el('h3', 'ck-h3', 'Routines'));
       const hero = el('button', 'lx-hero'); hero.type = 'button'; const hx = el('span', 'lx-hx');
-      hx.append(el('span', 'lx-mh', 'Today\u2019s pick'), el('b', null, cr.name), el('span', 'ck-sub', `${cr.minutes} min${cr.needs ? ' \u00b7 ' + cr.needs : ''}`));
+      const bd = m.day && m.day.bundle && !m.guest ? m.day.bundle : null;
+      hx.append(el('span', 'lx-mh', 'Today\u2019s pick'), el('b', null, cr.name), el('span', 'ck-sub', bd ? `${bd.length} days \u00b7 ${bd.map((d) => d.label).join(', ')}` : `${cr.minutes} min${cr.needs ? ' \u00b7 ' + cr.needs : ''}`));
       if (r.pick_why) hx.append(mk('span', 'lx-bc', r.pick_why, 'coach', 'pick_why', 'kind=lift_routine&routine=' + cur));
       hero.append(art(cr, true), hx); hero.addEventListener('click', () => goR(m, cur));
       const shelf = (h, L) => { if (!L.length) return []; const row = el('div', 'lx-shelf'); for (const x of L) { const t = el('button', 'lx-tile'); t.type = 'button'; t.append(art(x, true), el('span', 'ck-sub', `${x.minutes} min`)); t.setAttribute('aria-label', `${x.name}, ${x.minutes} min`); t.addEventListener('click', () => goR(m, x.id)); row.append(t); } return [el('span', 'lx-mh', h), row]; };
@@ -630,6 +638,22 @@
     const ul = mk('ul', 'lx-rlifts', null, 'coach', 'lifts', lw);
     const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : runnable(x) ? planEx(m, x).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
     for (const n of names) ul.append(el('li', null, n.replace(/^\w/, (c) => c.toUpperCase())));
+    if (x.id === baseId && !x.mfy && window.CX.chatOpen) { // edit a routine (the athlete, Nov 17, 2026: "how do you edit a routine?"): in plain words, anchored here
+      const e = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-edit', 'Edit with the coach'); e.type = 'button'; e.addEventListener('click', () => window.CX.chatOpen(hero)); acts.append(e, el('span', 'ck-sub', 'Say what to change, like \u201cswap floor press for push ups\u201d.')); }
+    const bd = x.id === cur && m.day && m.day.bundle && !m.guest ? m.day.bundle : null;
+    if (bd) { // the split as one bundle: each day and its lifts, today's first, then the order they take turns in
+      const days = el('div', 'lx-bundle');
+      const saved = !!(logs.get(date) || {}).day;
+      bd.forEach((d, k) => { const h = el('div', 'lx-bday'); h.append(el('span', 'lx-mh', `Day ${k + 1}`), el('b', null, d.label));
+        if (k === 0) h.append(el('span', 'ck-sub', 'Today'));
+        else if (!saved) { const u = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-dodays', 'Do today'); u.type = 'button'; u.setAttribute('aria-label', `Do ${d.label} today`);
+          u.addEventListener('click', () => { flush(); setDay(d.key); builtKey = ''; goR(m, ''); renderLifts(); }); h.append(u); }
+        else h.append(el('span', 'ck-sub', k === 1 ? 'Next' : 'Then'));
+        const l = el('ul', 'lx-rlifts'); for (const e of d.ex) l.append(el('li', null, `${e.name} \u00b7 ${doseTxt(e)}`.replace(/^\w/, (c) => c.toUpperCase())));
+        days.append(h, l); });
+      days.append(el('p', 'ck-sub', 'The days take turns in this order, carrying on from the one you do. A missed day never skips one.'));
+      box.replaceChildren(top, hero, acts, days); return;
+    }
     box.replaceChildren(top, hero, acts, ul);
   }
   async function savePick(m, id) {

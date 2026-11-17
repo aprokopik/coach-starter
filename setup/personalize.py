@@ -119,10 +119,10 @@ def lifting_prefs(a):
 
 
 def lifting_line(a):
-    """One PROFILE.md line; a split preference is named so the coach can offer it once splits are available."""
+    """One PROFILE.md line; a split runs from day one as Upper body and Lower body days (lifts.py start --style)."""
     p, bits = lifting_prefs(a), []
     if p["style"]:
-        bits.append(LIFT_STYLES[p["style"]] + (" preferred (starts on the matching full body routine; offer the split when one is available)" if p["style"] != "full_body" else ""))
+        bits.append(LIFT_STYLES[p["style"]] + (" preferred (runs as Upper body and Lower body days" + ("; push, pull, legs starts as upper and lower" if p["style"] == "ppl" else "") + ")" if p["style"] != "full_body" else ""))
     if p["minutes"]:
         bits.append(f"about {p['minutes']} minutes a session")
     if p["kit"]:
