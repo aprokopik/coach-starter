@@ -369,13 +369,7 @@
   }
   // performance stages (the athlete, Nov 12, 2026: not steps on the Map, "a small badge on performance that has 1, 2, 3, an
   // overlapped badge"): three overlapped discs, the stage in use filled, a stage with no scale on file dashed
-  function stageBadge(key) {
-    const si = CX.stageInfo ? CX.stageInfo(key) : null; if (!si) return null;
-    const b = el('span', 'mx-stage'); b.setAttribute('role', 'img'); const names = { 1: 'general population', 2: 'your race or sport', 3: 'elite' };
-    b.setAttribute('aria-label', `Stage ${si.cur} of 3: ${si.label}`); b.title = `Stage ${si.cur} of 3, compared with ${si.label}. 1 ${names[1]}, 2 ${names[2]}, 3 ${names[3]}.`;
-    for (const n of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (n === si.cur ? ' is-cur' : si.have.includes(n) ? '' : ' is-none'), String(n)); d.setAttribute('aria-hidden', 'true'); b.append(d); }
-    return b;
-  }
+  // no stage coins on the Map: they read like medals held when the level had slipped (the athlete, Nov 16, 2026: "a lagging piece")
   const focusChip = () => { const c = el('span', 'mx-focus', 'Focus'); c.title = 'One of this block\'s focus metrics'; return c; };
   // level of any metric: a simple metric carries it on its row; a marker's is read off the tile app.js drew for it
   function levelOf(m, tiles) {
@@ -484,7 +478,7 @@
           for (const m of sm) {
             const isOpen = ui.node === m.key; const lv = m.state === 'locked' ? null : levelOf(m, tiles); const fg = m.state === 'locked' ? '' : figOf(m, tiles);
             const b = el('button', 'mx-node' + (m.state === 'locked' ? ' mx-node--lock' : ' mx-node--open' + (isOn(m) ? ' mx-node--on' : ''))); b.type = 'button'; b.id = 'mx-n-' + m.key; b.setAttribute('aria-expanded', String(isOpen)); b.setAttribute('aria-controls', 'mx-d-' + m.key);
-            const top = el('span', 'mx-noden'); top.append(mark(el('span', null, m.name), 'coach', 'name', mw(m))); if (focus.has(m.key)) top.append(focusChip()); if (m.state !== 'locked') { const sb = stageBadge(m.key); if (sb) top.append(sb); } if (isOn(m)) { const o = el('span', 'mx-on'); o.append(CX.ck.icon('check'), 'On'); top.append(o); }
+            const top = el('span', 'mx-noden'); top.append(mark(el('span', null, m.name), 'coach', 'name', mw(m))); if (focus.has(m.key)) top.append(focusChip()); if (isOn(m)) { const o = el('span', 'mx-on'); o.append(CX.ck.icon('check'), 'On'); top.append(o); }
             const sub = el('span', 'ck-sub');
             if (m.state === 'locked') sub.append(lockIcon(), ' Locked: needs ', mark(el('span', null, needWords(m, I)), 'coach', 'missing', mw(m), 'input-labels'));
             else sub.append([fg, lv ? lv.label : ''].filter(Boolean).join(' · ') || 'No figure yet');

@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.126.3 (2026-11-16)
+- Dashboard: the Map view no longer shows the 1, 2, 3 stage coins on each metric. They read like medals held after a level had slipped (the kit maker, Nov 16, 2026: "The map tab still shows metals that I no longer have ... it's a lagging piece"). The opened tiles keep their own stage coins.
+
 ## 6.126.1 (2026-11-16)
 - Dashboard fix: Fitness tiles such as Long run, Long ride, Rides to plan and Longest swim showed a dash after the 6.125.0 Live (the kit maker, Nov 16, 2026, "I'm also missing a bunch of numbers now"). The live runtime hands back every column on every row, null where a row has none, and the page read a null `s1_ex` as a strength tile. `metrics.js has()` now treats null like absent, and the harness (`dash.js`) fills the columns a row lacks with null within its kind, like the live runtime, so the checks see what the phone sees (`window.__sparseRows` keeps the rows as written).
 - Dashboard fix: a tap on a Compare with coin holds the open tile in place like any other Fitness tap (the kit maker, Nov 16, 2026, "jumping again when I switch between badges").
