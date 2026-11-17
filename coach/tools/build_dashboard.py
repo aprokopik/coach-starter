@@ -303,30 +303,12 @@ rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])
 rows.extend({"kind": "ci_q", **q} for q in _ci.get("questions", [])
             if (q.get("survey") != "setup" or _setup_on) and q.get("survey") not in _off
             and (not q.get("module") or q["module"] in (_mods or [])))
-# Alpha features (the athlete, Nov 16, 2026): coach/ops/alpha.json is their one home and never ships in the kit, so only the
-# original athlete gets kind alpha rows; a page feature in alpha stays off without its row (lifts.js alpha(id)).
-rows.extend({"kind": "alpha", "id": b.get("id"), "name": b.get("name")}
-            for b in read_json("coach/ops/alpha.json", {}).get("rows", []) if b.get("status") == "alpha")
-# When the next home BP week is due: 6 months after a Good week, 3 after Watch or Act (the athlete, Nov 10, 2026; 6.4.0)
-import bp_cadence  # noqa: E402
-rows.append({"kind": "bp_week", **bp_cadence.from_repo(".", datetime.now(TZ).date())})
-# Weekly summary rows for a connected project's Sunday review (roadmap week 3, One contract; 6.12.0).
-# Written only when coach/connections.json names a reader; fields fixed in coach/ops/contract.json.
-import summary  # noqa: E402
-rows.extend(summary.build(datetime.now(TZ).date(), rows))
-# When today changes (6.64.0, Closed loops): the last week of day-of changes; Today shows today's replan note
-import day_change  # noqa: E402
-rows.extend(day_change.rows(datetime.now(TZ).date()))
-# Next week's review on Today (alpha week_review; the athlete's pick, option 1 of five, Nov 16, 2026): the plan check day and next
-# week's answer, so review.js shows the card on that day and, after a tap, what the coach moved
-import week_review  # noqa: E402
-rows.append({"kind": "plan_check", "day": _check_day})
-rows.extend(week_review.rows(datetime.now(TZ).date()))
-import checkin_tasks  # noqa: E402
-rows.extend(checkin_tasks.rows())  # the Check-ins card (tasks.js): which check-ins the coach sends, and when
-# Meal guide rows for a connected meal planner, today and 13 days ahead (the athlete, Nov 3 and Nov 11, 2026; week 3 PR 2)
-import meal_guide  # noqa: E402
-rows.extend(meal_guide.build(datetime.now(TZ).date()))
+# Feature switches (the athlete, Nov 17, 2026, option A "One switch per feature"): coach/ops/alpha.json holds every gated feature's
+# stage (alpha, beta, public) and this install's channel; a kind alpha row is written for each feature on here, so a page
+# switch alpha(id) is on when the feature's stage reaches this coach, and off when it has no row (default off).
+_stages = read_json("coach/ops/alpha.json", {})
+_names = {b.get("id"): b.get("name") for b in _stages.get("rows", [])}
+rows.extend({"kind": "alpha", "id": fid, "name": _names.get(fid)} for fid in alpha.on_ids(_stages))
 
 # Units (A coach for any person, Nov 16, 2026): numbers and words in the person's own units, at this one edge.
 import units  # noqa: E402

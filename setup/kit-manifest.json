@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.148.0",
+ "version": "6.149.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -114,6 +114,7 @@
   "coach/ops/TASK-PROMPT-research.md",
   "coach/ops/TASK-PROMPT-week-review.md",
   "coach/ops/TASK-PROMPT-weekly.md",
+  "coach/ops/alpha.json",
   "coach/ops/data_paths.json",
   "coach/pillars.json",
   "coach/race_fields.json",
@@ -213,7 +214,8 @@
   "setup/workflows/tests.yml"
  ],
  "generated": [
-  "coach/dashboard/season.html"
+  "coach/dashboard/season.html",
+  "coach/ops/alpha.json"
  ],
  "athlete_files": [
   "coach/benchmarks.json",

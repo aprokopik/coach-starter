@@ -94,6 +94,7 @@ The repo files are the record; the store copies them. The daily data (`coach.jso
 ## Standing rules
 
 - Proposal and Review Gate: propose first, change after the athlete signs it off. Nothing merges or publishes before their sign-off.
+- Merge is the publish (the athlete, Nov 17, 2026, option A "One switch per feature"): when the athlete types Merge on a PR that changes page files, the thread merges it and publishes those files right away (steps 3 to 6 above); the athlete no longer types a separate Live. It is safe because every new feature carries a switch and starts in alpha (`coach/ops/alpha.json`), so a publish shows it on their coach only. Moving a feature to beta (kit friends) is their stage tap on the Release Board, never a Merge.
 - Before any choice between UI directions, every option is rendered at phone width in light and dark with the athlete's real data and linked from the card.
 - Phone first (360 px), light and dark equal; no horizontal scroll; tables reflow (cards under 640 px, a sticky first column above).
 - Functionality stays as is unless the change says otherwise: controls, localStorage keys, store document ids, fields and save timing.

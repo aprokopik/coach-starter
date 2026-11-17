@@ -1,0 +1,159 @@
+{
+ "about": "Feature stages for this coach (channel beta). Kept up to date by each kit update; do not edit.",
+ "channel": "beta",
+ "public_open": false,
+ "rows": [
+  {
+   "id": "lift_kg",
+   "status": "alpha"
+  },
+  {
+   "id": "set_changes",
+   "status": "alpha"
+  },
+  {
+   "id": "short_morning",
+   "status": "alpha"
+  },
+  {
+   "id": "week_review",
+   "status": "alpha"
+  },
+  {
+   "id": "lift_time",
+   "status": "alpha"
+  },
+  {
+   "id": "lift_lite",
+   "status": "alpha"
+  },
+  {
+   "id": "lift_clean",
+   "status": "alpha"
+  },
+  {
+   "id": "float_chat",
+   "status": "alpha"
+  },
+  {
+   "id": "day_sessions",
+   "status": "alpha"
+  },
+  {
+   "id": "stage_coins",
+   "status": "beta"
+  },
+  {
+   "id": "strength_levels",
+   "status": "alpha"
+  },
+  {
+   "id": "own_hr_model",
+   "status": "alpha"
+  },
+  {
+   "id": "race_toggles",
+   "status": "alpha"
+  },
+  {
+   "id": "any_person",
+   "status": "beta"
+  },
+  {
+   "id": "badges",
+   "status": "beta"
+  },
+  {
+   "id": "checkin_settings",
+   "status": "beta"
+  },
+  {
+   "id": "daytime_refresh",
+   "status": "beta"
+  },
+  {
+   "id": "evening_checkin",
+   "status": "beta"
+  },
+  {
+   "id": "habits",
+   "status": "beta"
+  },
+  {
+   "id": "lift_day",
+   "status": "beta"
+  },
+  {
+   "id": "lift_rows",
+   "status": "beta"
+  },
+  {
+   "id": "map_row",
+   "status": "beta"
+  },
+  {
+   "id": "night_pattern",
+   "status": "beta"
+  },
+  {
+   "id": "race_tree",
+   "status": "beta"
+  },
+  {
+   "id": "routine_picker",
+   "status": "beta"
+  },
+  {
+   "id": "save_signal",
+   "status": "beta"
+  },
+  {
+   "id": "strength_progress",
+   "status": "beta"
+  },
+  {
+   "id": "text_trim",
+   "status": "beta"
+  },
+  {
+   "id": "three_weeks",
+   "status": "beta"
+  },
+  {
+   "id": "tri_group",
+   "status": "beta"
+  },
+  {
+   "id": "move_up_rule",
+   "status": "beta"
+  },
+  {
+   "id": "block_goals",
+   "status": "beta"
+  },
+  {
+   "id": "level_pill",
+   "status": "beta"
+  },
+  {
+   "id": "focus_ring",
+   "status": "beta"
+  },
+  {
+   "id": "elite_stage",
+   "status": "alpha"
+  },
+  {
+   "id": "race_coins_rest",
+   "status": "alpha"
+  },
+  {
+   "id": "race_scales",
+   "status": "alpha"
+  },
+  {
+   "id": "race_type_panels",
+   "status": "alpha"
+  }
+ ]
+}
