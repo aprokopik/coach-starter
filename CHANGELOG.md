@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.136.0 (2026-11-17)
+- Data feeds: a coach can run with no Garmin password stored (the kit maker, Nov 16, 2026, card "1 Delete after five minutes"). A new person saves a third secret, `GARMIN_TOKEN_KEY`, holding a secret phrase they make up; the first pull trades the password for a Garmin session locked with that phrase, the coach then asks them to delete the password, and later pulls use the saved session. `data/status/last_run.json` gains a `login` block in words only (which login was used, whether a password is still stored, whether it can be deleted). When Garmin ends a session and no password is stored, the run says so and the morning check-in names the fix that day. A coach already set up with two secrets, or with a key from `setup_token.py`, keeps working with the secrets it has; nothing needs re-entering.
+
 ## 6.135.0 (2026-11-17)
 - Tools: coach.json speed budget 1,070,000 to 1,120,000 (+50 KB: about 17 KB for the scales on four tiles, 7 KB because a fresh build of main alone was already 1,076,834, and room for the next lift PR), on the kit maker's Merge. New coach/tests/test_race_rows.py.
 

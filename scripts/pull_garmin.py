@@ -81,26 +81,52 @@ def is_empty(value) -> bool:
 
 # ---------- token handling ----------
 
-def token_key() -> bytes | None:
-    """Encryption key for the saved Garmin session.
+NO_PASSWORD_LEFT = ("Garmin ended the saved session and no password is stored. Reconnect: add the GARMIN_PASSWORD "
+                    "secret again, let one pull run, then delete it.")
 
-    Uses the GARMIN_TOKEN_KEY secret if present (advanced setup); otherwise derives
-    a key from the GARMIN_PASSWORD secret, so the simple setup needs only two secrets.
-    """
-    explicit = os.environ.get("GARMIN_TOKEN_KEY", "").strip()
-    if explicit:
-        return explicit.encode()
-    password = os.environ.get("GARMIN_PASSWORD", "")
-    if not password:
-        return None
+def _derive(secret: str, salt: bytes) -> bytes:
     import base64
 
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32,
-                     salt=b"{{REPO}}/token/v1", iterations=390_000)
-    return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=390_000)
+    return base64.urlsafe_b64encode(kdf.derive(secret.encode()))
+
+
+def _is_fernet_key(text: str) -> bool:
+    from cryptography.fernet import Fernet
+
+    try:
+        Fernet(text.encode())
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def key_source() -> str | None:
+    """Where the key that locks the saved Garmin session comes from: "own" (the GARMIN_TOKEN_KEY secret: a key
+    printed by setup_token.py, or any secret phrase the person made up), "password" (derived from GARMIN_PASSWORD,
+    the two-secret setup) or None. Only an "own" key lets the password be deleted after the first pull."""
+    if os.environ.get("GARMIN_TOKEN_KEY", "").strip():
+        return "own"
+    return "password" if os.environ.get("GARMIN_PASSWORD", "") else None
+
+
+def token_key() -> bytes | None:
+    """Encryption key for the saved Garmin session.
+
+    GARMIN_TOKEN_KEY, if present, wins: a key printed by setup_token.py is used as it is (unchanged behaviour);
+    anything else is treated as a secret phrase and a key is derived from it, so a person can type a phrase on a
+    phone. Otherwise the key is derived from the GARMIN_PASSWORD secret, so the simple setup needs only two secrets.
+    """
+    explicit = os.environ.get("GARMIN_TOKEN_KEY", "").strip()
+    if explicit:
+        return explicit.encode() if _is_fernet_key(explicit) else _derive(explicit, b"coach/garmin-token/phrase/v1")
+    password = os.environ.get("GARMIN_PASSWORD", "")
+    if not password:
+        return None
+    return _derive(password, b"{{REPO}}/token/v1")
 
 
 def load_token() -> str | None:
@@ -129,6 +155,16 @@ def save_token_if_rotated(old_plain: str | None, new_plain: str) -> bool:
     return True
 
 
+def login_state(used: str | None = None) -> dict:
+    """What the status file says about the login, in words only (never a secret): which login this run used, where the
+    session's key comes from, whether a password is still stored, and whether it can be deleted (a session is saved
+    and locked with the person's own key, so later pulls do not need the password)."""
+    src, stored = key_source(), bool(os.environ.get("GARMIN_PASSWORD", ""))
+    saved = load_token() is not None
+    return {"used": used, "key": src, "password_stored": stored, "session_saved": saved,
+            "password_can_go": stored and saved and src == "own"}
+
+
 def connect():
     from garminconnect import Garmin
 
@@ -138,11 +174,20 @@ def connect():
     if token is None and not (email and password):
         raise SystemExit(
             "No usable login: add the GARMIN_EMAIL and GARMIN_PASSWORD secrets (see SETUP.md)."
+            + (" A saved session exists but could not be opened: GARMIN_TOKEN_KEY is missing or was changed."
+               if TOKEN_FILE.exists() else "")
         )
     # return_on_mfa makes an MFA-protected account fail fast with a clear message
     # instead of waiting for a code nobody can type in GitHub.
     g = Garmin(email=email, password=password, return_on_mfa=token is None)
-    result = g.login(tokenstore=token)
+    try:
+        result = g.login(tokenstore=token)
+    except Exception as exc:
+        if token is not None and not password:  # nothing to fall back on: say what to do, never a bare 401
+            raise SystemExit(
+                f"{NO_PASSWORD_LEFT} ({type(exc).__name__})"
+            ) from exc
+        raise
     if token is None and result and result[0]:
         raise SystemExit(
             "Garmin asked for a two-step verification code. Use the advanced setup in SETUP.md."
@@ -330,7 +375,7 @@ def main() -> int:
         days = sorted(set(days))
 
     status = {"run_at_utc": run_at, "requested_dates": days, "dates": {}, "activities": {},
-              "token_rotated": False, "fatal": None}
+              "token_rotated": False, "fatal": None, "login": login_state()}
     try:
         g, old_token = connect()
     except BaseException as exc:
@@ -394,6 +439,7 @@ def main() -> int:
         status["token_rotated"] = save_token_if_rotated(old_token, g.client.dumps())
     except Exception as exc:
         status["token_rotated"] = f"not saved: {type(exc).__name__}"
+    status["login"] = login_state(used="saved session" if old_token is not None else "password")
 
     STATUS.mkdir(parents=True, exist_ok=True)
     (STATUS / "last_run.json").write_text(json.dumps(status, indent=1, sort_keys=True) + "\n")

@@ -25,7 +25,7 @@ Something not working or not clear? Tell your coach. It notes it in `setup/SETUP
 From here your coach leads, and you only tap:
 
 - **Four tap cards**, about three minutes. Your goals and what records your sleep; a short health screen; your hours, the days that never work and when your morning check-in should arrive; how you like to lift and what kit you can use. Every question has a "Something else" option for your own words, and every question can be skipped.
-- **Your device**, now or later. Your coach asks whether to connect it now or start without it. Garmin takes about 90 seconds (see below). A ring or Apple Watch takes about 20 minutes on your iPhone: a free Strava account for workouts and one Shortcut for sleep and recovery.
+- **Your device**, now or later. Your coach asks whether to connect it now or start without it. Garmin takes about 3 minutes (see below). A ring or Apple Watch takes about 20 minutes on your iPhone: a free Strava account for workouts and one Shortcut for sleep and recovery.
 - **Claude finishes the setup** while you do other things, about 20 minutes: your first week, your private dashboard, your daily check-in, and a button for your phone's home screen.
 - **Four feedback taps** at the end, and a link to send the setup log back.
 
@@ -35,14 +35,19 @@ Your coach always lives in **Claude Code** (claude.ai/code, the **</>** icon at 
 
 ---
 
-## Your Garmin login (when your coach asks, about 90 seconds)
+## Your Garmin login (when your coach asks, about 3 minutes)
 
-Your coach gives you a link that opens GitHub's new-secret form for your repository (`github.com/<your GitHub name>/my-coach/settings/secrets/actions/new`). Add two secrets, one after the other:
+Your coach gives you a link that opens GitHub's new-secret form for your repository (`github.com/<your GitHub name>/my-coach/settings/secrets/actions/new`). Add three secrets, one after the other:
 
 - Name `GARMIN_EMAIL`, value: the email you use for Garmin Connect.
 - Name `GARMIN_PASSWORD`, value: your Garmin Connect password.
+- Name `GARMIN_TOKEN_KEY`, value: a secret phrase you make up on the spot, four or more words. Not your Garmin password. You never have to type it again.
 
-GitHub encrypts secrets; nobody can read them after you save them, not even you. Never type the password into a chat. Your coach then starts your first week of data and your history itself, and from then on the watch data arrives four times a day.
+GitHub encrypts secrets; nobody can read them after you save them, not even you. Never type the password or the phrase into a chat. Your coach then starts your first week of data and your history itself.
+
+**Then delete the password.** The first pull trades your password for a pass from Garmin, locked with your phrase. When your coach says it is ready (about two minutes), open the link it gives you (`github.com/<your GitHub name>/my-coach/settings/secrets/actions`), tap the bin next to `GARMIN_PASSWORD` and confirm. From then on your Garmin password is stored nowhere, and the watch data arrives four times a day.
+
+**If the data ever stops with "no password is stored".** Garmin ended the pass (it happens after a password change, and now and then by itself). Add `GARMIN_PASSWORD` again with the same link, tell your coach, and delete it again after the next pull. Your coach tells you the day it happens.
 
 ## If something goes wrong
 
@@ -51,7 +56,7 @@ GitHub encrypts secrets; nobody can read them after you save them, not even you.
 - **The coach says it "can't reach your coach repo".** Check that you are talking to it in Claude Code. If you are, open claude.ai/connect-github and make sure your coach repository is ticked.
 - **Claude cannot start your first Garmin pull.** Open `github.com/<your GitHub name>/my-coach/actions`, click the green button if GitHub asks to enable workflows, then **Pull Garmin data**, **Run workflow**, type `7`, green **Run workflow**; do the same for **Backfill Garmin history** with every box empty. A good run has a green tick. Yellow notices about Node.js or Ubuntu do not matter.
 - **The Garmin pull fails with "two-step verification code".** Your Garmin account uses two-step login. Ask your coach: "help me set up the Garmin token for two-step login".
-- **401 or "login failed".** Check both secrets for typos. If you ever change your Garmin password, update `GARMIN_PASSWORD`.
+- **401 or "login failed".** Check the secrets for typos (save `GARMIN_PASSWORD` again). If you change your Garmin password, add `GARMIN_PASSWORD` again with the new one, and delete it after the next pull.
 - **429.** Garmin is limiting logins. Wait an hour and run it again.
 - **Anything else.** Open the failed run, click the red step, copy the last lines and paste them to your coach.
 
@@ -66,4 +71,4 @@ GitHub encrypts secrets; nobody can read them after you save them, not even you.
 
 - Pause the coach: ask Claude to pause your scheduled tasks.
 - Stop the Garmin pulls: in your repository, **Actions**, **Pull Garmin data**, the **…** menu, **Disable workflow**.
-- Remove access completely: delete the two secrets, change your Garmin password, and delete the repository.
+- Remove access completely: delete the Garmin secrets, change your Garmin password, and delete the repository.

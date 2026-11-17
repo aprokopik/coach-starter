@@ -30,7 +30,7 @@ Connecting your device comes on top, now or any day later:
 
 | Device | Extra time | What it takes |
 |---|---|---|
-| Garmin watch | about 90 seconds | Your Garmin login, typed into GitHub's secret boxes. Data then arrives four times a day by itself. |
+| Garmin watch | about 3 minutes | Your Garmin login, typed into GitHub's secret boxes; you delete the password again after the first data pull, so it is stored nowhere. Data then arrives four times a day by itself. |
 | Oura, Ultrahuman or Apple Watch | about 20 minutes | A free Strava account for workouts, and an iPhone Shortcut you build once for sleep and recovery. This path is newer and has not been timed on a real phone yet. |
 
 ## Your first two weeks
