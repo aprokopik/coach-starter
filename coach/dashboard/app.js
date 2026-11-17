@@ -2372,7 +2372,7 @@
     if (k === 'wkg') return (v) => `${window.CX.fixed(v, 2)}${short ? '' : ' W/kg'}`;
     if (k === 'sleepreg') return (v) => `±${f0(v)}${short ? '' : ' min'}`;
     if (k === 'durability' || k === 'traildur') return (v) => `${f1(v)}%`;
-    if (['bike', 'ftp', 'rhr', 'le8', 'strength', 'sauna', 'consistency', 'climb150'].includes(k)) return (v) => `${f0(v)}${u ? ' ' + u : ''}`;
+    if (['bike', 'ftp', 'rhr', 'le8', 'strength', 'sauna', 'consistency', 'climb150', 'p1', 'p5', 'p20', 'p60'].includes(k)) return (v) => `${f0(v)}${u ? ' ' + u : ''}`;
     return (v) => `${f1(v)}${u ? ' ' + u : ''}`;
   }
   function deltaFmt(m) {
@@ -2384,7 +2384,7 @@
     if (k === 'wkg') return (d) => `${window.CX.fixed(d, 2)} W/kg`;
     if (k === 'sleepreg') return (d) => `${f0(d)} min`;
     if (k === 'durability' || k === 'traildur' || k === 'le8' || k === 'vo2') return (d) => `${f1(d)} points`;
-    if (['bike', 'ftp', 'rhr', 'climb150'].includes(k)) return (d) => `${f0(d)} ${u}`;
+    if (['bike', 'ftp', 'rhr', 'climb150', 'p1', 'p5', 'p20', 'p60'].includes(k)) return (d) => `${f0(d)} ${u}`;
     return (d) => `${f1(d)}${u ? ' ' + u : ''}`;
   }
   function milestoneInfo(m, rows) {

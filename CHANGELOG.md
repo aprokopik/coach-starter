@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.146.1 (2026-11-17)
+- Dashboard fix: the 1, 5, 20 and 60 min power tiles show whole watts in Now, Next and steps (Next read "165.3 W for Top half" on 5 min power since 6.135.0).
+
 ## 6.146.0 (2026-11-17)
 - Package: `race_check.py` prints a `scale:` line for each race signed up for, planned or done with no scale (no type fits, or no finisher results on file); the weekly race watch fills up to two a week (TASK-PROMPT-weekly.md 5c) and logs what it could not find in coach/research/QUEUE.md, Scales to file (new section).
 - Package: the course library moves out of the code into coach/research/norms/courses.json (each person's own races; the starter kit ships none). A 5 mile pattern no longer matches "1.5 mi" inside a trail race's notes. A triathlon course ranks its legs (total|age|sex|swim|bike|run lines, `legs` in courses.json). coach.json speed budget 1,120,000 to 1,140,000 (+20 KB for the new scales), asked with its Merge.
