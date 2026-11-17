@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.131.0 (2026-11-16)
+- Tools: coach.json speed budget 1,060,000 to 1,070,000 (+10 KB for the exercise list and the plans), page files 1,131,000 to 1,143,000 (+12 KB); both asked with the Merge.
+
 ## 6.130.0 (2026-11-16)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 

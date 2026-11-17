@@ -47,19 +47,27 @@
   // swaps read as they did when the runtime returned real objects.
   const _parsed = new WeakMap();
   const unpack = (x) => { if (!String(x.kind || '').startsWith('lift_')) return x; const o = { ...x }; for (const k in o) { const v = o[k]; if (typeof v === 'string' && /^\s*[\[{]/.test(v)) { try { o[k] = JSON.parse(v); } catch (e) { /* plain text */ } } } return o; };
-  // Use today (6.128.0; the athlete, Nov 16 in a hotel: "Make a routine for me to follow. That should have been default."): any
+  // Use today (6.130.0; the athlete, Nov 16 in a hotel: "Make a routine for me to follow. That should have been default."): any
   // library or own routine with a plan (plan_ex, built from exercises.json) runs for one day. The pick is kept per date on
   // this phone (lx-today) and in the day's saved log (routine), so a reload keeps it; the routine itself never changes.
   const TK = 'lx-today';
   let todayPick = (() => { try { const v = JSON.parse(localStorage.getItem(TK) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
   const setToday = (id) => { todayPick = { ...todayPick, [date]: id }; try { localStorage.setItem(TK, JSON.stringify(todayPick)); } catch (e) { /* this phone only */ } };
+  // Made by you on this phone (A2 G/H and A3, the athlete's comments Nov 16): lift_mine/<id> holds a routine picked lift by lift
+  // or saved from another (Keep this routine?, + Save to my routines); lift_ask/<id> holds a Tell the coach request. The
+  // coach copies both into coach/my_routines.json (RUNBOOK, Routines made on the dashboard); the copy in the data wins.
+  let mineDocs = new Map(), asks = new Map(), keepAsk = '';
+  const mineRows = (m) => [...mineDocs.entries()].filter(([id, d]) => d && !d.hidden && Array.isArray(arr(d.plan)) && arr(d.plan).length && !m.lib.some((x) => x.id === id))
+    .map(([id, d]) => ({ kind: 'lift_lib', id, name: d.name || 'My routine', minutes: N(d.minutes) || 20, needs: d.needs || '', mine: true, plan_ex: arr(d.plan), lifts: arr(d.plan).map((p) => p.name || p.id).join('; ') }));
   const runnable = (x) => !!(x && Array.isArray(x.plan_ex) && x.plan_ex.length);
+  // a plan row carries the exercise id, its block and only the dose it changes; the rest comes from the exercise list
+  const planEx = (m, x, rid) => x.plan_ex.map((p, i) => ({ busy: i < 4, ...(m.xlib.get(p.id) || {}), ...p, ex: p.id, id: p.id, order: i, routine: rid || x.id }));
   function model() {
-    const b = baseModel(); if (!b) return null;
+    const b = baseModel(); if (!b) return null; b.lib = [...b.lib, ...mineRows(b)];
     const own = b.routine.routine, s = Object.prototype.hasOwnProperty.call(todayPick, date) ? todayPick[date] : (logs.get(date) || {}).routine;
     const g = s && s !== own ? b.lib.find((x) => x.id === s && runnable(x)) : null; if (!g) return b;
     return { ...b, base: b, guest: g, routine: { ...b.routine, routine: g.id, name: g.name, subtitle: `Today only \u00b7 back to ${b.routine.name} tomorrow`, minutes: g.minutes, busy_minutes: g.busy_minutes },
-      ex: g.plan_ex.map((e) => ({ ...e, routine: g.id })), blocks: arr(g.plan_blocks).map((x) => ({ ...x, routine: g.id })) };
+      ex: planEx(b, g), blocks: (arr(g.plan_blocks).length ? arr(g.plan_blocks) : [...new Set(arr(g.plan_ex).map((p) => p.block || '1'))].map((k, i) => ({ block: k, order: i, label: k === '1' ? 'Block 1 \u00b7 superset' : 'Block ' + k, note: k === '1' ? 'about 90 s between rounds' : 'in order, about a minute between sets' }))).map((x) => ({ ...x, routine: g.id })) };
   }
   function baseModel() {
     const d = dash.data('coach'); if (d.status !== 'ok' || !Array.isArray(d.data)) return null;
@@ -67,7 +75,7 @@
     const r = _parsed.get(d.data); const routine = r.find((x) => x.kind === 'lift_routine'); if (!routine) return null;
     const mine = (k) => r.filter((x) => x.kind === k && x.routine === routine.routine).sort((a, b) => (N(a.order) ?? 0) - (N(b.order) ?? 0));
     return { routine, blocks: mine('lift_block'), ex: mine('lift_ex'), phases: mine('lift_phase'), rules: mine('lift_rule'),
-      hist: new Map(r.filter((x) => x.kind === 'lift_hist').map((x) => [x.id, x])), proposals: r.filter((x) => x.kind === 'lift_proposal'),
+      hist: new Map(r.filter((x) => x.kind === 'lift_hist').map((x) => [x.id, x])), xlib: new Map(r.filter((x) => x.kind === 'lift_xlib').map((x) => [x.id, x])), proposals: r.filter((x) => x.kind === 'lift_proposal'),
       // my_routines.json rows come after routines.json in the data: a same-id row is the person's edit and wins; hidden drops one
       lib: [...r.filter((x) => x.kind === 'lift_lib').reduce((a, x) => a.set(x.id, x), new Map()).values()].filter((x) => !x.hidden && x.lifts).sort((a, b) => (N(a.order) ?? 99) - (N(b.order) ?? 99)) };
   }
@@ -380,11 +388,83 @@
     add('short', 'Short version', m.ex.filter((e) => e.busy), 'The main lifts only, for a short day', N(r.busy_minutes));
     add('upper', 'Upper body', m.ex.filter((e) => !e.legs), 'Leaves your legs fresh for running and riding');
     add('legs', 'Legs and lower leg', m.ex.filter((e) => e.legs), 'Rests your upper body');
-    return L;
+    // a routine the coach made for this date (Tell the coach, or a chat request) leads the shelf; it runs like any plan
+    return [...m.lib.filter((x) => x.made_for === date && runnable(x)), ...L];
   }
   const hue = (id) => [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
   const ini = (n) => String(n).split(/[\s,]+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
   const art = (x, big) => { const a = el('span', 'lx-art' + (big ? ' big' : '')); a.style.setProperty('--h', hue(x.id)); a.setAttribute('aria-hidden', 'true'); a.append(el('b', null, big ? x.name.split(',')[0] : ini(x.name))); return a; };
+  // the plan of a routine as lift_mine rows: library and coach plans as they are, a Made for you version from its lifts
+  const planOf = (m, x) => (runnable(x) ? arr(x.plan_ex) : (x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)) : x.id === m.routine.routine ? m.ex : [])
+    .map((e) => Object.fromEntries(Object.entries({ id: e.id || e.ex, block: e.block, name: e.name, sets: N(e.sets), lo: N(e.lo), hi: N(e.hi) }).filter(([, v]) => v !== null && v !== undefined))));
+  async function saveMine(m, x, name) {
+    const id = 'mine_' + Date.now().toString(36), doc = { name: name || x.name, plan: planOf(m, x), minutes: N(x.minutes) || 20, needs: x.needs || '', from: x.id || '', saved: new Date().toISOString() };
+    if (!doc.plan.length) return null;
+    mineDocs.set(id, doc);
+    if (db) { try { await db.doc('lift_mine/' + id).set(doc); } catch (e) { status('Could not save the routine.', 'err'); } }
+    return id;
+  }
+  const saveBtn = (m, x) => { const b = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', '+ Save to my routines'); b.type = 'button';
+    b.addEventListener('click', async () => { b.disabled = true; const id = await saveMine(m, x); b.replaceChildren(icon('check'), id ? 'Saved to Made by you' : 'Nothing to save'); }); return b; };
+  // Make your own (the athlete's comments on the cleanup page, Nov 16: "Tell the coach" is the default, "Pick lifts" second; same
+  // tile page as the shelves). Tell the coach saves the ask; the coach drafts it onto Made for you at the next refresh.
+  let ownTab = 'tell', ownPick = [], ownName = '';
+  function makeOwn(m) {
+    const w = el('div', 'lx-mown'), hero = el('div', 'lx-hero'), hx = el('span', 'lx-hx');
+    hx.append(el('span', 'lx-mh', 'Make your own'), el('b', null, ownName || 'New routine'), el('span', 'ck-sub', ownTab === 'tell' ? 'Say what you have; your coach builds it' : `${ownPick.length} lifts`));
+    hero.append(art({ id: 'new', name: ownName || 'New routine' }, true), hx);
+    const tabs = el('div', 'lx-otabs'); tabs.setAttribute('role', 'tablist');
+    for (const [k, t] of [['tell', 'Tell the coach'], ['pick', 'Pick lifts']]) { const b = el('button', 'lx-otab', t); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(ownTab === k));
+      b.addEventListener('click', () => { ownTab = k; renderRoutines(m); const nb = [...document.querySelectorAll('.lx-otab')].find((y) => y.textContent === t); if (nb) nb.focus(); }); tabs.append(b); }
+    w.append(hero, tabs);
+    if (ownTab === 'tell') {
+      const lab = el('label', 'ck-sub', 'What do you have, and how long?'); const ta = el('textarea', 'ck-input lx-ask'); ta.id = 'l-ask'; lab.htmlFor = 'l-ask'; ta.rows = 3;
+      ta.placeholder = 'e.g. 25 minutes in a hotel gym, dumbbells to 50 lb, keep my legs fresh';
+      const go = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Send to the coach'); go.type = 'button';
+      const note = el('p', 'ck-sub', 'It lands on Made for you, today, within about two hours (9 AM to 9 PM), ready to use and log.');
+      go.addEventListener('click', async () => { const t = ta.value.trim(); if (!t) { ta.focus(); return; }
+        const id = 'ask_' + Date.now().toString(36), doc = { text: t, date, asked: new Date().toISOString() }; asks.set(id, doc);
+        if (db) { try { await db.doc('lift_ask/' + id).set(doc); } catch (e) { status('Could not send it. Try again.', 'err'); asks.delete(id); } }
+        renderRoutines(m); });
+      w.append(lab, ta, go, note);
+      if (window.CX.chatOpen) { const now = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Talk to the coach now'); now.type = 'button'; now.addEventListener('click', () => window.CX.chatOpen(now)); w.append(now); }
+      const open = [...asks.entries()].filter(([id, a]) => a && a.date === date && !m.lib.some((x) => x.ask === id));
+      for (const [, a] of open) w.append(el('p', 'ck-sub lx-asked', `Sent ${stamp(a.asked)}: “${a.text}” · your coach is building it`));
+      return w;
+    }
+    const nm = el('input', 'ck-input'); nm.id = 'l-ownname'; nm.placeholder = 'Name it, e.g. Hotel upper'; nm.value = ownName; const nl = el('label', 'ck-sub', 'Name'); nl.htmlFor = 'l-ownname';
+    nm.addEventListener('input', () => { ownName = nm.value; });
+    const chosen = el('ol', 'lx-rlifts');
+    ownPick.forEach((id, i) => { const e = m.xlib.get(id) || { name: id }; const li = el('li', null, `${e.name} · ${doseTxt(e)} `); const x = el('button', 'lx-oxbtn', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Remove ' + e.name);
+      x.addEventListener('click', () => { ownPick.splice(i, 1); renderRoutines(m); }); li.append(x); chosen.append(li); });
+    w.append(nl, nm, chosen);
+    const L = ownPick.map((id) => m.xlib.get(id)).filter(Boolean), mins = Math.max(10, Math.round((2 + L.reduce((t, e) => t + (N(e.sets) || 2) * (e.per_side ? 1.75 : 1.25), 0)) / 5) * 5);
+    if (L.length) {
+      const x = { id: '', name: ownName || 'My routine', minutes: mins, plan_ex: ownPick.map((id, i) => ({ id, block: i < 2 ? '1' : '2' })) };
+      const row = el('div', 'lx-racts'), use = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); use.type = 'button';
+      use.addEventListener('click', async () => { flush(); const id = await saveMine(m, x); if (!id) return; ownPick = []; ownName = ''; mfy = null; setToday(id); dayView = 'plan'; dayMins = mins; builtKey = ''; goR(m, ''); renderLifts(); });
+      const sv = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', '+ Save to my routines'); sv.type = 'button';
+      sv.addEventListener('click', async () => { const id = await saveMine(m, x); if (!id) return; ownPick = []; ownName = ''; goR(m, 'list'); });
+      row.append(use, sv, el('span', 'ck-sub', `About ${mins} min; the first two lifts pair as a superset.`)); w.append(row);
+    }
+    const PAT = [['single_leg_warmup', 'Warm-up'], ['squat', 'Squat'], ['hinge', 'Hinge'], ['pull', 'Pull'], ['push', 'Push'], ['shoulder', 'Shoulder'], ['calf', 'Calf'], ['core', 'Core']];
+    for (const [pt, h] of PAT) { const xs = [...m.xlib.values()].filter((e) => e.pattern === pt && !ownPick.includes(e.id)); if (!xs.length) continue;
+      const sec = el('div', 'lx-oadd'); sec.append(el('span', 'lx-mh', h));
+      for (const e of xs) { const b = el('button', 'lx-opt', '+ ' + e.name); b.type = 'button'; b.title = e.needs ? 'Needs ' + e.needs : 'No kit';
+        b.addEventListener('click', () => { ownPick.push(e.id); renderRoutines(m); }); sec.append(b); }
+      w.append(sec); }
+    return w;
+  }
+  // Keep this routine? (A3, the athlete: "this should also show at the end if selected and completed"): after Finish on a routine
+  // that is not yours, one card offers + Save to my routines or Not now.
+  function keepCard(m) {
+    let c = $('l-keep'); const x = m.guest && !m.guest.mine ? m.guest : mfy && mfy.mfy ? mfy : null;
+    const on = x && keepAsk === date + '|' + x.id;
+    if (!on) { if (c) c.hidden = true; return; }
+    if (!c) { c = el('div', 'ck-notice lx-keep'); c.id = 'l-keep'; $('l-bar').before(c); }
+    c.hidden = false; const no = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Not now'); no.type = 'button'; no.addEventListener('click', () => { keepAsk = ''; c.hidden = true; });
+    c.replaceChildren(el('b', null, 'Keep this routine?'), el('span', 'ck-sub', `${x.name} goes on your Made by you shelf, with today’s weights as last time.`), saveBtn(m, x), no);
+  }
   const goR = (m, v) => { rView = v; renderRoutines(m); const f = $('l-pick').querySelector('button'); if (f) f.focus(); if (!v) $('l-log').scrollIntoView({ block: 'start' }); };
   function renderRoutines(m) {
     const box = $('l-pick'); if (!box) return; box.hidden = false;
@@ -397,7 +477,11 @@
     if (!rView) {
       const b = el('button', 'lx-rt'); b.type = 'button'; b.setAttribute('aria-label', `Routine: ${cr.name}. Change`);
       const sh = mfy || cr, t = el('span', 'lx-rtt'); t.append(mk('b', null, sh.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(sh)));
-      b.append(art(sh), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b); return;
+      b.append(art(sh), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b);
+      // the athlete, Nov 16, 2026: "a button that says ... need something else now ... that opens the chat"; the coach builds it
+      // onto Made for you within minutes (coach/ops/DASHBOARD-CHAT.md step 6)
+      if (window.CX.chatOpen) { const n = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-need', 'Need something else now? Ask the coach'); n.type = 'button'; n.addEventListener('click', () => window.CX.chatOpen(n)); box.append(n); }
+      return;
     }
     const top = el('div', 'lx-rtop'), back = el('button', 'lx-back', rView === 'list' ? '\u2039 Back to today' : '\u2039 Routines'); back.type = 'button';
     back.addEventListener('click', () => goR(m, rView === 'list' ? '' : 'list')); top.append(back);
@@ -408,11 +492,13 @@
       if (r.pick_why) hx.append(mk('span', 'lx-bc', r.pick_why, 'coach', 'pick_why', 'kind=lift_routine&routine=' + cur));
       hero.append(art(cr, true), hx); hero.addEventListener('click', () => goR(m, cur));
       const shelf = (h, L) => { if (!L.length) return []; const row = el('div', 'lx-shelf'); for (const x of L) { const t = el('button', 'lx-tile'); t.type = 'button'; t.append(art(x, true), el('span', 'ck-sub', `${x.minutes} min`)); t.setAttribute('aria-label', `${x.name}, ${x.minutes} min`); t.addEventListener('click', () => goR(m, x.id)); row.append(t); } return [el('span', 'lx-mh', h), row]; };
-      const rest = lib.filter((x) => x.id !== cur);
+      const rest = lib.filter((x) => x.id !== cur && !x.made_for);
+      const own = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-own'); own.type = 'button'; own.textContent = '+ Make your own'; own.addEventListener('click', () => goR(m, 'new'));
       box.replaceChildren(top, hero, ...shelf('Made for you, today', mf), ...shelf('Made by you', rest.filter((x) => x.mine)), ...shelf('Library', rest.filter((x) => !x.mine)),
-        el('p', 'ck-sub lx-own', '+ Make your own: tell your coach in chat what you want, e.g. \u201c20 minutes in a hotel gym, dumbbells only\u201d, and it lands here.'));
+        own);
       return;
     }
+    if (rView === 'new') { box.replaceChildren(top, makeOwn(m)); return; }
     const x = mf.find((y) => y.id === rView) || lib.find((y) => y.id === rView) || cr, lw = `kind=lift_lib&id=${x.id}`;
     const hero = el('div', 'lx-hero'), hx = el('span', 'lx-hx');
     hx.append(el('span', 'lx-mh', src(x)), el('b', null, x.name), mk('span', 'ck-sub', `${x.minutes} min${x.needs ? ' \u00b7 ' + x.needs : ''}`, 'coach', 'needs', lw));
@@ -426,9 +512,10 @@
     if (!x.mfy && x.id !== baseId) {
       if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Asked to make it your routine. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, baseId)); acts.append(c); }
       else { const a = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Make it my routine'); a.type = 'button'; a.addEventListener('click', () => savePick(m, x.id)); acts.append(a); }
+      if (!x.mine) acts.append(saveBtn(m, x));
     }
     const ul = mk('ul', 'lx-rlifts', null, 'coach', 'lifts', lw);
-    const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : runnable(x) ? x.plan_ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
+    const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : runnable(x) ? planEx(m, x).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
     for (const n of names) ul.append(el('li', null, n.replace(/^\w/, (c) => c.toUpperCase())));
     box.replaceChildren(top, hero, acts, ul);
   }
@@ -655,7 +742,7 @@
       if (d === date) {
         status('Saved ' + fWD(d) + ', ' + stamp(at), 'ok');
         bar((finish ? 'Session saved · ' : 'All sets saved · ') + stamp(at), 'ok');
-        if (finish) finBtn(true);
+        if (finish) { finBtn(true); const kx = m.guest && !m.guest.mine ? m.guest : mfy && mfy.mfy ? mfy : null; if (kx) { keepAsk = date + '|' + kx.id; keepCard(m); } }
       }
       renderProgress(m.base || m);
     } catch (e) {
@@ -764,6 +851,8 @@
       catch (e) { status('Could not load your sets.', 'err'); }
       try { const r = await db.doc('lift_pref/routine').get(); if (r.exists) pickPending = r.data().pick || null; } catch (e) { pickPending = null; }
       try { const r = await db.doc('lift_pref/pinned').get(); if (r.exists) { const v = r.data().ids; pinned = typeof v === 'string' ? v.split(';').filter(Boolean) : null; } } catch (e) { pinned = null; }
+      try { const q = await db.collection('lift_mine').get(); mineDocs = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, x.data()])); } catch (e) { mineDocs = new Map(); }
+      try { const q = await db.collection('lift_ask').get(); asks = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, x.data()])); } catch (e) { asks = new Map(); }
       try { const q = await db.collection('lift_choice').get(); choices = new Map(q.docs.filter((x) => x.exists).map((x) => [x.id, x.data()])); } catch (e) { choices = new Map(); }
     }
     loaded = true; builtKey = '';

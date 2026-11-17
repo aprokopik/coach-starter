@@ -10,10 +10,10 @@
   const alpha = (id) => !!(CX.app && CX.app.kind('alpha').some((b) => b.id === id));
   let btn = null, tip = null, cm, tipT = 0;
   const say = (t) => { tip.textContent = t; tip.hidden = false; clearTimeout(tipT); tipT = setTimeout(() => { tip.hidden = true; }, 6000); };
-  async function open() {
+  async function open(at) {
     if (cm === undefined) { try { cm = window.claude && window.claude.use ? await window.claude.use('comments') : null; } catch (e) { cm = null; } }
     let ok = false;
-    if (cm && cm.openComposer) { try { ok = !!(await cm.openComposer({ element: btn })).opened; } catch (e) { ok = false; } }
+    if (cm && cm.openComposer) { try { ok = !!(await cm.openComposer({ element: at && at.nodeType === 1 ? at : btn })).opened; } catch (e) { ok = false; } }
     if (!ok) say('Tap the comment tool at the top, then Send to Claude. The coach answers there.');
   }
   function mount() {
@@ -23,7 +23,8 @@
     btn.setAttribute('aria-label', 'Talk to the coach'); btn.title = 'Talk to the coach';
     btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>';
     tip = document.createElement('p'); tip.className = 'cx-chat-tip'; tip.setAttribute('role', 'status'); tip.hidden = true;
-    btn.addEventListener('click', open);
+    btn.addEventListener('click', () => open(btn));
+    CX.chatOpen = (at) => open(at); // Make your own on the Lifts tab opens the same box (6.131.0)
     const dock = document.createElement('div'); dock.className = 'cx-chat-dock';
     dock.append(tip, btn); root.append(dock);
   }

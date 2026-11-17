@@ -188,7 +188,7 @@ import lifts  # noqa: E402
 for r in read_json("coach/lift_history.json", {"rows": []}).get("rows", []):
     rows.append({k: v for k, v in r.items() if k != "recent"})
 rows.extend(lifts.proposal_rows())
-lifts.resolve_plans(rows)  # library and own routines that can run for one day (Use today)
+lifts.resolve_plans(rows, {r.get("id") for r in read_json("coach/my_routines.json", {"rows": []}).get("rows", [])})  # Use today plans, the exercise list, Made by you
 
 # Time in heart rate zones per activity: Garmin's 2-minute all-day HR samples inside each
 # activity's window, binned with the zones in coach/zones.json (sport-specific). Walks and

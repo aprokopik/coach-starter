@@ -6,6 +6,8 @@ earlier best. Rotation rows live in coach/strength_rotation.json; the routine it
 
 Usage (from the repo root):
   python3 coach/tools/lifts.py ingest <lift_log.json>     copy dashboard lift_log documents into coach/strength_log.csv
+  python3 coach/tools/lifts.py mine <lift_mine.json>     copy routines made on the dashboard into coach/my_routines.json
+  python3 coach/tools/lifts.py asks <lift_ask.json>      Tell the coach requests still waiting for a routine (exit 1: none)
         (one row per set; a date's rows are replaced when its saved_at is newer; the JSON is a list of documents or of
         {id, data} pairs, as ArtifactData list returns them)
   python3 coach/tools/lifts.py history [date]             write coach/lift_history.json: per exercise its sessions,
@@ -82,7 +84,7 @@ def blocks():
     return [r for r in read_json(PLAN)["rows"] if r.get("kind") == "block"]
 
 
-# ---------- plan: a library or own routine that can run for one day ("Use today", 6.128.0) ----------
+# ---------- plan: a library or own routine that can run for one day ("Use today", 6.130.0) ----------
 
 DOSE = ("name", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs")
 
@@ -106,16 +108,84 @@ def plan_rows(row, lib=None):
     return out, [{"block": b["block"], "order": i, "label": b.get("label", ""), "note": b.get("note", "")} for i, b in enumerate(blocks)]
 
 
-def resolve_plans(rows):
-    """build_dashboard: each lift_lib row with a plan gets plan_ex and plan_blocks for the page, and drops the raw plan."""
+def resolve_plans(rows, mine_ids=()):
+    """build_dashboard: each lift_lib row with a plan gets plan_ex (exercise id, block and only the dose fields it
+    changes) and plan_blocks; the page fills the rest from the lift_xlib rows (one per library exercise, also the list
+    Make your own picks from). A plan naming an exercise the library lacks is dropped. Rows from my_routines.json get
+    mine: true (the Made by you shelf)."""
     lib = library()
     for r in rows:
-        if r.get("kind") == "lift_lib" and r.get("plan"):
+        if r.get("kind") != "lift_lib":
+            continue
+        if r.get("id") in mine_ids:
+            r["mine"] = True
+        if r.get("plan"):
             ex, bl = plan_rows(r, lib)
-            r.pop("plan", None); r.pop("blocks", None)
+            plan = r.pop("plan"); r.pop("blocks", None)
             if ex:
-                r["plan_ex"], r["plan_blocks"] = ex, bl
+                r["plan_ex"] = [{"id": p["id"], "block": e["block"], **{k: p[k] for k in DOSE if k in p}} for p, e in zip(plan, ex)]
+                r["plan_blocks"] = bl
+    keep = ("id", "name", "pattern", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs")
+    for e in lib.values():
+        rows.append({"kind": "lift_xlib", **{k: e[k] for k in keep if k in e}, "needs": ", ".join(e.get("needs") or [])})
     return rows
+
+
+MINE = "coach/my_routines.json"
+
+
+def _docs(path):
+    raw = json.load(open(path))
+    if isinstance(raw, dict):
+        raw = raw.get("docs") or raw.get("documents") or raw.get("rows") or [dict(v, id=k) for k, v in raw.items()]
+    out = []
+    for x in raw:
+        d = dict(x.get("data") or {}) if isinstance(x.get("data"), dict) else dict(x)
+        d["id"] = x.get("id") or x.get("doc_id") or d.get("id")
+        for k, v in list(d.items()):
+            if isinstance(v, str) and v.strip()[:1] in "[{":
+                try:
+                    d[k] = json.loads(v)
+                except ValueError:
+                    pass
+        out.append(d)
+    return out
+
+
+def cmd_mine(args):
+    """Copy routines made on the dashboard (store lift_mine: picked lift by lift, or saved from another) into
+    coach/my_routines.json under the same id, so the data keeps them; a lift the library lacks is left out and named."""
+    if not args:
+        print("usage: lifts.py mine <lift_mine.json>"); return 2
+    lib, doc = library(), read_json(MINE, {"rows": []})
+    have = {r.get("id") for r in doc.get("rows", [])}
+    added = []
+    for d in _docs(args[0]):
+        if not d.get("id") or d["id"] in have or d.get("hidden"):
+            continue
+        plan = [p for p in (d.get("plan") or []) if isinstance(p, dict) and p.get("id") in lib]
+        if not plan:
+            continue
+        row = {"kind": "lift_lib", "id": d["id"], "order": 50 + len(have), "name": d.get("name") or "My routine", "needs": d.get("needs") or "",
+               "minutes": d.get("minutes") or 20, "per_week": 2, "best_for": "Made on the dashboard" + (f" from {d['from']}" if d.get("from") else ""),
+               "lifts": "; ".join(p.get("name") or lib[p["id"]]["name"] for p in plan), "plan": plan}
+        doc.setdefault("rows", []).append(row); have.add(d["id"]); added.append(row["name"])
+    if added:
+        write_json(MINE, doc)
+    print(f"Added {len(added)}: {', '.join(added)}" if added else "Nothing new.")
+    return 0
+
+
+def cmd_asks(args):
+    """Tell the coach requests (store lift_ask) not yet answered: a my_routines.json row with ask = the request id
+    answers it. Exit 1 when none is waiting."""
+    if not args:
+        print("usage: lifts.py asks <lift_ask.json>"); return 2
+    done = {r.get("ask") for r in read_json(MINE, {"rows": []}).get("rows", [])}
+    wait = [d for d in _docs(args[0]) if d.get("id") and d["id"] not in done and d.get("date", "") >= today()]
+    for d in wait:
+        print(f"{d['id']}  for {d.get('date')}: {d.get('text', '')}")
+    return 0 if wait else 1
 
 
 # ---------- ingest: dashboard lift_log documents -> strength_log.csv ----------
@@ -633,7 +703,7 @@ def cmd_start(args):
 
 
 if __name__ == "__main__":
-    cmds = {"library": cmd_library, "start": cmd_start, "ingest": cmd_ingest, "history": cmd_history, "list": cmd_list, "due": cmd_due, "propose": cmd_propose,
+    cmds = {"mine": cmd_mine, "asks": cmd_asks, "library": cmd_library, "start": cmd_start, "ingest": cmd_ingest, "history": cmd_history, "list": cmd_list, "due": cmd_due, "propose": cmd_propose,
             "accept": cmd_accept, "keep": cmd_keep, "apply": cmd_apply, "raise": cmd_raise}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
         print(__doc__); sys.exit(2)
