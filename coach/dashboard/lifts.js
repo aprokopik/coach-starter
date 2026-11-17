@@ -138,7 +138,7 @@
   let legacy = {};
   const idOf = (d, slot) => (d.ids && d.ids[slot]) || legacy[slot] || slot;
   const history = (exId) => [...logs.values()].filter((d) => d && d.sets).sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((d) => { const slot = Object.keys(d.sets).find((k) => idOf(d, k) === exId && Array.isArray(d.sets[k]) && d.sets[k].length); return slot ? { date: d.date, sets: d.sets[slot], day: d.day || '' } : null; })
+    .map((d) => { const slot = Object.keys(d.sets).find((k) => idOf(d, k) === exId && Array.isArray(d.sets[k]) && d.sets[k].length); return slot ? { date: d.date, sets: d.sets[slot], day: d.day || '', rpe: N(d.rpe) } : null; })
     .filter(Boolean);
   const lastBefore = (exId, d, dk) => { const h = history(exId).filter((x) => x.date < d); const s = dk ? h.filter((x) => x.day === dk) : []; return s.length ? s[s.length - 1] : h.length ? h[h.length - 1] : null; };
   // The next step as a key and a short value (the athlete, Nov 5, point 4): the log row shows them as a chip ("Next · same load,
@@ -149,6 +149,7 @@
     if (mode === 'light') return H(false, 'Light phase', 'same or lighter, stop with 3+ reps left');
     if (mode === 'upper' && e.legs) return H(false, null, 'Not in this phase yet');
     const full = last.sets.length >= N(e.sets) && last.sets.every((st) => N(st.reps) !== null && N(st.reps) >= N(e.hi));
+    if (full && last.rpe >= 6) return H(false, 'Next', `same, ${e.hi} again`, ' (felt Hard)');
     if (full) {
       if (hasLoad(e)) { const top = Math.max(...last.sets.map((st) => N(st.lb) ?? 0)); return H(true, 'Next', `${loadTxt(e, top + (N(e.step) || 5))} ${wU()}, back to ${e.lo}${e.unit === 's' ? ' s' : ''}`); }
       return H(true, 'Next', e.next_hard || 'make it harder');
@@ -168,7 +169,8 @@
     if (e.day_key && last.day !== e.day_key && e.day_hint) return { t, aim: '', say: e.day_hint };
     const best = Math.max(0, ...S.map((st) => N(st.reps) ?? 0)), full = S.length >= N(e.sets) && S.every((st) => N(st.reps) >= N(e.hi));
     let aim;
-    if (full && hasLoad(e)) aim = `${loadTxt(e, top + (N(e.step) || 5))}×${e.lo}${u}`;
+    if (full && last.rpe >= 6) aim = `${hasLoad(e) ? loadTxt(e, top) + '×' : ''}${e.hi}${u}${ps} again (felt Hard)`;
+    else if (full && hasLoad(e)) aim = `${loadTxt(e, top + (N(e.step) || 5))}×${e.lo}${u}`;
     else if (full) aim = e.next_hard || 'make it harder';
     else aim = `${hasLoad(e) ? (e.load === 'lb_added' && !(top > 0) ? 'BW×' : loadTxt(e, top) + '×') : ''}${Math.min(best + 1, N(e.hi))}${u}${ps}`;
     return { t, aim };

@@ -12,7 +12,7 @@ Usage (from the repo root):
         the block ended: record the level reached; the row stays as history
   python3 coach/tools/levels.py due [date]                       what needs doing on that date (blocks starting within 14 days,
         proposals older than 3 days, blocks that ended without an outcome, and a new test result in coach/benchmarks.json
-        for a test marker (ftp, 5k) that has no goal row with that baseline in its block yet: the result is the baseline,
+        for a test marker (ftp, 5k, swim CSS) that has no goal row with that baseline in its block yet: the result is the baseline,
         the coach proposes Target and Strong; roadmap week 5, Nov 14, 2026)
 Rows are never deleted; a corrected line is a new row and the old one is closed with outcome "superseded".
 """
@@ -24,7 +24,8 @@ from datetime import date, timedelta
 LEVELS = "coach/levels.json"
 PLAN = "coach/plan.json"
 BENCH = "coach/benchmarks.json"
-TEST_KEYS = ("ftp", "5k")  # test markers whose result is a block goal's baseline (LEVELS.md section 3, step 1)
+TEST_KEYS = ("ftp", "5k", "css")  # test markers whose result is a block goal's baseline (LEVELS.md section 3, step 1)
+GOAL_KEY = {"css": "swim"}  # a benchmark key whose goal row lives on another marker (swim CSS sets the swim pace goal)
 UNITS = {"run": ("/mi", -1), "bike": ("W", 1), "ftp": ("W", 1), "5k": ("min", -1), "swim": ("s/100 yd", -1), "durability": ("%", -1),
          "strength": ("per week", 1), "sleepreg": ("min", -1), "consistency": ("days/week", 1), "vo2": ("", 1), "wkg": ("W/kg", 1), "aerobic": ("", 1), "vo2bike": ("", 1)}
 
@@ -209,12 +210,13 @@ def test_baselines(doc, t):
         b = next((b for b in blocks() if b["start"] <= r["date"] <= b["end"]), None)
         if b is None or str(b.get("label", "")).split(" ·")[0].lower() in ("taper", "recover"):
             continue
-        rows = [x for x in doc["rows"] if x["key"] == r["key"] and x["block_key"] == b["key"] and x["status"] != "closed"]
+        gk = GOAL_KEY.get(r["key"], r["key"])
+        rows = [x for x in doc["rows"] if x["key"] == gk and x["block_key"] == b["key"] and x["status"] != "closed"]
         if any(x.get("baseline") == r.get("value") for x in rows):
             continue
         now = rows[0]["status"] if rows else "none"
-        out.append(f"{r['key']} test {r['date']} ({r.get('text') or r.get('value')}) is the baseline for {b.get('label', b['key'])} (goal row: {now}): "
-                   f"propose Target and Strong with reasoning (levels.py propose {r['key']} {b['key']} --baseline {r.get('value')} --target T --strong S)"
+        out.append(f"{gk} test {r['date']} ({r.get('text') or r.get('value')}) is the baseline for {b.get('label', b['key'])} (goal row: {now}): "
+                   f"propose Target and Strong with reasoning (levels.py propose {gk} {b['key']} --baseline {r.get('value')} --target T --strong S)"
                    + ("; a set row is never moved: a correction is a new row, the old one closed as superseded" if now == "set" else ""))
     return out
 

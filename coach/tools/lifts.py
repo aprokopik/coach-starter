@@ -751,7 +751,7 @@ def start_from_routine(rid, per_week, minutes, replace=False, style=None):
         rows[0].update({"days": days, "when": f"Upper and lower take turns, any {per_week} days that fit"})
     elif style in SPLIT_STYLES:
         print("This starter has no upper and lower lifts to split: it runs full body.")
-    rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time.", False),
+    rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time. Felt Hard? Same load once more.", False),
              ("Timing", (f"Upper body and Lower body take turns on any {per_week} days that fit; " if days else f"Any {per_week} days that fit your week; ")
               + "hard leg work at least 48 h before a long or key session.", False),
              (f"Busy week ({rows[0]['busy_minutes']} min)", "The first four lifts.", False),
@@ -800,7 +800,7 @@ def cmd_start(args):
         row = {"kind": "lift_ex", "routine": "start", "ex": ex, "id": i, "block": blk, "order": order, "busy": order < 4}
         row.update({k: e[k] for k in ("name", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs") if k in e})
         rows.append(row)
-    rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time.", False),
+    rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time. Felt Hard? Same load once more.", False),
              ("Timing", f"Any {per_week} days that fit your week; hard leg work at least 48 h before a long or key session.", False),
              ("Busy week (15 min)", "The first four lifts.", False),
              ("Stop signals", "Pain that is sharp, one-sided or changes how you move: stop that lift and tell your coach.", True)]

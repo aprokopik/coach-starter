@@ -113,7 +113,7 @@ def figure(ex, sess, today):
             "sub": f"{when}: {' · '.join(f'{r:g}' for r in work)} {unit}, range {lo:g} to {hi:g}",
             "rungs": "|".join(reversed(ladder)), "ladder_label": "Load levels, top first",
             "rule": (f"Your routine's double progression: each level is a load, and its three steps are your reps climbing from {lo:g} to {hi:g} "
-                     f"on {'both' if n == 2 else f'all {n}'} sets. Top of the range on every set moves you up {_lb(step)} lb to the next level. Your own progress, not a ranking; "
+                     f"on {'both' if n == 2 else f'all {n}'} sets. Top of the range on every set moves you up {_lb(step)} lb to the next level, unless the session felt Hard: then the same load once more. Your own progress, not a ranking; "
                      "the Push-up test tile ranks you against adults your age."),
             "note": f"Latest session {when}. {len(sess)} session{'s' if len(sess) != 1 else ''} logged on the Lifts tab.",
             "chip": "", "num": load,

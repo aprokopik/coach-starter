@@ -274,6 +274,26 @@ Empty in a new coach. The monthly research scan fills it: each rule this coach a
 - Finding: the run split correlated most with overall time (r = 0.89 women, 0.90 men), then the bike (r = 0.87 women, 0.86 men); the swim much less. In regression all three splits contributed and no single split dominated across age groups. The swim's link to overall time held steady for women up to 40 to 44 and declined after that; for men it started to decline at 30 to 34.
 - Certainty moderate · Fit high · New
 
+### TR-50 ACSM 2009 position stand: progression models in resistance training (with the NSCA 2 for 2 rule)
+- Med Sci Sports Exerc 41(3):687-708. https://pubmed.ncbi.nlm.nih.gov/19204579/ · position stand · abstract and secondary summaries. NSCA Essentials of Strength Training and Conditioning, program design chapter, via study summaries.
+- Finding: when training at a set load, raise it 2 to 10% once the person can do 1 to 2 reps more than the target. The NSCA's more cautious 2 for 2 rule adds load after 2 extra reps on the last set in two workouts in a row: 2 to 5 lb upper body and 5 to 10 lb lower body for less trained lifters, or 2.5 to 10%.
+- Certainty moderate (expert consensus) · Fit high · New
+
+### TR-51 Plotkin et al. 2022: load progression vs repetition progression
+- PeerJ 10:e14142. https://peerj.com/articles/14142 · RCT, 38 trained adults, 8 weeks, 2 lower body sessions a week, 4 sets to failure · FT
+- Finding: adding load (8 to 12 reps) and adding reps at a fixed load gave similar muscle thickness at most sites and similar endurance. Squat 1RM rose 21.8 kg with load and 19.3 kg with reps; the adjusted difference was -2.0 kg (90% CI -7.8 to 2.4), slightly favouring load.
+- Certainty moderate · Fit moderate (young trained lifters, to failure) · New
+
+### TR-52 Graham and Cleather 2021: autoregulation by reps in reserve vs fixed loading
+- J Strength Cond Res 35(9):2451-2456. https://research.stmarys.ac.uk/3067/3/Graham-Cleather-Autoregulation-Repetitions-in-Reserve.pdf · RCT, 31 trained men, 12 weeks, twice a week · FT (accepted manuscript)
+- Finding: choosing loads by a target of reps left in reserve beat fixed percentages of 1RM for squat strength (back squat +10.8% vs +7.1%, front squat +11.7% vs +8.3%). The RIR group trained at higher intensities with similar volume. The sample was small, training was unsupervised, and the result depends on people judging RIR well.
+- Certainty low to moderate · Fit moderate · New
+
+### TR-53 Robinson et al. 2024: proximity to failure, strength and hypertrophy
+- Sports Med 54:2209-2231. https://www.fau.edu/newsdesk/articles/muscle-growth-strength-study · meta-regression, 55 studies · abstract and university summary
+- Finding: strength gains did not change with how close to failure sets went. Muscle growth rose as sets ended closer to failure.
+- Certainty moderate · Fit high · New
+
 ## IR: Injury, load, recovery and sleep
 
 ### IR-01 Soligard et al. 2016: IOC consensus on load and injury
