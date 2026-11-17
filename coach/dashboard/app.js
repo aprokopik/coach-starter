@@ -2471,7 +2471,7 @@
     } else if (levelText) kvRow(dl2, 'Level', md(levelText + rankExtra, 'level'));
     if (mi) {
       const wk = ['consistency', 'strength', 'sauna'].includes(m.key); const nv = wk ? (v) => `${f1(v)} ${m.key === 'consistency' ? 'days' : 'sessions'}/week` : vf, nd = wk ? (v) => `${f1(v)} per week` : df;
-      kvRow(dl, 'Next', mi.next ? md(`${nv(mi.next.v)} for ${mi.next.label}, ${nd(mi.dist)} away${wk ? ' (4-week average)' : ''}`, 'milestone') : 'Top of the scale reached');
+      kvRow(dl, 'Next', mi.next ? md(`${nv(mi.next.v)} for ${mi.next.label}, ${latest !== null && nv(mi.next.v) === nv(latest) ? 'almost there' : nd(mi.dist) + ' away'}${wk ? ' (4-week average)' : ''}`, 'milestone') : 'Top of the scale reached');
     }
     if (goal) {
       const st = goal.status === 'proposed' ? ' · proposed, waiting for your OK' : goal.status === 'provisional' ? ' · provisional until it starts' : '';

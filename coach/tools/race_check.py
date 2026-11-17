@@ -10,7 +10,9 @@ registration_due() lists the dates within 14 days, plus a planned race whose reg
 says_today() decides which the check-in carries: 14 and 7 days out, the day before and the day itself, and for a planned
 race also every Sunday in the window and every morning of the last 3 days. The morning facts turn them into flags.
 
-CLI: python3 coach/tools/race_check.py [YYYY-MM-DD]   prints the gaps for every race and the registration dates due.
+Scale for every event (Nov 17, 2026): scale_gaps() lists each race signed up for, planned or done with no gold stage scale yet.
+
+CLI: python3 coach/tools/race_check.py [YYYY-MM-DD]   prints the gaps for every race, the registration dates due and the scale gaps.
 """
 import json
 import os
@@ -213,6 +215,36 @@ def registration_line(item):
     return text
 
 
+# ---------- a scale for every event (the athlete, Nov 17, 2026) ----------
+
+def scale_gaps(rows=None, have=None):
+    """[(race_id, name, gap)] for each race signed up for, planned or finished that has no gold stage scale yet (the athlete, Nov 17, 2026:
+    "I've signed up for an event. You need to figure out a way to give me a scale. For that event. or event type. This is the
+    architecture."): no race field fits it, or its field has no finisher results on file. The weekly race watch fills them."""
+    rows = rows if rows is not None else _load("coach/races.json", {"rows": []}).get("rows", [])
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import compare
+        import race_rows
+    except ImportError:
+        return []
+    if have is None:  # race fields with finisher results on file, or norm rows of their own
+        home = os.path.join(ROOT, "coach")
+        have = {c["field"] for c in race_rows.courses(home) if os.path.exists(os.path.join(home, c["file"]))}
+        have |= {r.get("compare") for r in _load("coach/norms.json", {"rows": []}).get("rows", []) if r.get("compare")}
+    out = []
+    for r in rows:
+        if r.get("kind") != "race" or r.get("status") not in ("registered", "planned", "done") or r.get("field") == "none":
+            continue
+        f = compare.field_of(r)
+        if f is None:
+            out.append((r.get("race_id"), r.get("name"), "no event type fits (add a coach/race_fields.json row, then finisher results)"))
+        elif f["id"] not in have:
+            out.append((r.get("race_id"), r.get("name"), f"no finisher results on file for {f['label']} (this event's past results first, "
+                                                          "else the same type; a row in coach/research/norms/courses.json)"))
+    return out
+
+
 def check_all(today, rows=None, tpl=None):
     rows = rows if rows is not None else _load("coach/races.json", {"rows": []}).get("rows", [])
     tpl = tpl or template()
@@ -238,6 +270,8 @@ def main():
     rows = _load("coach/races.json", {"rows": []}).get("rows", [])
     for item in registration_due(rows, today):
         print(f"registration{' (said today)' if says_today(item, today) else ''}: {registration_line(item)}")
+    for rid, name, gap in scale_gaps(rows):
+        print(f"scale: {name}: {gap}")
     print(f"shared Race Season page: {shared_page_status()}")
 
 

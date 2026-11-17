@@ -432,7 +432,7 @@ def _race_wait(out, unlocked, group=None):
         except ValueError:
             have = set()
         wait = [{"id": k, "label": u["field"]["label"], "short": u["field"]["short"], "km": u["field"].get("km"), "race": u["race"]}
-                for k, u in unlocked.items() if tile in u["field"]["tiles"] and k not in have]
+                for k, u in unlocked.items() if tile in u["field"]["tiles"] and m["key"] in (u["field"].get("keys") or [m["key"]]) and k not in have]
         if wait:
             m["race_wait"] = json.dumps(wait, ensure_ascii=False)
     # Stages still missing for this person (the athlete, 6.124.0: "If data is missing on a user that's not the athlete, how will I know, or how
@@ -1131,6 +1131,29 @@ def build(today, rows_so_far):
         if len(scales) > 1:
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)
 
+    def race_time_scales(key, v_min, fmt):
+        """Gold stage scales for a run time distance (the 5K tile's mile, 5K and 10K): each race field the person's races unlock
+        that can rank this distance (race_fields.json `keys`, else its tiles), with finisher times on file (race_rows.py road
+        courses), ranks the same best against those finishers (the athlete, Nov 17, 2026: every event he signs up for gets a scale)."""
+        tile_of = {"mile": "5k", "10k": "5k", "half": "5k", "marathon": "5k"}
+        res_ = []
+        for fid, u in sorted(UNLOCKED.items(), key=lambda x: RACE_KM.get(x[0]) or 0):
+            f_ = u["field"]
+            if key not in (f_.get("keys") or ([key] if tile_of.get(key, key) in f_["tiles"] else [])):
+                continue
+            nd = fit_ladder.pick(NR, key, NG, fid)
+            if nd is None or nd.get("compare") != fid:
+                continue
+            def fn(nd=nd):
+                tt = fit_ladder.tiers(nd, 2, fmt)
+                rk, after = ladder(key, nd, v_min, tt, 1 / 60)
+                nb = next(((l, hi) for l, lo, hi, _n in reversed(tt) if hi is not None and hi <= v_min), None)
+                annot(key, "", (f"{mss((v_min - nb[1]) * 60)} to {nb[0]} ({fmt(nb[1])})" if nb else "in the top band"), tt, rk,
+                      f"Compared with {nd['population']}: {nd['source']} ({nd['url']}). {nd['note']}", scale="research")
+                after()
+            res_.append((fid, nd.get("compare_label") or f_["label"], fn))
+        return res_
+
     _fix = "fixed until the norm is refreshed or your group changes"
     def _hw(k):
         r, m = hr_ends(k, int(NG["band"].split("-")[0]) + 5 if NG else 35)
@@ -1433,6 +1456,8 @@ def build(today, rows_so_far):
                     sc2 += [(sid, lab, ag_scale(dk, std2, v2, rows_, who)) for sid, lab, rows_, who in AG_SCALES]
                     if CMP.get("5k"):
                         sc2.sort(key=lambda x: x[0] != CMP["5k"])
+                if sc2:
+                    sc2 += race_time_scales(dk, v2, htime)
                 with_scales(dk, sc2, lambda fn: fn())
                 others.append(dk)
             if others:
@@ -1516,6 +1541,7 @@ def build(today, rows_so_far):
                 sc5 = [("general", "General population", gen5)]
                 if RT and age_grade.standard(*_sex_age(T), "5k"):
                     sc5 += [(sid, lab, ag5(rows_, who)) for sid, lab, rows_, who in AG_SCALES]
+                sc5 += race_time_scales("5k", secs / 60, lambda v: mss(v * 60))
                 if CMP.get("5k"):
                     sc5.sort(key=lambda x: x[0] != CMP["5k"])
                 with_scales("5k", sc5, lambda fn: fn())

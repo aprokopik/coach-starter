@@ -49,7 +49,7 @@ def field_of(race):
     first field whose sport and pattern fit."""
     import re
     fs = race_fields()
-    if race.get("field"):
+    if race.get("field"):  # "none": no field fits this event (a 75 mile route of a ride named Century)
         return next((f for f in fs if f["id"] == race["field"]), None)
     sport = str(race.get("sport", "")).lower()
     text = f"{race.get('distance', '')} {race.get('name', '')}".lower()
