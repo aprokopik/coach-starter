@@ -14,7 +14,7 @@ import os
 
 FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "elite_records.json")
 BIKE_EXP = 1.05  # time grows a little faster than distance in a time trial (coach estimate between filed distances)
-CLASSES = (("Record pace", 100, None), ("Within 10% of record", 90, 100), ("Within 20% of record", 80, 90), ("Over 20% off record", None, 80))
+CLASSES = (("Record pace", 100, None), ("Within 10%", 90, 100), ("Within 20%", 80, 90), ("Over 20% off", None, 80))
 
 
 def _doc():

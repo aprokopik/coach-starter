@@ -1188,7 +1188,7 @@ def build(today, rows_so_far):
     # age grade classes as the run time stages 2 and 3, for the 5K and every other distance (the athlete, 6.124.0)
     AG_SCALES = (("club_ag", "Club runners (age grade)", (("Regional class", 70, None), ("Local class", 60, 70), ("Recreational", None, 60)),
                   "Compared with club runners: local class (60%) and regional class (70%) are the usual club standards."),
-                 ("elite_ag", "Elite (age grade)", (("World standard", 100, None), ("World class", 90, 100), ("National class", 80, 90), ("Below national class", None, 80)),
+                 ("elite_ag", "Elite (age grade)", (("World standard", 100, None), ("World class", 90, 100), ("National class", 80, 90), ("Below national", None, 80)),
                   "Compared with elite runners: national class (80%), world class (90%) and the world standard for your age (100%)."))
 
     def ag_tiers(std, rows):

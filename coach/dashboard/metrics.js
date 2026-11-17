@@ -102,7 +102,7 @@
     if (m.unit) fig.append(mark(el('span', 'ck-unit', String(m.unit).startsWith('/') ? m.unit : ' ' + m.unit), 'coach', 'unit', mw(m))); b.append(fig); }
     // a rung name that does not say what it counts gets plain words on the tile; the ladder keeps its own name (the athlete, Nov 15, 2026,
     // card "Both": Consistency read "Level 3 days"; its 3-3-3 rungs count weeks with three or more training days)
-    if (m.level) { const say = (LV_SAY[m.key] || {})[m.level]; const c = el('span', 'ft-chip'); c.append(el('span', 'ft-chip-k', 'Level'), ' ', say ? mark(el('span', null, say), 'coach', null, mw(m), 'formatted') : mark(el('span', null, m.level), 'coach', 'level', mw(m))); b.append(c); }
+    if (m.level) { const say = (LV_SAY[m.key] || {})[m.level]; const c = el('span', 'ft-chip'); c.append(el('span', 'ck-vh', 'Level '), say ? mark(el('span', null, say), 'coach', null, mw(m), 'formatted') : mark(el('span', null, m.level), 'coach', 'level', mw(m))); b.append(c); }
     // the same three-step bar under the chip as the marker tiles (app.js levelBadge, option 4): how far through its level the reading is
     const thru = m.pct === '' || m.pct === null || m.pct === undefined ? NaN : Number(m.pct);
     if (m.level && Number.isFinite(thru)) {
@@ -189,10 +189,9 @@
       if (!f('plane') && !f('value')) b.append(el('span', 'ck-big ft-fig', '—'));
       b.append(mark(el('span', 'ck-sub ft-subl', f('ex')), 'coach', F('ex'), w));
       if (f('level')) {
-        const row = el('span', 'ft-lvrow'), cur = Number(f('stage')) || 1;
-        const st = mark(el('span', 'mx-stage ft-stage'), 'coach', F('stage'), w); st.setAttribute('role', 'img'); st.setAttribute('aria-label', `Stage ${cur} of 3: compared with ${cur === 2 ? 'people who lift' : 'everyone'}`);
-        { const d = el('i', 'mx-stage-d is-cur s' + cur, String(cur)); d.setAttribute('aria-hidden', 'true'); st.append(d); } // only the stage you are on (the athlete)
-        const c = el('span', 'ft-chip'); c.append(el('span', cur < 2 ? 'ft-chip-k' : 'ck-vh', 'Level'), ' ', mark(el('span', null, f('level')), 'coach', F('level'), w)); if (cur >= 2) row.append(st); row.append(c); b.append(row);
+        const cur = Number(f('stage')) || 1; // silver: Top 20% of everyone (the athlete)
+        const c = mark(el('span', 'ft-chip' + (cur >= 2 ? ' ft-chip--s1' : '')), 'coach', F('stage'), w); c.append(el('span', 'ck-vh', 'Level '), mark(el('span', null, f('level')), 'coach', F('level'), w));
+        if (cur >= 2) { c.title = 'Silver: Top 20% of everyone reached'; c.append(el('span', 'ck-vh', ', silver: Top 20% of everyone reached')); } b.append(c);
         const thru = Number(f('pct'));
         if (Number.isFinite(thru)) {
           const n = 3, x = Math.min(Math.max(thru, 0) * n, n - 1e-9), k = Math.floor(x), tt = `step ${k + 1} of ${n}, ${Math.round((x - k) * 100)}% through this step`;

@@ -1919,16 +1919,15 @@
   // on the closed tile after stepping up (the athlete, Nov 12, 2026: "Yes, after stepping up"): the stage in use, so a lower level reads as a harder ladder
   // the athlete, Nov 15, 2026 ("I thought we had badges now. This is too big"): the stage is the Map's small overlapped 1, 2, 3 badge,
   // inside the Level chip, the stage in use filled; its name is in the badge's label and title, not on the tile
-  function stageChip(m) { const cur = scalesOf(m).find((s) => s.id === m.compare); const n = cur ? Number(cur.stage) || 1 : 1; if (n < 2) return null;
-    const who = String(cur.short || cur.label || cur.stage_label || 'a harder group').replace(/^IRONMAN /, '');
-    const b = mark(el('span', 'mx-stage ft-stage'), 'coach', null, 'kind=marker&key=' + m.key, 'stage'); b.setAttribute('role', 'img'); b.setAttribute('aria-label', `Stage ${n} of 3: compared with ${who}`); b.title = `Stage ${n} of 3, compared with ${who}. 1 everyone, 2 your race or sport, 3 elite.`;
-    const d = el('i', 'mx-stage-d is-cur s' + n, String(n)); d.setAttribute('aria-hidden', 'true'); b.append(d); // only the stage you are on (the athlete)
-    return b; }
-  // the badge and the Level chip share one line (the athlete, Nov 15, 2026: "If you are at stages can we abv. To lvl and get all on one
-  // line?"); "Lvl" still did not fit every level name at 360 to 390 px, so the athlete picked dropping the word beside the discs (card, Nov 15).
-  const withStage = (frag, badge) => { if (!badge) return frag; const chip = frag.querySelector && frag.querySelector('.ft-chip'); if (!chip) { frag.prepend(badge); return frag; }
-    const k = chip.querySelector('.ft-chip-k'); if (k) k.className = 'ck-vh'; // beside the discs the chip shows only the level name; screen readers still hear "Level"
-    const row = el('span', 'ft-lvrow'); chip.replaceWith(row); row.append(badge, chip); return frag; };
+  // pill colour = highest stage beaten at Top 20%: silver, gold, diamond (the athlete, Nov 16, 2026); no disc, no word Level
+  function stageChip(m) { const si = stageInfo(scaleTile(m));
+    if (!si) { const rows = tiersOf(m).length ? tileSeries(m) : null; return rows && rows.length && earnsNext(m, m, rows[rows.length - 1].value) ? { n: 1, who: 'silver: Top 20% reached on stage 1' } : null; }
+    let won = Math.max(0, (si.unlocked || 1) - 1);
+    if (si.unlocked >= 3 && si.cur >= 3) { const host = kind('marker').find((x) => x.key === scaleTile(m)) || m; const rows = tileSeries(host); const s3 = scalesOf(m).find((x) => stageNo(x) === 3);
+      if (s3 && rows && rows.length && earnsNext(m, s3, rows[rows.length - 1].value)) won = 3; }
+    if (won < 1) return null; const name = ['', 'silver', 'gold', 'diamond'][won]; return { n: won, who: `${name}: Top 20% reached on stage ${won}` }; }
+  const withStage = (frag, st) => { if (!st) return frag; const chip = frag.querySelector ? frag.querySelector('.ft-chip') : null; if (!chip) return frag;
+    chip.classList.add('ft-chip--s' + st.n); chip.title = st.who[0].toUpperCase() + st.who.slice(1); chip.append(el('span', 'ck-vh', ', ' + st.who)); return frag; };
   function scalePicker(m, v) {
     let wait = []; try { wait = m.stage_wait ? JSON.parse(m.stage_wait) : []; } catch (e) { wait = []; }
     let rw = []; try { rw = m.race_wait ? JSON.parse(m.race_wait) : []; } catch (e) { rw = []; }
@@ -2260,7 +2259,7 @@
   }
   function levelBadge(lv, key) {
     const frag = document.createDocumentFragment(); if (!lv) return frag; const w = 'kind=marker&key=' + key;
-    const bd = el('span', 'ft-chip'); bd.append(el('span', 'ft-chip-k', 'Level'), ' ', mark(el('span', null, lv.label), 'coach', null, w, 'level')); frag.append(bd);
+    const bd = el('span', 'ft-chip'); bd.append(el('span', 'ck-vh', 'Level '), mark(el('span', null, lv.label), 'coach', null, w, 'level')); frag.append(bd);
     bd.dataset.level = lv.label; const bp = lv.bandPct !== undefined ? lv.bandPct : lv.pct; bd.dataset.pct = bp === null || bp === undefined ? '' : String(bp); // read by the Map (metrics.js): the share of the whole level, now that the chip names the level, not the step
     if (lv.pct !== null && lv.of > 1) {
       // option 4 (the athlete, Nov 15, 2026): one segment per step inside the level; steps passed are full, the current one fills by
