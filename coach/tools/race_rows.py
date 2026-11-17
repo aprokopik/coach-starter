@@ -135,6 +135,15 @@ def _quantile(xs, q):
     return xs[i] + (xs[min(i + 1, len(xs) - 1)] - xs[i]) * (k - i)
 
 
+def _pool(per_course, k=100):
+    """One list from each course's times, every course weighted the same (the athlete, Nov 17, 2026: a race type panel pooled across
+    events, not one event): a lone course keeps its own times; with several, each gives k evenly spaced quantiles."""
+    per_course = [xs for xs in per_course if xs]
+    if len(per_course) < 2:
+        return per_course[0] if per_course else []
+    return [_quantile(xs, (i + 0.5) / k) for xs in per_course for i in range(k)]
+
+
 def _row(field, label, paces, courses, sex=None, band=None, key="trailspeed"):
     who = "all finishers" if not sex else f"{'men' if sex == 'male' else 'women'}" + (f" {band.replace('-', ' to ')}" if band else "")
     names = sorted({c["race"] for c in courses})
@@ -156,16 +165,16 @@ def _row(field, label, paces, courses, sex=None, band=None, key="trailspeed"):
     return r
 
 
-def _road_row(field, label, key, times, courses):
+def _road_row(field, label, key, times, courses, n=None):
     names = sorted({c["race"] for c in courses})
     years = sorted({c["year"] for c in courses})
     total = sum(c.get("of") or 0 for c in courses)
     dist = KEY_NAME[key]
     return {"kind": "norm", "key": key, "unit": "min", "better": -1, "tail": "log", "compare": field, "compare_label": label,
-            "derived": "race_rows", "n": len(times), "estimated": True,
+            "derived": "race_rows", "n": n or len(times), "estimated": True,
             "population": f"all finishers, {', '.join(names)} ({years[0]}{'' if len(years) == 1 else ' to ' + str(years[-1])})",
             "short": f"{', '.join(names)} finishers",
-            "source": f"Finish times ({len(times)}" + (f", {courses[0]['sample']}" if courses[0].get("sample") else f" evenly spaced places of {total:,}" if total else "") + f") carried to the {dist} by Riegel's rule",
+            "source": (f"Finish times ({n or len(times)} sampled from {len(courses)} races of {total:,} finishers, each race weighted the same)" if len(courses) > 1 else f"Finish times ({len(times)}" + (f", {courses[0]['sample']}" if courses[0].get("sample") else f" evenly spaced places of {total:,}" if total else "") + ")") + f" carried to the {dist} by Riegel's rule",
             "url": courses[0].get("url") or "https://runsignup.com/", "date": str(years[-1]),
             "breakpoints": [[round(_quantile(times, p / 100), 3), round(p, 2)] for p in FRONT],
             "note": f"Your {dist} best against their race time carried to the {dist} (Estimated)."}
@@ -193,21 +202,23 @@ def rows_for(field, label, course=None, root=ROOT):
         res = []
         for leg in cs[0]["legs"]:
             km, keys = cs[0]["legs"][leg]
-            pts = [(m, c) for c in cs for m in legs(c, root).get(leg, [])]
-            if len(pts) < MIN_N:
+            got = [(c, legs(c, root).get(leg, [])) for c in cs]
+            n = sum(len(ms) for _c, ms in got)
+            if n < MIN_N:
                 continue
             for key in keys:
-                r = _road_row(field, label, key, [m * (KEY_KM[key] / c["legs"][leg][0]) ** RIEGEL for m, c in pts], cs)
+                r = _road_row(field, label, key, _pool([[m * (KEY_KM[key] / c["legs"][leg][0]) ** RIEGEL for m in ms] for c, ms in got]), cs, n)
                 r["source"] = r["source"].replace("Finish times", f"{leg.capitalize()} splits")
                 r["note"] = f"Your {KEY_NAME[key]} best against their race {leg} carried to the {KEY_NAME[key]} (Estimated)."
                 res.append(r)
         return res
     if cs and all(c.get("road") for c in cs):
-        pts = [(m, c) for c in cs for m, _s, _b in finishers(c, root)]
-        if len(pts) < MIN_N:
+        got = [(c, [m for m, _s, _b in finishers(c, root)]) for c in cs]
+        n = sum(len(ms) for _c, ms in got)
+        if n < MIN_N:
             return []
         keys = cs[0].get("keys") or ROAD_KEYS
-        return [_road_row(field, label, key, [m * (KEY_KM[key] / c["km"]) ** RIEGEL for m, c in pts], cs) for key in keys]
+        return [_road_row(field, label, key, _pool([[m * (KEY_KM[key] / c["km"]) ** RIEGEL for m in ms] for c, ms in got]), cs, n) for key in keys]
     pts = [(m / effort_km(c), sx, b) for c in cs for m, sx, b in finishers(c, root)]
     if len(pts) < MIN_N:
         return []

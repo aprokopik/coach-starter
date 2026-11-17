@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.148.0 (2026-11-17)
+- Package: `race_rows.py` weights each race the same when a field pools several road or triathlon courses (100 evenly spaced quantiles per race), so one big sample no longer sets the panel; the source line names how many races it pools.
+
 ## 6.147.0 (2026-11-17)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 
