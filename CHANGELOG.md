@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.139.0 (2026-11-17)
+- Engine: six rule changes from the 5 year research search, adopted on the kit maker's word (Nov 17, 2026: "merge this into the coach's architecture"; QUEUE.md P6 to P12). RULES.md section 6: return after illness follows the IOC symptom grading with a 10 to 20 min test session (replaces the above/below-the-neck rule; IR-43); focal bone pain in a run build is RED with imaging and a 6 week to 4 month plan (IR-38, IR-42); a calf or Achilles flare keeps loading within tolerable pain instead of full rest (IR-39, IR-40). Section 4: durability blocks late in every second or third long session, first half of races below threshold, decoupling as the marker, downhill exposures before trail races (TR-42, IR-28, TR-48); VO2max default 4 to 6 x 2 to 3 min with near-equal recovery (TR-37, TR-38). Section 8a: 3 short isometric sessions a week while home BP is Watch or Act (PR-16). Caffeine timing in nutrition_extras.json: last coffee at least 9 h before bed (NU-43). The Feb lift rotation details (P13) and the calf exercises go to the strength thread.
+
 ## 6.138.0 (2026-11-17)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 
