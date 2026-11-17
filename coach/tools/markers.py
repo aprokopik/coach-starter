@@ -552,7 +552,7 @@ CLIMB150_TIERS = CLIMB_TIERS["climb150"]
 # same anchor (a 100K with 3,350 m up in 18 h is about 8:05 per effort km over the whole day, as 15:30/mi flat-equivalent is for pace)
 TRAIL_STANDIN = {"name": "", "effort_km": 133.5, "limit_h": 18.0}
 TRAIL_STEPS = (0.645, 0.742, 0.84, 0.965)  # Fast, Strong, Comfortable and Finisher edges as shares of the pace the time limit needs
-GAP_PER_SPEED = 15.5 / (18 * 60 / 133.5)   # runnable min/mi (flat-equivalent) per min per effort km, from the same anchor
+GAP_PER_SPEED = race_rows.GAP_PER_SPEED   # runnable min/mi (flat-equivalent) per min per effort km, from the same anchor
 
 
 def trail_tiers(race):
@@ -1126,7 +1126,7 @@ def build(today, rows_so_far):
                 m["anchor"] = ANCHOR_GENERAL[key]
             elif isinstance(norm, dict) and norm.get("population") and m.get("anchor"):  # the Anchor line names the scale in use, never another one
                 m["anchor"] = ANCHOR_SRC.sub(lambda _x: f"Levels come from {norm.get('short') or norm['population']}. ", m["anchor"], count=1)
-            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **({"short": RACE_SHORT[sid], "km": RACE_KM.get(sid)} if sid in RACE_SHORT else {}), "first_seen": first_seen(key, sid), **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
+            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **({"short": RACE_SHORT[sid], "km": RACE_KM.get(sid)} if sid in RACE_SHORT else {}), **({"done": bool(UNLOCKED[sid].get("finished"))} if sid in UNLOCKED else {}), "first_seen": first_seen(key, sid), **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
         m["compare"] = scales[0][0]
         if len(scales) > 1:
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)

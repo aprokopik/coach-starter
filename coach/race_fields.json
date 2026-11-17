@@ -3,11 +3,11 @@
  "rows": [
   {"id": "trifull", "km": 226, "label": "Full IRONMAN finishers", "short": "Full", "sport": "triathlon", "match": "112 mi|140\\.6|2\\.4 mi swim|226 ?km|full", "tiles": ["t40k", "bike", "run", "swim"]},
   {"id": "tri703", "km": 113, "label": "IRONMAN 70.3 finishers", "short": "70.3", "sport": "triathlon", "match": "56 mi|70\\.3|1\\.2 mi swim|113 ?km|half", "tiles": ["t40k", "bike", "run", "swim"]},
-  {"id": "run200m", "km": 322, "label": "200+ mile finishers", "short": "200+ mi", "sport": "run", "match": "\\b[2-9]\\d\\d ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
-  {"id": "run100m", "km": 161, "label": "100 mile finishers", "short": "100 mi", "sport": "run", "match": "\\b100 ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
-  {"id": "run100k", "km": 100, "label": "100K trail finishers", "short": "100K", "sport": "run", "match": "\\b(100|110) ?(k|km)\\b", "tiles": ["trailspeed", "climb", "traildur"]},
-  {"id": "run50m", "km": 80, "label": "50 mile finishers", "short": "50 mi", "sport": "run", "match": "\\b50 ?(mi|mile)", "tiles": ["trailspeed", "climb", "traildur"]},
-  {"id": "run50k", "km": 50, "label": "50K trail finishers", "short": "50K", "sport": "run", "match": "\\b50 ?k\\b", "tiles": ["trailspeed", "climb", "traildur"]},
+  {"id": "run200m", "km": 322, "label": "200+ mile finishers", "short": "200+ mi", "sport": "run", "match": "\\b[2-9]\\d\\d ?(mi|mile)", "tiles": ["trailspeed", "trailgap", "climb", "traildur"]},
+  {"id": "run100m", "km": 161, "label": "100 mile finishers", "short": "100 mi", "sport": "run", "match": "\\b100 ?(mi|mile)", "tiles": ["trailspeed", "trailgap", "climb", "traildur"]},
+  {"id": "run100k", "km": 100, "label": "100K trail finishers", "short": "100K", "sport": "run", "match": "\\b(100|110) ?(k|km)\\b", "tiles": ["trailspeed", "trailgap", "climb", "traildur"]},
+  {"id": "run50m", "km": 80, "label": "50 mile finishers", "short": "50 mi", "sport": "run", "match": "\\b50 ?(mi|mile)", "tiles": ["trailspeed", "trailgap", "climb", "traildur"]},
+  {"id": "run50k", "km": 50, "label": "50K trail finishers", "short": "50K", "sport": "run", "match": "\\b50 ?k\\b", "tiles": ["trailspeed", "trailgap", "climb", "traildur"]},
   {"id": "runmar", "km": 42.2, "label": "Marathon finishers", "short": "Marathon", "sport": "run", "match": "26\\.2|(?<!half )marathon", "tiles": ["5k", "run", "durability"]},
   {"id": "bike160", "km": 161, "label": "Century ride finishers", "short": "Century", "sport": "ride", "match": "\\b1\\d\\d mi|(?<!metric )century", "tiles": ["t40k", "bike"]}
  ]

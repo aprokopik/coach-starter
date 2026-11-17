@@ -66,7 +66,9 @@ def unlocked(races):
     for r in sorted((x for x in races if x.get("kind") == "race" and x.get("status") in UNLOCKS), key=lambda x: (x.get("status") == "done", str(x.get("date")))):
         f = field_of(r)
         if f and f["id"] not in out:
-            out[f["id"]] = {"field": f, "race": r.get("name"), "date": r.get("date"), "done": r.get("status") == "done"}
+            out[f["id"]] = {"field": f, "race": r.get("name"), "date": r.get("date"), "done": r.get("status") == "done", "finished": r.get("status") == "done"}
+        elif f and r.get("status") == "done":  # finished: any race of the field is done, even with the next one booked (the athlete, Nov 17, 2026)
+            out[f["id"]]["finished"] = True
     return out
 
 

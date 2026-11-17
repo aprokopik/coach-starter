@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.138.0 (2026-11-17)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.137.0 (2026-11-17)
 - Engine: the research scan reaches what it used to miss (the kit maker, Nov 17, 2026: "Yes to the schedule for research"). The monthly scan missed four concurrent training papers because a paper the kit maker shared never entered the library and the scan looked back only about two months. Now (`coach/research/PROTOCOL.md`, agreed by the kit maker): any thread where the kit maker shares a paper adds a line under "Shared by the kit maker, to grade" in `coach/research/QUEUE.md`, and the Sunday race calendar watch grades each one into `LIBRARY.md` that week, with verdicts against the rule-to-evidence map (`TASK-PROMPT-weekly.md` step 7b); each monthly scan adds a twelve month lookback (13 months, so the 13 domain rotation leaves no gap) on the next domain in turn; and every scan checks Sports Medicine, MSSE, J Appl Physiol, BJSM, IJSPP and Eur J Appl Physiol by name. Guard: `coach/tests/test_research_reach.py`.
 

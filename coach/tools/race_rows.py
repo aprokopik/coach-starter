@@ -41,6 +41,9 @@ COURSES = [
 # is the 2026 race watch's figure): they stay in, as finishers.
 SIMILAR = (0.6, 1.6)  # climbing per km of a pooled course, as a share of the person's own course
 MIN_N = 40            # smaller groups are not filed
+# Runnable pace (min/mi grade adjusted, under 10% ground) per minute per effort km: a 100K with 3,350 m up in 18 h is about 8:05 per
+# effort km over the whole day and about 15:30/mi on its runnable ground (coach anchor, Nov 8, 2026). One home: markers.py reads it.
+GAP_PER_SPEED = 15.5 / (18 * 60 / 133.5)
 FRONT = (1, 5, 10, 20, 100 / 3, 50, 200 / 3, 80, 90, 95)  # percent of finishers ahead at each breakpoint
 CLASS = re.compile(r"^(M|W)(U23|\d\d)$")
 
@@ -111,15 +114,17 @@ def _quantile(xs, q):
     return xs[i] + (xs[min(i + 1, len(xs) - 1)] - xs[i]) * (k - i)
 
 
-def _row(field, label, paces, courses, sex=None, band=None):
+def _row(field, label, paces, courses, sex=None, band=None, key="trailspeed"):
     who = "all finishers" if not sex else f"{'men' if sex == 'male' else 'women'}" + (f" {band.replace('-', ' to ')}" if band else "")
     names = sorted({c["race"] for c in courses})
     years = sorted({c["year"] for c in courses})
-    r = {"kind": "norm", "key": "trailspeed", "unit": "min/effort km", "better": -1, "tail": "log", "compare": field,
+    gap = key == "trailgap"
+    paces = [p * GAP_PER_SPEED for p in paces] if gap else paces
+    r = {"kind": "norm", "key": key, "unit": "min/mi" if gap else "min/effort km", "better": -1, "tail": "log", "compare": field,
          "compare_label": f"{label} on similar courses", "derived": "race_rows", "n": len(paces),
          "population": f"{who}, {', '.join(names)} ({years[0]}{'' if len(years) == 1 else ' to ' + str(years[-1])})",
          "short": f"{who}, {label.split(' ')[0]} courses like yours",
-         "source": f"Finisher times ({len(paces)}) as minutes per ITRA effort km",
+         "source": f"Finisher times ({len(paces)}) as minutes per ITRA effort km" + (", carried to runnable pace by the coach's 100K anchor (Estimated)" if gap else ""),
          "url": "https://statistik.d-u-v.org/", "date": str(years[-1]),
          "breakpoints": [[round(_quantile(paces, p / 100), 3), round(p, 2)] for p in FRONT],
          "note": "Your easy pace against their whole race pace, stops and fade included."}
@@ -135,15 +140,17 @@ def rows_for(field, label, course=None, root=ROOT):
     pts = [(m / effort_km(c), sx, b) for c in cs for m, sx, b in finishers(c, root)]
     if len(pts) < MIN_N:
         return []
-    out = [_row(field, label, [p for p, _s, _b in pts], cs)]
-    for sx in ("male", "female"):
-        mine = [p for p, s, _b in pts if s == sx]
-        if len(mine) >= MIN_N:
-            out.append(_row(field, label, mine, cs, sx))
-        for band in sorted({b for _p, s, b in pts if s == sx and b}):
-            grp = [p for p, s, b in pts if s == sx and b == band]
-            if len(grp) >= MIN_N:
-                out.append(_row(field, label, grp, cs, sx, band))
+    out = []
+    for key in ("trailspeed", "trailgap"):  # whole-course speed, and runnable pace from the same finishers
+        out.append(_row(field, label, [p for p, _s, _b in pts], cs, key=key))
+        for sx in ("male", "female"):
+            mine = [p for p, s, _b in pts if s == sx]
+            if len(mine) >= MIN_N:
+                out.append(_row(field, label, mine, cs, sx, key=key))
+            for band in sorted({b for _p, s, b in pts if s == sx and b}):
+                grp = [p for p, s, b in pts if s == sx and b == band]
+                if len(grp) >= MIN_N:
+                    out.append(_row(field, label, grp, cs, sx, band, key=key))
     return out
 
 

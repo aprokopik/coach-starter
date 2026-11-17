@@ -1852,7 +1852,9 @@
   const stageNo = (s) => Number(s.stage) || 2;
   const stageName = (n) => ['', 'Everyone', 'Trained', 'Elite'][n] || `Stage ${n}`; // the athlete's stage names on every Fitness tile
   const coin = (n) => { const c = el('i', 'ft-coin'); c.dataset.s = String(n || 1); c.setAttribute('aria-hidden', 'true'); return c; }; // the stage coin colours: silver, gold, diamond (the athlete, 6.124.0)
-  const isNewScale = (s) => !!(s && s.first_seen && TN - dayN(s.first_seen) <= 14); // New for 14 days after it first shows (6.124.0)
+  const seenS = () => { try { return new Set(JSON.parse(localStorage.getItem('cx-scaleseen')) || []); } catch (e) { return new Set(); } };
+  const markScaleSeen = (m, id) => { const k = scaleTile(m) + ':' + id, z = seenS(); if (!z.has(k)) try { z.add(k); localStorage.setItem('cx-scaleseen', JSON.stringify([...z].slice(-200))); } catch (e) { /* this device */ } };
+  const isNewScale = (s, m) => !!(s && s.first_seen && TN - dayN(s.first_seen) <= 14) && !(m && seenS().has(scaleTile(m) + ':' + s.id)); // 14 days, until opened once
   const scaleLevel = (m, s, v) => { if (v === null || v === undefined) return ''; const st = standingOf({ ...m, tiers: s.tiers, splits: s.splits, basis: s.basis }, v); return st.band ? st.band.label : ''; };
   // does a value earn the stage above this scale: Top 20% or better, or the best category of a scale with no percentiles
   function earnsNext(m, s, v) {
@@ -1901,7 +1903,7 @@
     }
   }
   function pickScale(m, id) {
-    const tile = scaleTile(m); const at = new Date().toISOString(); const loc = localPicks(); loc[tile] = { id, at };
+    const tile = scaleTile(m); const at = new Date().toISOString(); const loc = localPicks(); loc[tile] = { id, at }; markScaleSeen(m, id);
     try { localStorage.setItem('cx-scales2', JSON.stringify(loc)); localStorage.removeItem('cx-scales'); } catch (e) { /* per-viewer convenience only */ }
     if (window.CX.saveScale) window.CX.saveScale(tile, id, at);
     state.scaleOpen = $('f-race') ? null : m.key; applyScales(); renderFitness(); ftFocus($('f-race') ? `#f-race input[value="${id}"]` : `#f-scales input[value="${id}"]`);
@@ -1948,7 +1950,7 @@
       const opt = el(ro ? 'div' : 'label', 'ft-scale-opt' + (locked ? ' is-locked' : '') + (ro ? ' is-static' : ''));
       const t = el('span'); const lv = scaleLevel(m, s, v); t.append(el('b', null, s.label), lv ? ` · ${lv}` : '');
       const pills = el('span', 'ft-scale-pills');
-      if (ro && inUse) pills.append(el('span', 'ft-here ft-inuse', 'In use')); if (isAuto) pills.append(el('span', 'ft-here', 'Recommended by your fitness')); if (isNewScale(s)) pills.append(el('span', 'ft-here', 'New')); // the athlete, Nov 15, 2026: "recommended", and no "Your pick" pill
+      if (ro && inUse) pills.append(el('span', 'ft-here ft-inuse', 'In use')); if (isAuto) pills.append(el('span', 'ft-here', 'Recommended by your fitness')); if (isNewScale(s, m)) pills.append(el('span', 'ft-here', 'New')); // the athlete, Nov 15, 2026: "recommended", and no "Your pick" pill
       if (pills.childNodes.length) t.append(pills);
       if (isAuto && au.graceEnd) t.append(el('span', 'ft-stage-none', ` Held to ${fDay(P(au.graceEnd))}, then back a stage unless a reading earns it again.`));
       opt.append(radio(isAuto ? 'auto' : s.id, inUse, locked), t); box.append(opt);
@@ -2026,12 +2028,12 @@
     const wrap = el('div', 'ft-cmp'); wrap.id = 'f-race';
     const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
     for (const s of scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))]).filter((x) => stageNo(x) <= Math.max(2, au.unlocked))) { // diamond only once unlocked (the athlete)
-      const lock = !s._wait && stageNo(s) > au.unlocked, off = s._wait || lock, isAuto = !!(au.scale && s.id === au.scale.id), on = !s._wait && (m.compare || 'general') === s.id;
+      const lock = !s._wait && stageNo(s) > au.unlocked, off = s._wait || lock, isAuto = !!(au.scale && s.id === au.scale.id), on = !s._wait && (m.compare || 'general') === s.id; if (on) markScaleSeen(m, s.id);
       const sub = s._wait ? 'No data yet' : lock ? 'Locked' : scaleLevel(m, s, v);
-      const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && isNewScale(s) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;
-      const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + m.key; inp.value = isAuto ? 'auto' : s.id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${scaleShort(s)}, stage ${stageNo(s)}, ${sub}`);
+      const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && !on && isNewScale(s, m) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;
+      const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + m.key; inp.value = isAuto ? 'auto' : s.id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${scaleShort(s)}, stage ${stageNo(s)}${s.done === false ? ', booked, not finished yet' : ''}, ${sub}`);
       if (!off) inp.addEventListener('change', () => { if (inp.checked) pickScale(m, inp.value); });
-      const c = coin(stageNo(s));
+      const c = coin(stageNo(s)); if (s.done === false) c.classList.add('is-booked'); // booked, not finished
       l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', scaleShort(s))); box.append(l); // the chip names the scale only, no level (the athlete)
     }
     wrap.append(box); const sp = $('f-sport'); if (sp) sp.after(wrap); else $('c-fit').before(wrap); // directly under the distance switch (the athlete)
