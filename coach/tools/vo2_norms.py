@@ -172,6 +172,22 @@ def athlete_points(mode, g):
     return [(p, round(mu + _ZP[p] * sd, 1)) for p in PCTS]
 
 
+# Stage 3, competitive cyclists (the athlete picked "Swim, bike and VO2"): Jurov 2023, Frontiers in
+# Physiology 14:987006 (CC BY), lab tested on a cycle ergometer: 496 men 63.43 +/- 5.49 (mean age 17), 84 women 54.82 +/- 7.02
+# (mean age 20). Young racers, not split by age; a normal fit (Estimated). Cycle tests only.
+COMPETITIVE = {"male": (63.43, 5.49, "competitive male cyclists (mean age 17)"), "female": (54.82, 7.02, "competitive female cyclists (mean age 20)")}
+COMP_SOURCE = "Jurov 2023 (Frontiers in Physiology, lab tested competitive cyclists)"
+COMP_URL = "https://doi.org/10.3389/fphys.2023.987006"
+
+
+def competitive_points(mode, g):
+    """[(percentile, value)] for competitive cyclists of the athlete's sex (cycle tests only), or []."""
+    if not g or mode != "cycle" or g.get("sex") not in COMPETITIVE:
+        return []
+    mu, sd, _w = COMPETITIVE[g["sex"]]
+    return [(p, round(mu + _ZP[p] * sd, 1)) for p in PCTS]
+
+
 def fitness_tiers(pts, mode, label, src="FRIEND 2022"):
     """The Fitness ladder in the athlete's population bands, run on treadmill norms and bike on cycle norms."""
     if not pts:

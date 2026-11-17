@@ -1918,9 +1918,9 @@
   // the athlete, Nov 15, 2026 ("I thought we had badges now. This is too big"): the stage is the Map's small overlapped 1, 2, 3 badge,
   // inside the Level chip, the stage in use filled; its name is in the badge's label and title, not on the tile
   function stageChip(m) { const cur = scalesOf(m).find((s) => s.id === m.compare); const n = cur ? Number(cur.stage) || 1 : 1; if (n < 2) return null;
-    const have = new Set(scalesOf(m).map((x) => Number(x.stage) || 1)); const who = String(cur.short || cur.label || cur.stage_label || 'a harder group').replace(/^IRONMAN /, '');
+    const who = String(cur.short || cur.label || cur.stage_label || 'a harder group').replace(/^IRONMAN /, '');
     const b = mark(el('span', 'mx-stage ft-stage'), 'coach', null, 'kind=marker&key=' + m.key, 'stage'); b.setAttribute('role', 'img'); b.setAttribute('aria-label', `Stage ${n} of 3: compared with ${who}`); b.title = `Stage ${n} of 3, compared with ${who}. 1 everyone, 2 your race or sport, 3 elite.`;
-    for (const k of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (k === n ? ' is-cur' : have.has(k) ? '' : ' is-none'), String(k)); d.setAttribute('aria-hidden', 'true'); b.append(d); }
+    const d = el('i', 'mx-stage-d is-cur s' + n, String(n)); d.setAttribute('aria-hidden', 'true'); b.append(d); // only the stage you are on (the athlete)
     return b; }
   // the badge and the Level chip share one line (the athlete, Nov 15, 2026: "If you are at stages can we abv. To lvl and get all on one
   // line?"); "Lvl" still did not fit every level name at 360 to 390 px, so the athlete picked dropping the word beside the discs (card, Nov 15).
@@ -2025,7 +2025,7 @@
     const sc = scalesOf(m); if (sc.length < 2) return; const v = (tileSeries(m) || []).slice(-1).map((r) => r.value)[0];
     const wrap = el('div', 'ft-cmp'); wrap.id = 'f-race';
     const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
-    for (const s of scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))])) {
+    for (const s of scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))]).filter((x) => stageNo(x) <= Math.max(2, au.unlocked))) { // diamond only once unlocked (the athlete)
       const lock = !s._wait && stageNo(s) > au.unlocked, off = s._wait || lock, isAuto = !!(au.scale && s.id === au.scale.id), on = !s._wait && (m.compare || 'general') === s.id;
       const sub = s._wait ? 'No data yet' : lock ? 'Locked' : scaleLevel(m, s, v);
       const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && isNewScale(s) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;

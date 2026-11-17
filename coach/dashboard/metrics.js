@@ -191,8 +191,8 @@
       if (f('level')) {
         const row = el('span', 'ft-lvrow'), cur = Number(f('stage')) || 1;
         const st = mark(el('span', 'mx-stage ft-stage'), 'coach', F('stage'), w); st.setAttribute('role', 'img'); st.setAttribute('aria-label', `Stage ${cur} of 3: compared with ${cur === 2 ? 'people who lift' : 'everyone'}`);
-        for (const n of [1, 2, 3]) { const d = el('i', 'mx-stage-d' + (n === cur ? ' is-cur' : n > cur ? ' is-none' : ''), String(n)); d.setAttribute('aria-hidden', 'true'); st.append(d); }
-        const c = el('span', 'ft-chip'); c.append(el('span', 'ck-vh', 'Level'), ' ', mark(el('span', null, f('level')), 'coach', F('level'), w)); row.append(st, c); b.append(row);
+        { const d = el('i', 'mx-stage-d is-cur s' + cur, String(cur)); d.setAttribute('aria-hidden', 'true'); st.append(d); } // only the stage you are on (the athlete)
+        const c = el('span', 'ft-chip'); c.append(el('span', cur < 2 ? 'ft-chip-k' : 'ck-vh', 'Level'), ' ', mark(el('span', null, f('level')), 'coach', F('level'), w)); if (cur >= 2) row.append(st); row.append(c); b.append(row);
         const thru = Number(f('pct'));
         if (Number.isFinite(thru)) {
           const n = 3, x = Math.min(Math.max(thru, 0) * n, n - 1e-9), k = Math.floor(x), tt = `step ${k + 1} of ${n}, ${Math.round((x - k) * 100)}% through this step`;
@@ -284,7 +284,7 @@
   function liftCoins(m, sl) {
     const { mark } = CX.ck; const k = m.key + '.' + sl, stage = Number(m[sl + '_stage']) || 1, ev = stage < 2 || liftPick(k) === 'general';
     const wrap = el('div', 'ft-cmp mx-liftcmp'); wrap.id = 'f-race'; const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
-    const opts = [['general', 1, 'Everyone', ev, false, stage < 2 ? m[sl + '_level'] : m[sl + '_level1']], ['trained', 2, 'Trained', !ev, stage < 2, stage < 2 ? 'Locked until Top 20% of everyone' : m[sl + '_level']], ['elite', 3, 'Elite', false, true, 'No data yet']];
+    const opts = [['general', 1, 'Everyone', ev, false, stage < 2 ? m[sl + '_level'] : m[sl + '_level1']], ['trained', 2, 'Trained', !ev, stage < 2, stage < 2 ? 'Locked until Top 20% of everyone' : m[sl + '_level']]]; // no Elite coin until stage 3 (the athlete)
     for (const [id, n, name, on, off, sub] of opts) {
       const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (id === 'elite' ? ' is-wait' : '')); l.title = `${name} · ${sub || ''}`;
       const inp = el('input', 'ck-vh-input'); inp.type = 'radio'; inp.name = 'f-race-' + k; inp.value = id; inp.checked = on; inp.disabled = off; inp.setAttribute('aria-label', `${name}, stage ${n}, ${sub || ''}`);

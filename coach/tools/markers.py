@@ -14,6 +14,7 @@ import re
 from datetime import date, datetime, timedelta
 
 import ag703_rows
+import elite
 import fit_ladder
 import ride_dist
 import trail_effort
@@ -1012,7 +1013,7 @@ def build(today, rows_so_far):
     if CMP.get("ftp"):
         WKG_SCALES.sort(key=lambda x: x[0] != CMP["ftp"])
 
-    def dist_scales(tile, key, metres=None, general_tiers=None):
+    def dist_scales(tile, key, metres=None, general_tiers=None, elite_rec=None):
         """Every scale on file for one distance marker as [(id, label, norm)], the tile's chosen one first: the baseline (a
         general population model for bike times; with none on file the tagged rows stand in and say so) and each comparison."""
         opts = fit_ladder.comparisons(NR, key)
@@ -1030,6 +1031,19 @@ def build(today, rows_so_far):
             nd = fit_ladder.pick(NR, key, NG, cid)
             if nd is not None:
                 sc.append((cid, lab, dict(nd, _note=f"Compared with {lab}. ")))
+        # stage 3 (alpha race_toggles; the athlete picked "Swim, bike and VO2"): share of the masters record for the
+        # athlete's age group and sex, like age grade on the run tiles
+        if RT and elite_rec and sc:
+            sx, ag = _sex_age(T)
+            kind, dist = elite_rec
+            rec = elite.swim_record(sx, ag, dist) if kind == "swim" else elite.bike_record(sx, ag, dist)
+            if rec:
+                src, url = elite.source(kind)
+                filed = kind == "swim" and dist in (100, 500, 1000, 1650) or kind == "bike" and dist in (20, 40)
+                sc.append(("elite_rec", "Masters record holders", {"_tiers": elite.tiers(rec, htime), "_cat_text":
+                           f"Compared with the masters national record for {elite.band(ag).replace('-', ' to ')} ({htime(rec / 60)}): {src} ({url}). "
+                           "The bands are a share of record speed, like age grade on the run tiles: categories, not percentiles."
+                           + ("" if filed else " This distance has no record of its own, so it is read off the nearest filed ones (Estimated).")}))
         want = CMP.get(tile)
         return sorted(sc, key=lambda x: x[0] != want) if want else sc
 
@@ -1191,7 +1205,7 @@ def build(today, rows_so_far):
                 ct = norm["_tiers"]
                 nb = next(((l, hi_) for l, lo_, hi_, _n in reversed(ct) if hi_ is not None and hi_ <= v2), None)
                 annot(key, "", (f"{htime(v2 - nb[1])} to {nb[0]} ({htime(nb[1])})" if nb else "in the top category"), ct, tier_of(v2, ct),
-                      norm["_note"] + f"Cooper's 12-minute swim test categories for {NG['label']} ({COOPER_URL}), carried to this distance at the same pace with a small allowance for distance. "
+                      norm["_cat_text"] if norm.get("_cat_text") else norm["_note"] + f"Cooper's 12-minute swim test categories for {NG['label']} ({COOPER_URL}), carried to this distance at the same pace with a small allowance for distance. "
                       "Fitness categories for adults who can swim continuously, not percentiles. Estimated.", scale="research")
                 m_ = next(x for x in out if x.get("kind") == "marker" and x["key"] == key)
                 m_.pop("splits", None)
@@ -1329,7 +1343,7 @@ def build(today, rows_so_far):
                 if not eff:
                     continue
                 # the norms are filed in metres: for a yard pool, the same pace over the yard distance
-                dist_marker("pair", 4, sk, f"Best {sl} {pu}", f"{sl} {pu}", seg, eff, dist_scales("swim", sk, general_tiers=cooper_swim_tiers(NG, metres, pu)), "swim",
+                dist_marker("pair", 4, sk, f"Best {sl} {pu}", f"{sl} {pu}", seg, eff, dist_scales("swim", sk, general_tiers=cooper_swim_tiers(NG, metres, pu), elite_rec=("swim", metres if pu == "yd" else metres * YD_PER_M)), "swim",
                             f"Fastest {sl} {pu} inside any pool swim, from Garmin (lengths counted by the watch).",
                             conv=lambda nd, pu=pu: nd if (nd.get("pool_unit") or "m") == pu else dict(nd, breakpoints=[[round(v / YD_PER_M if pu == "yd" else v * YD_PER_M, 3), pc] for v, pc in nd["breakpoints"]]))
                 sp.append(sk)
@@ -1540,13 +1554,13 @@ def build(today, rows_so_far):
     bhow = lambda k, l: (f"Fastest {l} inside any outdoor ride" + (", Garmin's own split (GPS)." if bsrc[k] == {"garmin"} else ", worked out from the ride's track." if bsrc[k] == {"track"}
                          else ", estimated from the ride's laps until its track is pulled (reads up to about 2% slow).") + " Hills, wind, stops and group riding move it, so compare like with like.")
     if beff["t40k"]:
-        dist_marker("fitness", 6, "t40k", "Bike time, 40K", "40K", 2, beff["t40k"], dist_scales("t40k", "t40k", 40000), "ride", bhow("t40k", "40K"))
+        dist_marker("fitness", 6, "t40k", "Bike time, 40K", "40K", 2, beff["t40k"], dist_scales("t40k", "t40k", 40000, elite_rec=("bike", 40)), "ride", bhow("t40k", "40K"))
         _bt = next(x for x in out if x.get("kind") == "marker" and x["key"] == "t40k")
         _bt.update(tile_label="Bike time", sub="40K · " + str(_bt.get("sub") or ""))  # named for what it is; the distance leads the line under the figure
         bp = []
         for bk, bl, seg in (("t20k", "20K", 1), ("t90k", "90K", 3), ("t100k", "100K", 4), ("t100mi", "100 mi", 5)):
             if beff[bk]:
-                dist_marker("pair", 6, bk, f"Bike time, {bl}", bl, seg, beff[bk], dist_scales("t40k", bk, next(m for k, _l, m, _a, _b in ride_dist.DISTANCES if k == bk)), "ride", bhow(bk, bl))
+                dist_marker("pair", 6, bk, f"Bike time, {bl}", bl, seg, beff[bk], dist_scales("t40k", bk, next(m for k, _l, m, _a, _b in ride_dist.DISTANCES if k == bk), elite_rec=("bike", next(m for k, _l, m, _a, _b in ride_dist.DISTANCES if k == bk) / 1000)), "ride", bhow(bk, bl))
                 bp.append(bk)
         if bp:
             next(x for x in out if x.get("kind") == "marker" and x["key"] == "t40k").update(pair=",".join(bp), seg_legend="Distance")
@@ -1986,6 +2000,12 @@ def build(today, rows_so_far):
                 vsc.append(("athletes", "Endurance athletes (lab tested)", vo2_scale(vo2_norms.fitness_tiers(apts, mode, who, vo2_norms.ATH_SOURCE), apts, who,
                             f"Compared with {who}: {vo2_norms.ATH_SOURCE} ({vo2_norms.ATH_URL}), mean {mu} and SD {sd}, all ages (mean about 36), "
                             "a normal fit (Estimated). They chose to train and to be tested, so this is a trained group, not the general population. Garmin's estimate can sit several points off a lab value.")))
+            cpts = vo2_norms.competitive_points(mode, G)
+            if RT and cpts and section in ("fitness", "pair"):
+                mu3, sd3, who3 = vo2_norms.COMPETITIVE[G["sex"]]
+                vsc.append(("elite_vo2", "Competitive cyclists (lab tested)", vo2_scale(vo2_norms.fitness_tiers(cpts, mode, who3, vo2_norms.COMP_SOURCE), cpts, who3,
+                            f"Compared with {who3}: {vo2_norms.COMP_SOURCE} ({vo2_norms.COMP_URL}), mean {mu3} and SD {sd3}, a normal fit (Estimated). "
+                            "Young racers tested to exhaustion on a cycle ergometer, the nearest open elite table; Garmin's estimate can sit several points off a lab value.")))
             if CMP.get("aerobic"):
                 vsc.sort(key=lambda x: x[0] != CMP["aerobic"])
             with_scales(key, vsc, lambda fn: fn())

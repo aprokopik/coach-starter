@@ -223,7 +223,7 @@ def row(ex, sess, g, bw, age, name=None):
     stage = 2 if unlocked else 1
     p = percentile(x, std, sex, bw, age, stage)
     # Compare with: coins from the longevity goal on; once Trained is the stage in use, the Everyone coin reads this level
-    cmp = {"cmp": 1} if best1 >= LONGEVITY - 1e-9 else {}
+    cmp = {"cmp": 1} if unlocked else {}  # coins only once stage 2 is unlocked, like every Fitness card (the athlete, Nov 16, 2026)
     if unlocked:
         p1 = percentile(x, std, sex, bw, age, 1)
         if p1 is not None:
