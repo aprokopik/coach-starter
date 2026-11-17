@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.147.0 (2026-11-17)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.146.1 (2026-11-17)
 - Dashboard fix: the 1, 5, 20 and 60 min power tiles show whole watts in Now, Next and steps (Next read "165.3 W for Top half" on 5 min power since 6.135.0).
 

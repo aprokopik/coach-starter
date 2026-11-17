@@ -410,7 +410,7 @@ def race_unlocked(today=None, root="."):
         rows = json.load(open(os.path.join(root, "coach/races.json")))
     except (OSError, ValueError, ImportError):
         return {}
-    return compare.unlocked(rows if isinstance(rows, list) else rows.get("rows", []))
+    return compare.unlocked(rows if isinstance(rows, list) else rows.get("rows", []), today)
 
 
 def _race_wait(out, unlocked, group=None):
@@ -431,7 +431,7 @@ def _race_wait(out, unlocked, group=None):
             have = {s["id"] for s in json.loads(m["scales"])} if m.get("scales") else {m.get("compare") or "general"}
         except ValueError:
             have = set()
-        wait = [{"id": k, "label": u["field"]["label"], "short": u["field"]["short"], "km": u["field"].get("km"), "race": u["race"]}
+        wait = [{"id": k, "label": u["field"]["label"], "short": u["field"]["short"], "km": u["field"].get("km"), "race": u["race"], **{d: u[d] for d in ("next", "last") if u.get(d)}}
                 for k, u in unlocked.items() if tile in u["field"]["tiles"] and m["key"] in (u["field"].get("keys") or [m["key"]]) and k not in have]
         if wait:
             m["race_wait"] = json.dumps(wait, ensure_ascii=False)
@@ -1126,7 +1126,7 @@ def build(today, rows_so_far):
                 m["anchor"] = ANCHOR_GENERAL[key]
             elif isinstance(norm, dict) and norm.get("population") and m.get("anchor"):  # the Anchor line names the scale in use, never another one
                 m["anchor"] = ANCHOR_SRC.sub(lambda _x: f"Levels come from {norm.get('short') or norm['population']}. ", m["anchor"], count=1)
-            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **({"short": RACE_SHORT[sid], "km": RACE_KM.get(sid)} if sid in RACE_SHORT else {}), **({"done": bool(UNLOCKED[sid].get("finished"))} if sid in UNLOCKED else {}), "first_seen": first_seen(key, sid), **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
+            snaps.append({"id": sid, "label": lab, "stage": stage_of(sid)[0], "stage_label": stage_of(sid)[1], **({"short": RACE_SHORT[sid], "km": RACE_KM.get(sid)} if sid in RACE_SHORT else {}), **({"done": bool(UNLOCKED[sid].get("finished"))} if sid in UNLOCKED else {}), **{d: UNLOCKED[sid][d] for d in ("next", "last") if UNLOCKED.get(sid, {}).get(d)}, "first_seen": first_seen(key, sid), **{f: m.get(f, "") for f in ("tiers", "splits", "rank", "rank_src", "gap", "basis", "anchor", "population", "pop_norm")}})
         m["compare"] = scales[0][0]
         if len(scales) > 1:
             m["scales"] = json.dumps(list(reversed(snaps)), ensure_ascii=False)

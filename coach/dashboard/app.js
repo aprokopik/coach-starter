@@ -28,7 +28,7 @@
   const COL = () => ({ bike: tokv('bike'), run: tokv('run'), swim: tokv('swim'), strength: tokv('strength'), hike: tokv('surface'), other: tokv('other'), adv: tokv('series-7'), race: tokv('run'), walk: tokv('fg-3'), test: tokv('fg-3'), rest: tokv('line') });
   const NAME = { bike: 'Bike', run: 'Run', swim: 'Swim', strength: 'Strength', hike: 'Hike/walk', walk: 'Walk', other: 'Other', race: 'Race', test: 'Check', rest: 'Rest' };
   const PAGES = ['today', 'checkins', 'week', 'lifts', 'trends', 'goals', 'races'];
-  const state = { zoom: {}, page: 'today', bound: 'nominal', week: monday(TODAY), mode: 'hours', range: 28, race: null, open: new Set(), openDays: new Set(), openBlock: null, linked: false, vSport: 'all', vMeasure: 'time', zSport: 'all', span: (() => { try { return localStorage.getItem('cx-span') || '3m'; } catch (e) { return '3m'; } })(), fit: null, fitSport: {}, openTest: null };
+  const state = { zoom: {}, page: 'today', bound: 'nominal', week: monday(TODAY), mode: 'hours', range: 28, race: null, open: new Set(), openDays: new Set(), openBlock: null, linked: false, vSport: 'all', vMeasure: 'time', zSport: 'all', span: (() => { try { return localStorage.getItem('cx-span') || '3m'; } catch (e) { return '3m'; } })(), fit: null, fitSport: {}, coinsAll: {}, openTest: null };
   window.CX.state = state;
 
   const ds = (id) => dash.data(id);
@@ -1871,7 +1871,7 @@
   // the automatic stage from history: { cur, unlocked, promoted (date), lastOk (last date the stage was earned), graceEnd, scale }
   function autoStage(m) {
     const sc = scaleSort(scalesOf(m)); if (sc.length < 2) return null; const rows = tileSeries(m); if (!rows) return null;
-    const stages = [...new Set(sc.map(stageNo))].sort((a, b) => a - b); const scaleAt = (st) => sc.find((s) => stageNo(s) === st);
+    const stages = [...new Set(sc.map(stageNo))].sort((a, b) => a - b); const scaleAt = (st) => sc.find((s) => stageNo(s) === st && !raceRetired(s)) || sc.find((s) => stageNo(s) === st); // a retired race is never the automatic pick
     let i = 0, top = 0, promoted = null, lastOk = null;
     const step = (date, v) => {
       while (i + 1 < stages.length && earnsNext(m, scaleAt(stages[i]), v)) { i += 1; top = Math.max(top, i); promoted = date; lastOk = date; }
@@ -2018,6 +2018,22 @@
   // until stage 1 is complete (the athlete: "I dont want these to show up until someone has completed stage 1 ... avoid multiple rows")
   const raceToggles = () => kind('alpha').some((b) => b.id === 'race_toggles');
   const scaleShort = (s) => (s.id === 'general' ? 'Everyone' : s.short || String(s.label).replace(/ \(.*\)$/, '').replace(/ finishers$/, '').replace(/^IRONMAN /, ''));
+  // Race coins (the athlete, Nov 17, 2026: "If I've signed up for 10 races over a year, I don't want to see 10 badges" and, on one scale
+  // per race type, "This would allow more longevity to stay as a badge"). A coin is a race type (compare.unlocked next / last), so
+  // it never retires for good: once its races are behind it by more than RACE_AFTER days it rests. The row shows at most RACE_CAP
+  // race coins, the one in use first, then races ahead soonest first, then the most recently raced; the rest fold into +N, which
+  // opens them in place. Everyone and the stage scales always show. Booking that race type again wakes its coin. A resting race is
+  // never the automatic pick. Your path lists every scale and the Season race tree keeps each result.
+  const RACE_CAP = 3, RACE_AFTER = 30;
+  const isRaceCoin = (s) => !!(s._wait || s.next || s.last || s.done !== undefined);
+  const raceLive = (s) => (s.next ? dayN(s.next) >= TN : false) || (s.last ? TN - dayN(s.last) <= RACE_AFTER : false) || (!s.next && !s.last && s.done !== true);
+  const raceRetired = (s) => isRaceCoin(s) && !raceLive(s);
+  function raceCoins(list, inUse, open) {
+    const when = (s) => (raceLive(s) ? 0 : 1e6) + Math.min(s.next && dayN(s.next) >= TN ? dayN(s.next) - TN : 1e5, s.last ? TN - dayN(s.last) : 1e5);
+    const races = list.filter(isRaceCoin).sort((a, b) => (a.id === inUse ? -1 : b.id === inUse ? 1 : when(a) - when(b)));
+    const keep = new Set((open ? races : races.slice(0, RACE_CAP)).map((s) => s.id));
+    return { list: list.filter((s) => !isRaceCoin(s) || keep.has(s.id)), more: races.length - keep.size };
+  }
   function racePick(m) {
     const o = $('f-race'); if (o) o.remove();
     if (!raceToggles()) return;
@@ -2026,7 +2042,9 @@
     const sc = scalesOf(m); if (sc.length < 2) return; const v = (tileSeries(m) || []).slice(-1).map((r) => r.value)[0];
     const wrap = el('div', 'ft-cmp'); wrap.id = 'f-race';
     const box = el('fieldset', 'ft-coins'); box.append(el('legend', 'ck-vh', 'Compare with'));
-    for (const s of scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))]).filter((x) => stageNo(x) <= Math.max(2, au.unlocked))) { // diamond only once unlocked (the athlete)
+    const all = scaleSort([...sc, ...wait.map((w) => ({ ...w, stage: 2, stage_label: 'Your race', _wait: true }))]).filter((x) => stageNo(x) <= Math.max(2, au.unlocked)); // diamond only once unlocked (the athlete)
+    const shown = raceCoins(all, m.compare || 'general', !!state.coinsAll[m.key]);
+    for (const s of shown.list) {
       const lock = !s._wait && stageNo(s) > au.unlocked, off = s._wait || lock, isAuto = !!(au.scale && s.id === au.scale.id), on = !s._wait && (m.compare || 'general') === s.id; if (on) markScaleSeen(m, s.id);
       const sub = s._wait ? 'No data yet' : lock ? 'Locked' : scaleLevel(m, s, v);
       const l = el('label', 'ft-coinopt' + (on ? ' is-on' : '') + (s._wait ? ' is-wait' : '') + (!off && !on && isNewScale(s, m) ? ' is-new' : '')); l.title = `${scaleShort(s)} · ${sub}`;
@@ -2035,6 +2053,9 @@
       const c = coin(stageNo(s)); if (s.done === false) c.classList.add('is-booked'); // booked, not finished
       l.append(inp, c); if (on) l.append(el('span', 'ft-chiptext', scaleShort(s))); box.append(l); // the chip names the scale only, no level (the athlete)
     }
+    if (shown.more) { // the coins over the cap fold into one +N button; it opens them in place (Your path keeps every scale)
+      const b = el('button', 'ft-coinopt ft-coinmore', `+${shown.more}`); b.type = 'button'; b.setAttribute('aria-label', `Show ${shown.more} more race ${shown.more === 1 ? 'comparison' : 'comparisons'}`);
+      b.addEventListener('click', () => { state.coinsAll[m.key] = true; renderFitness(); ftFocus('#f-race input:not(:disabled)'); }); box.append(b); }
     wrap.append(box); const sp = $('f-sport'); if (sp) sp.after(wrap); else $('c-fit').before(wrap); // directly under the distance switch (the athlete)
   }
   function sportPick(m) {

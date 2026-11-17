@@ -59,9 +59,12 @@ def field_of(race):
 UNLOCKS = ("registered", "planned", "done")  # a race being explored or considered does not unlock a toggle yet
 
 
-def unlocked(races):
-    """{field id: {field, race, date, done}} for every race registered, planned or done (the athlete, Nov 16, 2026: a race unlocks its
-    toggle; a finished race keeps it). The soonest race still ahead names the field, else the earliest finished one."""
+def unlocked(races, today=None):
+    """{field id: {field, race, date, done, finished, next, last}} for every race registered, planned or done (the athlete, Nov 16, 2026: a
+    race unlocks its toggle; a finished race keeps it). The soonest race still ahead names the field, else the earliest finished one.
+    `next` is the soonest date of the field's races not yet done (on or after today when today is given), `last` the latest finished
+    one; the page's coin row retires coins from them (app.js raceCoins, the athlete, Nov 17, 2026: "If I've signed up for 10 races over a
+    year, I don't want to see 10 badges")."""
     out = {}
     for r in sorted((x for x in races if x.get("kind") == "race" and x.get("status") in UNLOCKS), key=lambda x: (x.get("status") == "done", str(x.get("date")))):
         f = field_of(r)
@@ -69,6 +72,15 @@ def unlocked(races):
             out[f["id"]] = {"field": f, "race": r.get("name"), "date": r.get("date"), "done": r.get("status") == "done", "finished": r.get("status") == "done"}
         elif f and r.get("status") == "done":  # finished: any race of the field is done, even with the next one booked (the athlete, Nov 17, 2026)
             out[f["id"]]["finished"] = True
+    for r in races:
+        f = field_of(r) if r.get("kind") == "race" and r.get("status") in UNLOCKS else None
+        if not f or f["id"] not in out:
+            continue
+        u, d = out[f["id"]], str(r.get("date") or "")[:10]
+        if r.get("status") == "done":
+            u["last"] = max(u.get("last") or "", d)
+        elif d and (not today or d >= str(today)[:10]):
+            u["next"] = min(u.get("next") or "9999", d)
     return out
 
 
