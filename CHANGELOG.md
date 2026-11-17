@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.141.0 (2026-11-17)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.140.0 (2026-11-17)
 - Dashboard: the stage disc beside the Level pill is gone and so is the word "Level"; the pill itself takes the colour of the highest stage beaten, on every Fitness card, endurance and lifts (the kit maker, Nov 16, 2026: "the level pill takes on the color. Silver, gold, diamond" and "plain before silver is reached, silver before gold is reached, gold before diamond is reached"): Top 20% of everyone (stage 1) earns silver, Top 20% on stage 2 gold, Top 20% on stage 3 diamond; plain before any. Screen readers still hear "Level" and the colour.
 - Dashboard fix: level names back inside the 16 character rule (the kit maker, Nov 17, 2026: "This broke the rule of how much text a level can have"): the elite record bands read Record pace, Within 10%, Within 20%, Over 20% off (were "... of record", up to 20 characters), and the run elite stage's lowest band reads Below national (was Below national class). The level name test now also builds with every alpha stage on, so a stage behind a flag cannot slip past it.

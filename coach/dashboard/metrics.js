@@ -546,8 +546,9 @@
     }
     // a group left with no tiles loses its header
     for (const h of Array.from(box.querySelectorAll(':scope > .ft-grp'))) { const n = h.nextElementSibling; if (!n || !n.classList.contains('ft-tile')) h.remove(); }
-    // this block's focus metrics carry a chip
-    for (const k of focusKeys()) { const t = inBox(k); const hd = t && t.querySelector('.ck-tile-head'); if (hd && !t.querySelector('.mx-focus')) { hd.after(focusChip()); t.setAttribute('aria-label', `${t.getAttribute('aria-label') || ''}, focus this block`); } }
+    // this block's focus metrics: a sport colour ring round the tile's number (the athlete, Nov 16, 2026: "a colored ring around the
+    // number in the left corner"); a tile with no number keeps the chip
+    for (const k of focusKeys()) { const t = inBox(k); const hd = t && t.querySelector('.ck-tile-head'); if (!hd || t.classList.contains('is-focus') || t.querySelector('.mx-focus')) continue; const rk = hd.querySelector('.ft-rk'); if (rk) { t.classList.add('is-focus'); rk.title = 'Focus this block. ' + (rk.title || ''); } else hd.after(focusChip()); t.setAttribute('aria-label', `${t.getAttribute('aria-label') || ''}, focus this block`); }
     // Reorder (rare, so it hides behind one quiet control): Up and Down on each group but Foundation
     if (ui.reorder) {
       const hs = Array.from(box.querySelectorAll(':scope > .ft-grp')).map((h) => { const s = h.querySelector('[data-where^="kind=fit_group&key="]'); return { h, key: s ? s.getAttribute('data-where').replace('kind=fit_group&key=', '') : '' }; }).filter((x) => x.key && !isBase(x.key));

@@ -69,15 +69,23 @@
     return { ...b, base: b, guest: g, routine: { ...b.routine, routine: g.id, name: g.name, subtitle: `Today only \u00b7 back to ${b.routine.name} tomorrow`, minutes: g.minutes, busy_minutes: g.busy_minutes },
       ex: planEx(b, g), blocks: (arr(g.plan_blocks).length ? arr(g.plan_blocks) : [...new Set(arr(g.plan_ex).map((p) => p.block || '1'))].map((k, i) => ({ block: k, order: i, label: k === '1' ? 'Block 1 \u00b7 superset' : 'Block ' + k, note: k === '1' ? 'about 90 s between rounds' : 'in order, about a minute between sets' }))).map((x) => ({ ...x, routine: g.id })) };
   }
+  // Season sets (the athlete, Nov 16, 2026, card "Endurance first, two lift steps"): a lift_phase row may carry `sets` for the slots in
+  // `sets_ex`, and `per_week` / `minutes` for the routine; the session on that date uses them, and the phase list shows them ahead
+  const withPhase = (m) => {
+    const ph = m.phases.find((p) => date >= p.start && date <= p.end); if (!ph) return m;
+    const ids = new Set(arr(ph.sets_ex)), n = N(ph.sets);
+    return { ...m, routine: { ...m.routine, ...(N(ph.per_week) ? { per_week: N(ph.per_week), when: `Any ${N(ph.per_week)} days that fit` } : {}), ...(N(ph.minutes) ? { minutes: N(ph.minutes) } : {}) },
+      ex: n ? m.ex.map((e) => (ids.has(e.ex) ? { ...e, sets: n } : e)) : m.ex };
+  };
   function baseModel() {
     const d = dash.data('coach'); if (d.status !== 'ok' || !Array.isArray(d.data)) return null;
     if (!_parsed.has(d.data)) _parsed.set(d.data, d.data.map(unpack));
     const r = _parsed.get(d.data); const routine = r.find((x) => x.kind === 'lift_routine'); if (!routine) return null;
     const mine = (k) => r.filter((x) => x.kind === k && x.routine === routine.routine).sort((a, b) => (N(a.order) ?? 0) - (N(b.order) ?? 0));
-    return { routine, blocks: mine('lift_block'), ex: mine('lift_ex'), phases: mine('lift_phase'), rules: mine('lift_rule'),
+    return withPhase({ routine, blocks: mine('lift_block'), ex: mine('lift_ex'), phases: mine('lift_phase'), rules: mine('lift_rule'),
       hist: new Map(r.filter((x) => x.kind === 'lift_hist').map((x) => [x.id, x])), xlib: new Map(r.filter((x) => x.kind === 'lift_xlib').map((x) => [x.id, x])), proposals: r.filter((x) => x.kind === 'lift_proposal'),
       // my_routines.json rows come after routines.json in the data: a same-id row is the person's edit and wins; hidden drops one
-      lib: [...r.filter((x) => x.kind === 'lift_lib').reduce((a, x) => a.set(x.id, x), new Map()).values()].filter((x) => !x.hidden && x.lifts).sort((a, b) => (N(a.order) ?? 99) - (N(b.order) ?? 99)) };
+      lib: [...r.filter((x) => x.kind === 'lift_lib').reduce((a, x) => a.set(x.id, x), new Map()).values()].filter((x) => !x.hidden && x.lifts).sort((a, b) => (N(a.order) ?? 99) - (N(b.order) ?? 99)) });
   }
   const hasLoad = (e) => e.load === 'lb' || e.load === 'lb_added';
   // kg for a metric person (6.108.0): loads stay lb in the data, converted only here
@@ -183,9 +191,11 @@
       const pr = el('div', 'lx-day lx-time'), lab = (dp ? (date === TODAY ? 'Today: ' : fWD(date) + ': ') + dp.r.title : 'Time you have');
       const st = (d, t) => { const b = el('button', 'ck-btn ck-btn--secondary lx-tbtn', t); b.type = 'button'; b.setAttribute('aria-label', (d > 0 ? 'Add' : 'Take off') + ' 5 minutes');
         b.disabled = d > 0 ? dayMins >= 60 : dayMins <= 10; b.addEventListener('click', () => { flush(); dayMins += d; build(m); const nb = document.querySelector(`.lx-tbtn[aria-label^="${d > 0 ? 'Add' : 'Take'}"]`); if (nb) nb.focus(); }); return b; };
-      const mn = el('b', 'lx-tmin', dayMins + ' min'); mn.setAttribute('aria-live', 'polite');
+      const mn = el('b', 'lx-tmin', dayMins + ' min'); mn.setAttribute('aria-live', 'polite'); mn.setAttribute('aria-label', 'Time you have: ' + dayMins + ' min');
       const row = el('div', 'lx-trow'); row.append(st(-5, '−'), mn, st(5, '+'));
-      pr.append(mk('span', 'ck-sub', lab, dp ? 'coach' : null, null, dp ? `kind=day&date=${dp.r.date}&order=${dp.r.order}` : null, 'plan'), row); box.append(pr);
+      if (CL()) { // UI pass (the athlete, Nov 17, 2026, 12:06 AM: "I still prefer the plus and minus on time"; 12:23 AM, A): one joined − | TIME 25 min | + bar
+        pr.classList.add('lx-tclean'); pr.append(el('span', 'ck-sub', 'Time'), row);
+      } else pr.append(mk('span', 'ck-sub', lab, dp ? 'coach' : null, null, dp ? `kind=day&date=${dp.r.date}&order=${dp.r.order}` : null, 'plan'), row); box.append(pr);
     } else if (dp) {
       const pr = mk('div', 'lx-day', null, 'coach', null, `kind=day&date=${dp.r.date}&order=${dp.r.order}`, 'plan');
       const busy = dayView === 'busy' && dp.busy.length, mins = busy ? N(dp.r.fallback_minutes) : N(dp.r.minutes);
@@ -227,6 +237,11 @@
           if (ch) { hl.append(el('span', 'lx-nw', ch.t)); if (ch.aim) hl.append(' · ', el('span', 'lx-nw', 'aim ' + ch.aim)); }
           else if (!gt) hl.append(el('span', null, hasLoad(e) ? 'First time: pick a load you could lift a few more times' : 'First time: easy version, stop with reps to spare'));
           if (!gt) row.append(hl);
+          // How to do it (approved on the Lifts Tab Cleanup page, Nov 16, 2026): first-time lifts fold out the coach's cues
+          const how = !last && !gt && (e.how || (m.xlib.get(e.id || e.ex) || {}).how);
+          if (how) { const dt = el('details', 'lx-how'), sm = el('summary', null, 'How to do it'), ol = el('ol');
+            for (const c of String(how).split(';').map((t) => t.trim()).filter(Boolean)) ol.append(mk('li', null, c.charAt(0).toUpperCase() + c.slice(1), 'coach', 'how', 'kind=lift_xlib&id=' + (e.id || e.ex)));
+            dt.append(sm, ol); row.append(dt); }
           const cols = el('div', 'lx-cols2' + (hasLoad(e) ? '' : ' one')); cols.setAttribute('aria-hidden', 'true');
           cols.append(el('span', null, 'Set')); if (hasLoad(e)) cols.append(el('span', null, e.load === 'lb_added' ? '+' + wU() : wU())); cols.append(el('span', null, colHead(e))); row.append(cols);
         } else if (last) {
@@ -280,6 +295,8 @@
     }
     const out = want && want.length ? m.ex.filter((e) => !want.includes(e.ex) && !has(e)) : [];
     if (out.length && cl && fit) box.append(moreBox(m, out, dp));
+    // Looking for something else? (approved on the Lifts Tab Cleanup page): the end of the session opens Something else today
+    if (cl) { const lk = el('button', 'lx-look', '\u21bb Looking for something else?'); lk.type = 'button'; lk.addEventListener('click', () => { goR(m, 'need'); $('l-pick').scrollIntoView({ block: 'start' }); }); box.append(lk); }
     else if (out.length) { const fb = el('button', 'lx-dayfold'); fb.type = 'button'; fb.setAttribute('aria-expanded', String(dayView === 'all'));
       fb.append(el('span', null, dayView === 'all' ? 'Back to today\'s plan' : `Not in ${fit ? dayMins + ' min' : 'today\'s plan'} (${out.length}): ${out.map((e) => e.name).join(', ')}`), el('span', 'lx-dayfold-a', dayView === 'all' ? 'Hide' : 'Show'));
       fb.addEventListener('click', () => { dayView = dayView === 'all' ? 'plan' : 'all'; build(m); }); box.append(fb); }
@@ -287,9 +304,10 @@
     paintRpe(); $('l-note').value = saved ? saved.note || '' : '';
     finBtn(!restored && stored && stored.finished_at);
     paintTicks(m); paintSkips(); paintNext();
+    if (cl) { rtLine = `${box.querySelectorAll('.lx-row').length} lifts \u00b7 ${dayMins || N(m.routine.minutes) || 25} min`; const rs = document.querySelector('#l-pick .lx-rtsub'); if (rs) rs.textContent = rtLine; else if (!rView && !mfy) renderRoutines(m); }
     if (restored) { bar('Restored sets kept on this phone. Saving…', 'kept'); status(''); schedule(0); }
     else if (stored) { status('Saved ' + fWD(stored.date) + (stored.saved_at ? ', ' + stamp(stored.saved_at) : ''), 'ok'); bar('All sets saved · ' + stamp(stored.saved_at), 'ok'); }
-    else { status(db ? (date === TODAY ? 'No sets saved today yet' : 'No sets saved for ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
+    else { status(db ? (cl ? '' : date === TODAY ? 'No sets saved today yet' : 'No sets saved for ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
   }
 
   // Block Done: fill the empty boxes that show last time's figures (grey), then fold every lift in the block.
@@ -354,7 +372,7 @@
     head.parentNode.insertBefore(box, $('l-status'));
   }
   // Routine picker (6.102.0): library coach/routines.json; the current routine is preselected; a pick is a request (lift_pref/routine).
-  let pickPending = null, pickView = '';
+  let pickPending = null, pickView = '', rtLine = '', dOpen = false; // rtLine: "8 lifts · 25 min" on the routine row (UI pass)
   function renderPicker(m) {
     const box = $('l-pick'); if (!box) return; box.hidden = m.lib.length < 2; if (box.hidden) return;
     const cur = m.routine.routine, view = pickView || cur, row = m.lib.find((x) => x.id === view) || m.lib[0];
@@ -390,6 +408,26 @@
     add('legs', 'Legs and lower leg', m.ex.filter((e) => e.legs), 'Rests your upper body');
     // a routine the coach made for this date (Tell the coach, or a chat request) leads the shelf; it runs like any plan
     return [...m.lib.filter((x) => x.made_for === date && runnable(x)), ...L];
+  }
+  // Recommended today: reasons from the plan rows the page already has (`day`), and the lift log
+  const plusD = (d, k) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + k); return t.toISOString().slice(0, 10); };
+  function recsFor(m, ready) {
+    const A = window.CX.app, days = A ? A.kind('day') : [], out = [], seen = new Set(), base = (m.base || m).routine.routine;
+    const add = (x, why) => { if (x && !seen.has(x.id) && out.length < 3) { seen.add(x.id); out.push({ x, why }); } };
+    const by = (id) => ready.find((x) => x.id === id);
+    for (const x of ready.filter((y) => y.made_for === date)) add(x, 'Made for you today');
+    const legsDay = (r) => /^(run|bike|brick|trail|hike)/i.test(r.type || '');
+    const soon = [1, 2].map((k) => days.find((r) => r.date === plusD(date, k) && r.key && legsDay(r))).find(Boolean);
+    if (soon) add(by('mfy_upper'), `Legs fresh for ${fWD(soon.date).split(',')[0]}\u2019s key ${/bike/i.test(soon.type) ? 'ride' : /brick/i.test(soon.type) ? 'brick' : 'run'}`);
+    const lift = days.find((r) => r.date === date && r.type === 'strength'), other = days.filter((r) => r.date === date && r.type !== 'strength').reduce((t, r) => t + (N(r.minutes) || 0), 0);
+    if (lift && N(lift.minutes) && N(lift.minutes) <= 20) add(by('mfy_short'), `Today's plan has ${lift.minutes} min for lifting`);
+    else if (other >= 60) add(by('mfy_short'), `${other} min of other training planned today`);
+    const trip = days.find((r) => r.date === date && /travel|hotel|trip/i.test(r.title || ''));
+    if (trip) { const tr = ready.filter((x) => /hotel|travel|trip/i.test(`${x.name} ${x.best_for || ''}`)).sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0)); add(tr[0], 'Travel in today\u2019s plan'); }
+    const recent = [...logs.values()].filter((l) => l.date < date && l.date >= plusD(date, -14) && l.routine && l.routine !== base).sort((a, b) => (a.date < b.date ? 1 : -1));
+    for (const l of recent) add(by(l.routine), `You used it ${fWD(l.date).split(',')[0]}`);
+    add(by('mfy_short'), 'The main lifts only, when time is short'); add(by('mfy_upper'), 'Leaves your legs fresh for running and riding');
+    return out;
   }
   const hue = (id) => [...String(id)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
   const ini = (n) => String(n).split(/[\s,]+/).filter((w) => /^[A-Za-z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
@@ -476,11 +514,63 @@
     const pend = pickPending && pickPending !== (m.base || m).routine.routine ? lib.find((x) => x.id === pickPending) : null;
     if (!rView) {
       const b = el('button', 'lx-rt'); b.type = 'button'; b.setAttribute('aria-label', `Routine: ${cr.name}. Change`);
-      const sh = mfy || cr, t = el('span', 'lx-rtt'); t.append(mk('b', null, sh.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(sh)));
+      const sh = mfy || cr, t = el('span', 'lx-rtt'); t.append(mk('b', null, sh.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub' + (!pend && !mfy && sh.id === cur && rtLine ? ' lx-rtsub' : ''), pend ? `Switch to ${pend.name} asked` : !mfy && sh.id === cur && rtLine ? rtLine : src(sh)));
       b.append(art(sh), t, el('span', 'lx-chg', 'Change \u203a')); b.addEventListener('click', () => goR(m, 'list')); box.replaceChildren(b);
       // the athlete, Nov 16, 2026: "a button that says ... need something else now ... that opens the chat"; the coach builds it
       // onto Made for you within minutes (coach/ops/DASHBOARD-CHAT.md step 6)
-      if (window.CX.chatOpen) { const n = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-need', 'Need something else now? Ask the coach'); n.type = 'button'; n.addEventListener('click', () => window.CX.chatOpen(n)); box.append(n); }
+      // the athlete, Nov 16, 2026, 8:47 PM: the button opens the ready-made alternatives first, each one tap to use today;
+      // the coach chat is the last line for anything not there
+      // the athlete, Nov 16, 2026, 11:36 PM: "put the session date and need something else now next to each other"
+      const n = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-need', 'Need something else now?'); n.type = 'button'; n.addEventListener('click', () => goR(m, 'need'));
+      // the athlete, Nov 17, 2026, 12:00 AM ("let's do that"): the session date hides behind a small Log an earlier day link under the
+      // button. 12:06 AM ("show me what pops up"): the link opens a row of the last 7 days on the page; Other date keeps the
+      // phone's picker (the real date input lies invisibly over it). On an earlier day the link reads "Logging 11/15/26"
+      const dt = document.querySelector('#l-log .lx-date'); if (dt) { const o = dt.querySelector('.lx-need'); if (o) o.remove(); dt.prepend(n); dt.classList.add('lx-dlink');
+        const mdy = (d) => `${d.slice(5, 7)}/${d.slice(8, 10)}/${d.slice(2, 4)}`, pick = (d) => { dOpen = false; const x = $('l-date'); x.value = d; x.dispatchEvent(new Event('change')); };
+        for (const x of dt.querySelectorAll('.lx-dlinkb, .lx-dback, .lx-dpick')) { if (!x.contains(dt.querySelector('.ck-field'))) x.remove(); }
+        const fd = dt.querySelector('.ck-field'); let face = fd.querySelector('.lx-dface'); if (!face) { face = el('span', 'lx-dface'); face.setAttribute('aria-hidden', 'true'); fd.append(face); }
+        face.textContent = 'Other date'; $('l-date').setAttribute('aria-label', 'Other date');
+        // 12:15 AM (the athlete picked A): the way in is a small calendar button in the card head, beside this week's discs
+        let cb = document.querySelector('#l-log .lx-dcal'); if (!cb) { cb = el('button', 'lx-dcal'); cb.type = 'button';
+          cb.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4M9.5 15h5M12 12.5v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+          cb.addEventListener('click', () => { dOpen = !dOpen; renderRoutines(m); const f = document.querySelector(dOpen ? '.lx-dpick button' : '#l-log .lx-dcal'); if (f) f.focus(); }); }
+        if ($('l-wk').nextElementSibling !== cb) $('l-wk').after(cb);
+        cb.setAttribute('aria-label', 'Log an earlier day'); cb.setAttribute('aria-expanded', String(dOpen)); cb.classList.toggle('on', dOpen || date !== TODAY);
+        if (date !== TODAY) { dt.append(el('span', 'lx-dlinkb', `Logging ${mdy(date)}`)); const bk = el('button', 'lx-dback', 'Back to today'); bk.type = 'button'; bk.addEventListener('click', () => pick(TODAY)); dt.append(bk); }
+        let pk = fd.closest('.lx-dpick'); if (!pk) { pk = el('div', 'lx-dpick'); pk.setAttribute('role', 'group'); pk.setAttribute('aria-label', 'Pick the day to log'); }
+        pk.replaceChildren(); for (let k = 1; k <= 7; k++) { const d = plusD(TODAY, -k); const c = el('button', 'lx-dday' + (d === date ? ' on' : ''));
+          c.type = 'button'; c.setAttribute('aria-pressed', String(d === date)); c.append(el('span', null, k === 1 ? 'Yesterday' : fWD(d).split(',')[0]), el('b', null, `${d.slice(5, 7)}/${d.slice(8, 10)}`));
+          c.addEventListener('click', () => pick(d)); pk.append(c); }
+        pk.append(fd); pk.hidden = !dOpen; dt.append(pk); } else box.append(n);
+      return;
+    }
+    const useNow = (x) => { flush(); mfy = x.mfy ? x : null; if (!x.mfy) setToday(x.id); dayView = 'plan'; dayMins = N(x.minutes) || dayMins; builtKey = ''; goR(m, ''); renderLifts(); };
+    if (rView === 'need') {
+      const nb = el('button', 'lx-back', '\u2039 Back to today'); nb.type = 'button'; nb.addEventListener('click', () => goR(m, ''));
+      const nt = el('div', 'lx-rtop'); nt.append(nb, el('h3', 'ck-h3', 'Something else today'));
+      const pre = lib.filter((x) => x.id !== cur && !x.made_for && runnable(x)), ready = [...mf, ...pre.filter((x) => x.mine), ...pre.filter((x) => !x.mine)];
+      // the athlete, Nov 16, 2026, 9:11 PM: "show this better with recommended alternatives today": up to three picks with the reason
+      // from today's plan (a key session soon, the time planned today, what he used lately); the rest under More options
+      const rec = recsFor(m, ready), recIds = new Set(rec.map((r) => r.x.id));
+      const rowOf = (x, why) => {
+        const row = el('div', 'lx-rrow'), info = el('button', 'lx-rinfo'); info.type = 'button';
+        const tx = el('span', 'lx-rtt'); tx.append(el('b', null, x.name));
+        if (why) tx.append(mk('span', 'lx-rwhy', why, 'coach', 'day', 'kind=day', 'reason picked by the page from the plan rows (key sessions in the next 2 days, minutes today) and the lift log'));
+        tx.append(el('span', 'ck-sub', [`${x.minutes} min`, x.needs, why ? '' : x.best_for].filter(Boolean).join(' \u00b7 ')));
+        info.append(art(x), tx); info.setAttribute('aria-label', `${x.name}: see the lifts`); info.addEventListener('click', () => goR(m, x.id));
+        const u = el('button', 'ck-btn ck-btn--' + (why ? 'primary' : 'secondary') + ' ck-btn--sm', 'Use today'); u.type = 'button'; u.setAttribute('aria-label', `Use ${x.name} today`); u.addEventListener('click', () => useNow(x));
+        row.append(info, u); return row;
+      };
+      const R = el('div', 'lx-ready lx-recs'), L = el('div', 'lx-ready');
+      for (const r of rec) R.append(rowOf(r.x, r.why));
+      for (const x of ready.filter((y) => !recIds.has(y.id))) L.append(rowOf(x));
+      const parts = [];
+      if (rec.length) parts.push(el('span', 'lx-mh', 'Recommended today'), R);
+      if (L.children.length) parts.push(el('span', 'lx-mh', rec.length ? 'More options' : 'Ready to use now'), L);
+      const own = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-own', '+ Make your own'); own.type = 'button'; own.addEventListener('click', () => goR(m, 'new'));
+      const tail = [el('span', 'ck-sub', 'Today only. Your sets save and count for the week.'), own];
+      if (window.CX.chatOpen) { const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm lx-need', 'None of these? Ask the coach'); c.type = 'button'; c.addEventListener('click', () => window.CX.chatOpen(c)); tail.push(c); }
+      box.replaceChildren(nt, ...parts, ...tail);
       return;
     }
     const top = el('div', 'lx-rtop'), back = el('button', 'lx-back', rView === 'list' ? '\u2039 Back to today' : '\u2039 Routines'); back.type = 'button';
@@ -507,7 +597,7 @@
     const acts = el('div', 'lx-racts');
     const baseId = (m.base || m).routine.routine, baseName = (m.base || m).routine.name;
     if (x.id === cur || x.mfy || x.id === baseId || runnable(x)) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button';
-      u.addEventListener('click', () => { flush(); mfy = x.mfy ? x : null; if (!x.mfy) setToday(x.id); dayView = 'plan'; dayMins = N(x.minutes) || dayMins; builtKey = ''; goR(m, ''); renderLifts(); }); acts.append(u);
+      u.addEventListener('click', () => useNow(x)); acts.append(u);
       if (!x.mfy && x.id !== baseId) acts.append(el('span', 'ck-sub', `Today only. Your sets save and count for the week; tomorrow is ${baseName} again.`)); }
     if (!x.mfy && x.id !== baseId) {
       if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Asked to make it your routine. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, baseId)); acts.append(c); }
@@ -525,17 +615,23 @@
   }
   function renderStatic(m) {
     const r = m.routine; const rw = 'kind=lift_routine&routine=' + r.routine;
-    $('l-name').textContent = r.name; $('l-sub').textContent = r.subtitle || '';
+    // UI pass (the athlete, Nov 16, 2026, 11:52 PM, card "Pick the cleaner Lifts card top"): the card title says Lifts, so the routine name shows once
+    $('l-name').textContent = CL() ? 'Lifts' : r.name; $('l-sub').textContent = r.subtitle || ''; $('l-log').classList.toggle('lx-clean', CL());
     // the routine chips: the same four facts, each marked with its field
     // game look pass (the athlete's pick 4, Nov 14, 2026): the four facts fold into one plain line, each part still marked
     { const parts = [[`${r.per_week}× a week`, 'per_week'], [`~${r.minutes} min`, 'minutes'], [r.days || r.when, r.days ? 'days' : 'when'], [r.rir, 'rir']].filter((x) => x[0]);
       const box = $('l-chips'); box.className = 'ck-sub lx-facts'; box.replaceChildren(); parts.forEach(([t, f], i) => { if (i) box.append(' · '); box.append(mk('span', null, t, 'coach', f, rw)); }); }
+    // the routine's goal and plan lines live on its Routines page, not on the session card (the athlete, Nov 16, 2026, 11:36 PM:
+    // "What is strong for the long run? ... What is it doing here?")
+    $('l-sub').hidden = CL(); $('l-chips').hidden = CL();
     weekDiscs(); if (CL()) renderRoutines(m); else renderPicker(m);
     $('l-chips').classList.remove('dash-skeleton');
-    const ph = phaseAt(m, TODAY); const pn = $('l-phasenow'); pn.hidden = !ph;
+    // a dated step shows from 14 days ahead ("From Feb 1"), then while it runs
+    const soonP = (() => { const t = new Date(TODAY + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + 14); const lim = t.toISOString().slice(0, 10); return m.phases.find((p) => p.start > TODAY && p.start <= lim) || null; })();
+    const ph = phaseAt(m, TODAY) || soonP; const pn = $('l-phasenow'); pn.hidden = !ph;
     if (ph) { const pw = `kind=lift_phase&routine=${ph.routine}&label=${encodeURIComponent(ph.label)}`; const w = el('span', 'ck-notice-w'); w.append(icon('info'), mk('span', null, ph.label, 'coach', 'label', pw)); pn.replaceChildren(w, mk('p', 'ck-notice-t', ph.text, 'coach', 'text', pw)); }
     $('l-phases').hidden = !m.phases.length;
-    $('l-phases').replaceChildren(...m.phases.map((p) => { const pw = `kind=lift_phase&routine=${p.routine}&label=${encodeURIComponent(p.label)}`; const on = ph && p === ph; const d = el('li', 'ck-row lx-phaserow'); if (on) d.dataset.key = 'now';
+    $('l-phases').replaceChildren(...m.phases.map((p) => { const pw = `kind=lift_phase&routine=${p.routine}&label=${encodeURIComponent(p.label)}`; const on = p === phaseAt(m, TODAY); const d = el('li', 'ck-row lx-phaserow'); if (on) d.dataset.key = 'now';
       const main = el('span', 'ck-row-main'); main.append(mk('span', 'ck-row-t', p.label, 'coach', 'label', pw), mk('span', 'ck-row-s', p.text, 'coach', 'text', pw));
       d.append(icon(on ? 'go' : 'session'), main); if (on) { const end = el('span', 'ck-row-end'); end.append(mk('span', 'ck-chip', 'Now', null, null, null, 'phase-today')); d.append(end); } return d; }));
     $('l-phases').classList.remove('dash-skeleton');

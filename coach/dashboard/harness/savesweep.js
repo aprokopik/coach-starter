@@ -18,12 +18,18 @@ async function sweep(b, page, fail) {
     p.on('pageerror', (e) => errs.push(tab + ': ' + e.message.slice(0, 140)));
     if (fail) await p.addInitScript(() => { window.__failWrites = true; });
     await p.goto('file://' + page); await p.waitForTimeout(1500);
-    const n = await p.evaluate(() => document.querySelectorAll('button').length);
-    for (let i = 0; i < Math.min(n, 400); i++) {
+    // count the buttons with the tab open, and again as taps add more (Nov 17, 2026: counted on the first tab, the sweep ran out
+    // before the Lifts set Done buttons once the day picker added 8 buttons above them, so lift_log looked missing)
+    await p.evaluate((t) => { const b = document.getElementById('tab-' + t); if (b) b.click(); }, tab); await p.waitForTimeout(300);
+    for (let i = 0; i < 400; i++) {
+      if (i >= await p.evaluate(() => document.querySelectorAll('button').length)) break;
       await p.evaluate((t) => { const b = document.getElementById('tab-' + t); if (b && b.getAttribute('aria-selected') !== 'true') b.click(); }, tab);
       const ok = await p.evaluate(([i, skip]) => {
         const all = [...document.querySelectorAll('button')]; const el = all[i];
         if (!el || el.disabled || el.id.startsWith('tab-') || new RegExp(skip, 'i').test(el.textContent.trim())) return false;
+        // the routine row, Need something else now? and Looking for something else? swap the Lifts session for a routine list, so
+        // the sweep never reached a set box again and lift_log went missing (Nov 17, 2026); the list's Use today still saves lift_choice
+        if (el.matches('#l-pick .lx-rt, .lx-need, .lx-look')) return false;
         const r = el.getBoundingClientRect(); if (!r.width || !r.height || el.closest('[hidden]')) return false;
         el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); el.click(); return true;
       }, [i, SKIP.source]);

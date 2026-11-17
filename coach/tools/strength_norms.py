@@ -154,6 +154,9 @@ def band(p):
     return B[0][0], 0.0, B[1][0], B[1][1]
 
 
+WINDOW_DAYS = 28
+
+
 def epley(load, reps):
     return load * (1 + reps / 30.0)
 
@@ -214,8 +217,11 @@ def row(ex, sess, g, bw, age, name=None):
     if not sess:
         return {**base, "level": "", "why": f"Log {exn} on the Lifts tab to place it"}
     sex, std = g["sex"], gp["std"]
-    d = max(sess)
-    load, reps = top_set(sess[d])
+    # The reading is the best set of the 4 weeks up to the latest session (the athlete, Nov 17, 2026, "Agreed. A."): a light
+    # travel or busy day never pulls a tile down; it drops only after 4 weeks without matching it (the stages' 28 day grace)
+    last = max(sess)
+    win = [dd for dd in sess if (last - dd).days <= WINDOW_DAYS]
+    d, (load, reps) = max(((dd, top_set(sess[dd])) for dd in win), key=lambda t: (reading(ex, t[1][0], t[1][1], bw), t[0]))
     x = reading(ex, load, reps, bw)
     best = max(reading(ex, l, r, bw) for s in sess.values() for l, r in s)
     best1 = percentile(best, std, sex, bw, age, 1) or 0

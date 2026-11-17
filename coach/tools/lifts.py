@@ -127,7 +127,7 @@ def resolve_plans(rows, mine_ids=()):
             if ex:
                 r["plan_ex"] = [{"id": p["id"], "block": e["block"], **{k: p[k] for k in DOSE if k in p}} for p, e in zip(plan, ex)]
                 r["plan_blocks"] = bl
-    keep = ("id", "name", "pattern", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs")
+    keep = ("id", "name", "pattern", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs", "how")
     for e in lib.values():
         rows.append({"kind": "lift_xlib", **{k: e[k] for k in keep if k in e}, "needs": ", ".join(e.get("needs") or [])})
     return rows
