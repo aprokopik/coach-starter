@@ -129,6 +129,11 @@ def set_compare(layout, norm_rows, tile, choice):
 
 def main(argv):
     layout, norms = json.load(open(LAYOUT)), json.load(open(NORMS))["rows"]
+    try:  # race scales worked out from finisher results are on file too (race_rows.py), though never stored
+        import race_rows
+        norms = race_rows.build(norms)
+    except ImportError:
+        pass
     if len(argv) >= 1 and argv[0] == "list":
         for r in layout.get("rows", []):
             if r.get("kind") == "fit_kpi" and options(norms, r["key"]):

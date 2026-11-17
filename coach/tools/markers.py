@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta
 
 import ag703_rows
 import elite
+import race_rows
 import fit_ladder
 import ride_dist
 import trail_effort
@@ -107,7 +108,9 @@ def ordinal(n):
 
 def norm_rows():
     rows = json.load(open("coach/norms.json")).get("rows", []) if os.path.exists("coach/norms.json") else []
-    return ag703_rows.build(rows)  # 70.3 age group rows are worked out here from the small Table 1, never stored (see ag703_rows.py)
+    # 70.3 age group rows from the small Table 1 and race scale rows from finisher results are worked out here, never stored
+    # (see ag703_rows.py and race_rows.py)
+    return race_rows.build(ag703_rows.build(rows))
 
 
 def pct_from_front(norm, v):
@@ -360,6 +363,25 @@ def wkg_general(g):
             "source": f"Estimated by the coach from {vo2_norms.SOURCE}", "url": "https://doi.org/10.1016/j.mayocp.2021.08.020", "date": "2026-11", "n": 0, "breakpoints": bp,
             "sex": g["sex"], "age_band": g["band"], "short": f"{g['label']}, general population (modelled)", "estimated": True,
             "note": f"A model: VO2max on cycle tests for {g['label']} turned into the power at VO2max, with FTP taken as {FTP_SHARE * 100:.0f}% of it. Most of these adults do not ride, so read it as where your engine sits among adults of your age and sex."}
+
+
+# Power by duration against the general population (board row t-b4): the 1, 5 and 60 minute power bests had only the
+# Allen and Coggan categories, which sort racing cyclists, so nearly everyone read Untrained. The same FRIEND cycle model as FTP:
+# power at VO2max (ACSM) times a share per duration. 5 min is about the power at VO2max; 60 min is FTP (FTP_SHARE); 1 min adds the
+# anaerobic part, taken as 1.7 times it for adults who do not train for sprints (coach's estimate, Estimated on the tile).
+POWER_SHARE = {"p1": 1.7, "p5": 1.0, "p60": FTP_SHARE}
+
+
+def power_general(g, key):
+    """A W/kg norm row for a power best (p1, p5, p60) against adults of the athlete's age band and sex, modelled. None with no group."""
+    base = wkg_general(g)
+    if not base or key not in POWER_SHARE:
+        return None
+    k = POWER_SHARE[key] / FTP_SHARE
+    lab = {"p1": "1 min", "p5": "5 min", "p60": "60 min"}[key]
+    return dict(base, key=f"wkg_{key}_general", breakpoints=[[round(v * k, 2), p] for v, p in base["breakpoints"]],
+                note=f"A model: VO2max on cycle tests for {g['label']} turned into the power at VO2max, with {lab} power taken as "
+                     f"{POWER_SHARE[key] * 100:.0f}% of it. Most of these adults do not ride.")
 
 
 # Each person's own targets (A coach for any person, 6.89.0): a target that names a race or a forecast lives in
@@ -1534,11 +1556,28 @@ def build(today, rows_so_far):
                     next(x for x in out if x.get("kind") == "marker" and x["key"] == bk)["splits"] = ",".join(str(x) for x in fit_ladder.splits(NWKG, t20, 1.0))
                 with_scales(bk, WKG_SCALES, apply)
             elif NG and coggan_tiers(NG.get("sex"), bk, kg_now):
-                ct = coggan_tiers(NG["sex"], bk, kg_now)
-                nb_ = next(((l, lo) for l, lo, _hi, _n in ct if lo is not None and lo > v2), None)
-                annot(bk, "", (f"{nb_[1] - v2:+.0f} W to {nb_[0]} ({nb_[1]} W at your weight)" if nb_ else "in the top category"), ct, tier_of(v2, ct),
-                      f"Bands are the Allen and Coggan power profile categories for {'men' if NG['sex'] == 'male' else 'women'}, watts per kilogram for this duration, in watts at your latest weigh-in ({kg_now:.1f} kg) ({COGGAN_URL}). "
-                      "They sort racing cyclists into categories; they are not percentiles for your age group. A percentile source by age and sex replaces them when one is filed.", scale="research")
+                def coggan(bk=bk, v2=v2, kg_now=kg_now):
+                    ct = coggan_tiers(NG["sex"], bk, kg_now)
+                    nb_ = next(((l, lo) for l, lo, _hi, _n in ct if lo is not None and lo > v2), None)
+                    annot(bk, "", (f"{nb_[1] - v2:+.0f} W to {nb_[0]} ({nb_[1]} W at your weight)" if nb_ else "in the top category"), ct, tier_of(v2, ct),
+                          f"Bands are the Allen and Coggan power profile categories for {'men' if NG['sex'] == 'male' else 'women'}, watts per kilogram for this duration, in watts at your latest weigh-in ({kg_now:.1f} kg) ({COGGAN_URL}). "
+                          "They sort racing cyclists into categories; they are not percentiles for your age group.", scale="research")
+                    next(x for x in out if x.get("kind") == "marker" and x["key"] == bk).pop("splits", None)
+
+                def pgen(bk=bk, v2=v2, kg_now=kg_now):
+                    ng_ = power_general(NG, bk)
+                    wk_ = fit_ladder.tiers(ng_, 2, lambda v: f"{v:.2f} W/kg")
+                    tw = [(l, None if lo is None else round(lo * kg_now), None if hi is None else round(hi * kg_now), n) for l, lo, hi, n in wk_]
+                    nb_ = next(((l, lo) for l, lo, _hi, _n in tw if lo is not None and lo > v2), None)
+                    annot(bk, "", (f"{nb_[1] - v2:+.0f} W to {nb_[0]}" if nb_ else "in the top band"), tw,
+                          f"{tier_of(v2, tw)} ({ordinal(fit_ladder.percentile(ng_, v2 / kg_now))} percentile, {ng_['short']})",
+                          f"Compared with the general population: {ng_['population']} ({ng_['url']}), in watts at your latest weigh-in ({kg_now:.1f} kg). {ng_['note']} Estimated.")
+                    next(x for x in out if x.get("kind") == "marker" and x["key"] == bk)["splits"] = ",".join(str(x) for x in fit_ladder.splits(ng_, tw, 1.0))
+                psc = [("general", "General population", pgen)] if power_general(NG, bk) else []
+                psc.append(("coggan", "Racing cyclists (Allen and Coggan)", coggan))
+                if CMP.get(bk):
+                    psc.sort(key=lambda x: x[0] != CMP[bk])
+                with_scales(bk, psc, lambda fn: fn())
             elif ser["baseline"]:
                 gt = guide_tiers(ser["baseline"], bt, fmt)
                 annot(bk, "", "", gt, tier_of(v2, gt), "Coach guide: no trusted published norm for this effort is filed yet, so the bands are your own figure against your baseline, "
@@ -1747,10 +1786,10 @@ def build(today, rows_so_far):
         climb_ = field not in ("pace", "speed")
         fmt = (lambda x: f"{x:,.0f} ft/h") if climb_ else (lambda x: f"{mss(x * 60)}{'/mi' if field == 'pace' else ' per effort km'}")
 
-        def general():
+        def general(gen=gen, lead="Compared with the general population: ", basis="coach"):
             gt = fit_ladder.tiers(gen, 0 if climb_ else 3, fmt)
             if v is None:
-                annot(key, target, "", gt, "", "Compared with the general population: " + gen["source"] + ". " + gen["note"], scale="coach")
+                annot(key, target, "", gt, "", lead + gen["source"] + ". " + gen["note"], scale=basis)
                 return
             grk, after = ladder(key, gen, v, gt, 1.0 if climb_ else 1 / 60)
             if climb_:
@@ -1759,7 +1798,7 @@ def build(today, rows_so_far):
             else:
                 nb = next(((l, hi) for l, _lo, hi, _n in reversed(gt) if hi is not None and hi <= v), None)
                 ggap = f"{mss((v - nb[1]) * 60)} to {nb[0]}" if nb else "in the top band"
-            annot(key, target, ggap, gt, grk, "Compared with the general population: " + gen["source"] + ". " + gen["note"], scale="coach")
+            annot(key, target, ggap, gt, grk, lead + gen["source"] + ". " + gen["note"], scale=basis)
             after()
 
         def guide():
@@ -1768,6 +1807,13 @@ def build(today, rows_so_far):
             m_.pop("splits", None)
         guide_label = "Vertical kilometre guide" if climb_ else (f"{race['name']} pacing" if race else "100K cutoff pacing")
         sc = [("general", "General population", general), ("coach", guide_label, guide)]
+        # Gold stage (the athlete's board notes: race scales are the person's own races): each race field the person's races unlock, with
+        # finisher results on similar courses on file (race_rows.py), ranks the same value against those finishers
+        for fid, u in sorted(UNLOCKED.items(), key=lambda x: RACE_KM.get(x[0]) or 0):
+            nd = fit_ladder.pick(NR, key, NG, fid) if key in u["field"]["tiles"] else None
+            if nd is not None and nd.get("compare") == fid:
+                sc.append((fid, nd.get("compare_label") or u["field"]["label"],
+                           lambda nd=nd: general(nd, f"Compared with {nd['population']}: ", "research")))
         if CMP.get(key):
             sc.sort(key=lambda x: x[0] != CMP[key])
         with_scales(key, sc, lambda fn: fn())
