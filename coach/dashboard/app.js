@@ -1614,8 +1614,10 @@
     // every open or close tap, on every tab (the athlete, Nov 16: Week and Map jumped too); a tap that scrolls on purpose (scrollIntoView) is left alone
     let intent = 0; const siv = Element.prototype.scrollIntoView; Element.prototype.scrollIntoView = function (...a) { intent = performance.now(); return siv.apply(this, a); };
     document.addEventListener('click', (e) => {
-      const t = e.target && e.target.closest ? e.target.closest('[aria-expanded], [role=switch], #f-tiles .ft-tile, #f-bkseg, #f-sport') : null; if (!t || t.closest('.cx-tabs')) return;
-      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id, k = t.dataset.k, tag = t.tagName, p = (id && $(id)) || t;
+      const t = e.target && e.target.closest ? e.target.closest('[aria-expanded], [role=switch], #f-tiles .ft-tile, #f-bkseg, #f-sport, #f-race') : null; if (!t || t.closest('.cx-tabs')) return;
+      // a Compare with coin (#f-race, the athlete Nov 16: "jumping again when I switch between badges") holds the open tile above it
+      const open = () => (document.querySelector('#f-tiles .ft-tile[aria-expanded="true"], #f-tiles .ft-tile[data-open="true"]') || {}).id;
+      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id === 'f-race' ? open() : t.id, k = t.dataset.k, tag = t.tagName, p = (id && $(id)) || t;
       const find = () => (id && $(id)) || (k && [...document.querySelectorAll(tag + '[data-k]')].find((n) => n.dataset.k === k)) || (t.isConnected ? t : null);
       const at = performance.now(), sc = sbox(p), top = p.getBoundingClientRect().top, end = at + 600; let off = false;
       addEventListener('touchmove', () => { off = true; }, { passive: true, once: true });

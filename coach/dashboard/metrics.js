@@ -21,6 +21,9 @@
 // With no store (a preview) the list still opens; Add, Remove and Send say they cannot save here.
 (() => {
   const CX = window.CX;
+  // the live runtime hands back every column on every row, null where the row has none (the athlete, Nov 16, 2026: tiles showed a dash),
+  // so a field counts as present only when it holds a value
+  const has = (v) => v !== undefined && v !== null && v !== '';
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = String(txt); return e; };
   const arr = (v) => { if (Array.isArray(v)) return v; if (typeof v === 'string' && /^\s*\[/.test(v)) { try { return JSON.parse(v); } catch (e) { return []; } } return []; };
   const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
@@ -90,7 +93,7 @@
     const b = el('button', 'ck-tile ck-tile-btn ft-tile mx-fig'); b.type = 'button'; b.dataset.k = m.key; b.id = 'f-' + m.key; b.dataset.sport = CX.sportTok(m.sport);
     b.setAttribute('aria-expanded', String(ui.open === m.key)); b.setAttribute('aria-controls', 'mx-ladder');
     const head = el('span', 'ck-tile-head'); head.append(mark(el('span', 'ck-tile-label ft-label', m.name), 'coach', 'name', mw(m)), CX.ck.icon('chevron', 'ck-chev ft-chev')); b.append(head);
-    const fig = el('span', 'ck-big ft-fig'); const wk = m.wk_value !== undefined && m.wk_value !== '';
+    const fig = el('span', 'ck-big ft-fig'); const wk = has(m.wk_value);
     // a habit tile leads with the week in progress, the weeks held under it (the athlete, Nov 16, 2026, option A "This week first")
     if (wk) { fig.append(mark(el('span', null, m.wk_value), 'coach', 'wk_value', mw(m)), mark(el('span', 'ck-unit', ' ' + m.wk_unit), 'coach', 'wk_unit', mw(m))); b.append(fig);
       const held = el('span', 'ck-sub ft-subl mx-held'); held.append(mark(el('span', null, m.value), 'coach', 'value', mw(m)), ' ', mark(el('span', null, m.unit || ''), 'coach', 'unit', mw(m)), ' in a row'); b.append(held); }
@@ -150,7 +153,7 @@
     row('What', ws[0], 'what', ws.length > 1 ? 'what-first' : null); row('Why', ws.slice(1).join(' '), 'what', 'what-rest');
     row('Next', m.next, (m.fld || {}).next || 'next'); row(m.ladder === 'ready' ? 'Latest' : 'Counts', m.note, 'note');
     if (dl.childNodes.length) f.append(dl);
-    if (m.rule) { const h = A.section('How ' + String(m.s1_ex !== undefined ? 'these levels' : m.ladder_label || 'these levels').replace(/\s*\(.*\)/, '').toLowerCase() + ' work'); const ul = el('ul', 'ft-howl');
+    if (m.rule) { const h = A.section('How ' + String(has(m.s1_ex) ? 'these levels' : m.ladder_label || 'these levels').replace(/\s*\(.*\)/, '').toLowerCase() + ' work'); const ul = el('ul', 'ft-howl');
       A.sentences(m.rule).forEach((x) => ul.append(el('li', null, x))); mark(ul, 'coach', 'rule', mw(m)); h.body.append(ul); f.append(h.dt); }
     return f;
   }
@@ -178,7 +181,7 @@
     const said = [m.name];
     for (let i = 1; i <= (Number(m.s_n) || 1); i++) {
       const f = (k) => m[`s${i}_${k}`], F = (k) => `s${i}_${k}`;
-      if (f('ex') === undefined) continue;
+      if (!has(f('ex'))) continue;
       if (f('plane')) { const ln = el('span', 'ft-barname'); ln.dataset.r = 's' + i; ln.append(mark(el('b', null, f('plane')), 'coach', F('plane'), w), mark(el('b', null, f('value') ? `${f('value')}${f('unit') || ''}` : '—'), 'coach', F('value'), w)); b.append(ln); }
       else if (f('value')) { const fig = el('span', 'ck-big ft-fig'); fig.append(mark(el('span', null, String(f('value'))), 'coach', F('value'), w)); if (f('unit')) fig.append(mark(el('span', 'ck-unit', f('unit')), 'coach', F('unit'), w)); b.append(fig); }
       if (!f('plane') && !f('value')) b.append(el('span', 'ck-big ft-fig', '—'));
@@ -206,7 +209,7 @@
     b.addEventListener('click', (e) => { ui.open = ui.open === m.key ? null : m.key; if (ui.open) CX.state.fit = null; focusNext = e.detail === 0 ? '#f-' + m.key : null; rerender(); });
     return b;
   }
-  const plainTile = (m) => alpha('strength_levels') && m.s1_ex !== undefined ? strengthTile(m) : (m.value !== undefined && m.value !== null && String(m.value) !== '' ? (m.level || m.rungs ? ladderTile(m) : figureTile(m)) : waitingTile(m));
+  const plainTile = (m) => alpha('strength_levels') && has(m.s1_ex) ? strengthTile(m) : (m.value !== undefined && m.value !== null && String(m.value) !== '' ? (m.level || m.rungs ? ladderTile(m) : figureTile(m)) : waitingTile(m));
   function unlockPanel(m, I) {
     const { mark } = CX.ck;
     const p = el('div', 'ft-expand mx-unlock'); p.id = 'mx-unlock'; p.setAttribute('role', 'region'); p.setAttribute('aria-label', 'How to unlock ' + m.name);
@@ -270,7 +273,7 @@
   // with the sport rail. The tile is no longer one button: each panel is, and opens that reading's own chart or ladder under the
   // tile; the open one turns a soft shade of its sport. Runs after pairBike, before app.js places the chart (placeExpand).
   let nxFocus = null;
-  const strSlot = (m) => { if (!m || m.s1_ex === undefined) return null; if (ui.slot && m[ui.slot + '_ex'] !== undefined) return ui.slot;
+  const strSlot = (m) => { if (!m || !has(m.s1_ex)) return null; if (ui.slot && has(m[ui.slot + '_ex'])) return ui.slot;
     for (let i = 1; i <= (Number(m.s_n) || 1); i++) if (m[`s${i}_level`]) return 's' + i; return 's1'; };
   CX.nestReadings = (box) => {
     const S = CX.state;

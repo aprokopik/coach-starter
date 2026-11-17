@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.126.1 (2026-11-16)
+- Dashboard fix: Fitness tiles such as Long run, Long ride, Rides to plan and Longest swim showed a dash after the 6.125.0 Live (the kit maker, Nov 16, 2026, "I'm also missing a bunch of numbers now"). The live runtime hands back every column on every row, null where a row has none, and the page read a null `s1_ex` as a strength tile. `metrics.js has()` now treats null like absent, and the harness (`dash.js`) fills the columns a row lacks with null within its kind, like the live runtime, so the checks see what the phone sees (`window.__sparseRows` keeps the rows as written).
+- Dashboard fix: a tap on a Compare with coin holds the open tile in place like any other Fitness tap (the kit maker, Nov 16, 2026, "jumping again when I switch between badges").
+
 ## 6.126.0 (2026-11-16)
 - Dashboard: the IRONMAN 70.3 scales (swim and bike splits, every tile that ranks them) read the athlete's own age group and sex, not all ages together (epic Compare with anyone; the kit maker kept "Real men 35 to 39 70.3 table", "For stage 2 yes", and picked "Loose ends, then 70.3 table", Nov 16, 2026). IRONMAN publishes no split table by age group, so `coach/tools/ag703_rows.py` moves each all-ages split row to every age group with Knechtle et al. 2023 Table 1 (finish mean and SD for 823,459 finishes by age group and sex, CC BY): 198 rows in coach/norms.json, marked estimated, groups under 200 finishes left out. For men 35 to 39 the 70.3 bands sit about 1% faster and 1% tighter than all ages; for men 60 to 64 about 7.5% slower.
 - Dashboard fix: a norm published in five-year age bands now matches the athlete's own age (fit_ladder.pick reads `age`), so a man of 37 reads the 35 to 39 row instead of the nearest decade; the marathon rows get the same fix.

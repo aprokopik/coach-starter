@@ -39,6 +39,10 @@
       }
       return o;
     });
+    // the live runtime hands back the columns a row lacks as null (Nov 16, 2026: tiles read a null s1_ex as a strength tile and
+    // showed a dash); filled within each kind, which catches that and keeps the open fast; window.__sparseRows keeps the rows as written
+    if (!window.__sparseRows) { const byKind = new Map(); for (const o of out) { const k = o.kind; if (!byKind.has(k)) byKind.set(k, new Set()); for (const c in o) byKind.get(k).add(c); }
+      for (const o of out) for (const c of byKind.get(o.kind)) if (!(c in o)) o[c] = null; }
     return { columns: cols, rows: out };
   }
 
