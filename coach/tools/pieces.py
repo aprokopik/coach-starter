@@ -8,6 +8,9 @@ Owner only. The Release Board (ArtifactData) holds the rows; this tool only read
         exit 1 and list what is open when the thread still owns an open board row or an undecided page
     python3 coach/tools/pieces.py notes notes.json --backlog backlog.json
         print the board rows (JSON) to add for notes the athlete left that nobody answered and no row holds yet
+    python3 coach/tools/pieces.py board-notes <feedback> --backlog <backlog> [--epics <epics>]
+        print (JSON) every Release Board note the athlete saved that was never sent, with the thread that owns it;
+        <feedback>, <backlog> and <epics> are an ArtifactData list saved as one JSON file or as an out_dir folder
     python3 coach/tools/pieces.py cleanse [--pages coach/ops/pages.json] [--days 30]
         list archived pages older than --days; deleting one still needs the athlete's yes
 """
@@ -29,6 +32,46 @@ def _rows(backlog):
     if isinstance(backlog, dict):
         return [dict(r, id=r.get("id", k)) for k, r in backlog.items()]
     return list(backlog or [])
+
+
+def load_docs(path):
+    """An ArtifactData read saved to disk: one JSON file (a list, or a dict of id to doc, or {"documents": [...]}),
+    or an out_dir folder of <doc_id>.json files. Each doc comes back with its `id`."""
+    if os.path.isdir(path):
+        out = []
+        for name in sorted(os.listdir(path)):
+            if name.endswith(".json"):
+                with open(os.path.join(path, name)) as f:
+                    d = json.load(f)
+                out.append(dict(d, id=d.get("id", name[:-5])))
+        return out
+    with open(path) as f:
+        data = json.load(f)
+    if isinstance(data, dict) and isinstance(data.get("documents"), list):
+        data = data["documents"]
+    return _rows(data)
+
+
+def board_notes(feedback, backlog=(), epics=()):
+    """Notes the athlete saved on the Release Board that never reached a thread (no `sent_at`). Send my notes only works
+    while a Claude session listens to the board, so these are swept by the nightly fixer and the 7:45 run
+    (PIECES.md section 3b). Each comes back with the row it sits on and the thread that owns it: the backlog row's
+    `owner`, else the epic's `owner`, else "" (the run names it to the athlete instead)."""
+    rows = {r.get("id"): r for r in _rows(backlog)}
+    eps = {e.get("id"): e for e in _rows(epics)}
+    out = []
+    for n in sorted(_rows(feedback), key=lambda x: str(x.get("at", ""))):
+        if n.get("sent_at") or not str(n.get("text", "")).strip():
+            continue
+        fid = str(n.get("feature", ""))
+        kind, _, key = fid.partition(":") if ":" in fid else ("feature", "", fid)
+        row = rows.get(key, {}) if kind == "backlog" else {}
+        ep = eps.get(key if kind == "epic" else row.get("epic"), {})
+        title = key if kind == "feature" else (row.get("title") or ep.get("name"))
+        out.append({"id": n.get("id"), "feature": fid, "kind": kind, "title": title or fid,
+                    "epic": ep.get("name", ""), "owner": row.get("owner") or ep.get("owner") or "",
+                    "at": n.get("at", ""), "text": " ".join(str(n["text"]).split())})
+    return out
 
 
 def load_pages(path=PAGES):
@@ -99,6 +142,10 @@ def main(argv=None):
     n = sub.add_parser("notes")
     n.add_argument("notes")
     n.add_argument("--backlog", required=True)
+    b = sub.add_parser("board-notes")
+    b.add_argument("feedback")
+    b.add_argument("--backlog", required=True)
+    b.add_argument("--epics")
     s = sub.add_parser("cleanse")
     s.add_argument("--pages", default=PAGES)
     s.add_argument("--days", type=int, default=30)
@@ -115,6 +162,10 @@ def main(argv=None):
         return 0
     if a.cmd == "notes":
         print(json.dumps(unanswered(json.load(open(a.notes)), json.load(open(a.backlog))), indent=1))
+        return 0
+    if a.cmd == "board-notes":
+        eps = load_docs(a.epics) if a.epics else []
+        print(json.dumps(board_notes(load_docs(a.feedback), load_docs(a.backlog), eps), indent=1, ensure_ascii=False))
         return 0
     for p in stale_archived(load_pages(a.pages), days=a.days):
         print(f"archived {p['archived']}: {p.get('title')} {p['url']}")

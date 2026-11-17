@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.143.0 (2026-11-17)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.142.1 (2026-11-17)
 - Dashboard fix: Done on the Morning check-in card keeps it away for the rest of the day again, also when questions were skipped or are still open (a lift question, the monthly survey). Since 6.84.0 the page saved the Done day but never read it back, so the card returned on the next open whenever a step was left (finding 20261111-state-morning-card, fourth try after 6.17.1, 6.81.1 and 6.84.0). Harness qcdone.js now skips every question, taps Done and opens again from that store; test_qc_done_store.py checks the day is read before the card is drawn.
 
