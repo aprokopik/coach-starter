@@ -82,6 +82,42 @@ def blocks():
     return [r for r in read_json(PLAN)["rows"] if r.get("kind") == "block"]
 
 
+# ---------- plan: a library or own routine that can run for one day ("Use today", 6.128.0) ----------
+
+DOSE = ("name", "sets", "lo", "hi", "unit", "load", "per_side", "step", "next_hard", "extra", "legs")
+
+
+def plan_rows(row, lib=None):
+    """A lift_lib row's plan (a list of {block, id, and any dose field to override}) as the page's session rows: the slot is
+    the exercise id, so history follows the exercise across routines. blocks come from the row or one Main block.
+    Returns (ex_rows, blocks); ([], []) when the row has no plan or names an exercise the library does not have."""
+    plan = row.get("plan") or []
+    lib = lib if lib is not None else library()
+    if not plan or any(p.get("id") not in lib for p in plan):
+        return [], []
+    blocks = row.get("blocks") or [{"block": "1", "label": "Main", "note": "in order, about a minute between sets"}]
+    out = []
+    for n, p in enumerate(plan):
+        e = lib[p["id"]]
+        r = {"ex": p["id"], "id": p["id"], "block": p.get("block") or blocks[0]["block"], "order": n, "busy": n < 4}
+        r.update({k: e[k] for k in DOSE if k in e})
+        r.update({k: p[k] for k in DOSE if k in p})
+        out.append(r)
+    return out, [{"block": b["block"], "order": i, "label": b.get("label", ""), "note": b.get("note", "")} for i, b in enumerate(blocks)]
+
+
+def resolve_plans(rows):
+    """build_dashboard: each lift_lib row with a plan gets plan_ex and plan_blocks for the page, and drops the raw plan."""
+    lib = library()
+    for r in rows:
+        if r.get("kind") == "lift_lib" and r.get("plan"):
+            ex, bl = plan_rows(r, lib)
+            r.pop("plan", None); r.pop("blocks", None)
+            if ex:
+                r["plan_ex"], r["plan_blocks"] = ex, bl
+    return rows
+
+
 # ---------- ingest: dashboard lift_log documents -> strength_log.csv ----------
 
 def read_log():

@@ -47,7 +47,21 @@
   // swaps read as they did when the runtime returned real objects.
   const _parsed = new WeakMap();
   const unpack = (x) => { if (!String(x.kind || '').startsWith('lift_')) return x; const o = { ...x }; for (const k in o) { const v = o[k]; if (typeof v === 'string' && /^\s*[\[{]/.test(v)) { try { o[k] = JSON.parse(v); } catch (e) { /* plain text */ } } } return o; };
+  // Use today (6.128.0; the athlete, Nov 16 in a hotel: "Make a routine for me to follow. That should have been default."): any
+  // library or own routine with a plan (plan_ex, built from exercises.json) runs for one day. The pick is kept per date on
+  // this phone (lx-today) and in the day's saved log (routine), so a reload keeps it; the routine itself never changes.
+  const TK = 'lx-today';
+  let todayPick = (() => { try { const v = JSON.parse(localStorage.getItem(TK) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+  const setToday = (id) => { todayPick = { ...todayPick, [date]: id }; try { localStorage.setItem(TK, JSON.stringify(todayPick)); } catch (e) { /* this phone only */ } };
+  const runnable = (x) => !!(x && Array.isArray(x.plan_ex) && x.plan_ex.length);
   function model() {
+    const b = baseModel(); if (!b) return null;
+    const own = b.routine.routine, s = Object.prototype.hasOwnProperty.call(todayPick, date) ? todayPick[date] : (logs.get(date) || {}).routine;
+    const g = s && s !== own ? b.lib.find((x) => x.id === s && runnable(x)) : null; if (!g) return b;
+    return { ...b, base: b, guest: g, routine: { ...b.routine, routine: g.id, name: g.name, subtitle: `Today only \u00b7 back to ${b.routine.name} tomorrow`, minutes: g.minutes, busy_minutes: g.busy_minutes },
+      ex: g.plan_ex.map((e) => ({ ...e, routine: g.id })), blocks: arr(g.plan_blocks).map((x) => ({ ...x, routine: g.id })) };
+  }
+  function baseModel() {
     const d = dash.data('coach'); if (d.status !== 'ok' || !Array.isArray(d.data)) return null;
     if (!_parsed.has(d.data)) _parsed.set(d.data, d.data.map(unpack));
     const r = _parsed.get(d.data); const routine = r.find((x) => x.kind === 'lift_routine'); if (!routine) return null;
@@ -377,9 +391,9 @@
     const cur = m.routine.routine, r = m.routine;
     const cr = m.lib.find((x) => x.id === cur) || { id: cur, name: r.name, minutes: r.minutes, needs: '', lifts: m.ex.map((e) => e.name).join('; ') };
     const lib = m.lib.some((x) => x.id === cur) ? m.lib : [cr, ...m.lib];
-    const mf = mfyList(m), src = (x) => (x.mfy ? 'Made for you \u00b7 today only' : x.id === cur ? 'Today\u2019s pick' : x.mine ? 'Made by you' : 'Library');
+    const mf = mfyList(m), src = (x) => (x.mfy ? 'Made for you \u00b7 today only' : x.id === cur && m.guest ? 'Today only' : x.id === cur ? 'Today\u2019s pick' : x.mine ? 'Made by you' : 'Library');
     $('l-log').classList.toggle('lx-browse', !!rView);
-    const pend = pickPending && pickPending !== cur ? lib.find((x) => x.id === pickPending) : null;
+    const pend = pickPending && pickPending !== (m.base || m).routine.routine ? lib.find((x) => x.id === pickPending) : null;
     if (!rView) {
       const b = el('button', 'lx-rt'); b.type = 'button'; b.setAttribute('aria-label', `Routine: ${cr.name}. Change`);
       const sh = mfy || cr, t = el('span', 'lx-rtt'); t.append(mk('b', null, sh.name, 'coach', 'name', 'kind=lift_routine&routine=' + cur), el('span', 'ck-sub', pend ? `Switch to ${pend.name} asked` : src(sh)));
@@ -405,18 +419,22 @@
     if (x.best_for) hx.append(mk('span', 'lx-bc', x.best_for, 'coach', 'best_for', lw));
     hero.append(art(x, true), hx);
     const acts = el('div', 'lx-racts');
-    if (x.id === cur || x.mfy) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button';
-      u.addEventListener('click', () => { flush(); mfy = x.mfy ? x : null; dayView = 'plan'; dayMins = N(x.minutes) || dayMins; builtKey = ''; goR(m, ''); renderLifts(); }); acts.append(u); }
-    else if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Switch asked. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, cur)); acts.append(c); }
-    else { const a = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Ask the coach to switch'); a.type = 'button'; a.addEventListener('click', () => savePick(m, x.id)); acts.append(a, el('span', 'ck-sub', 'Your coach sets it up with your weights at the next check-in.')); }
+    const baseId = (m.base || m).routine.routine, baseName = (m.base || m).routine.name;
+    if (x.id === cur || x.mfy || x.id === baseId || runnable(x)) { const u = el('button', 'ck-btn ck-btn--primary ck-btn--sm', 'Use today'); u.type = 'button';
+      u.addEventListener('click', () => { flush(); mfy = x.mfy ? x : null; if (!x.mfy) setToday(x.id); dayView = 'plan'; dayMins = N(x.minutes) || dayMins; builtKey = ''; goR(m, ''); renderLifts(); }); acts.append(u);
+      if (!x.mfy && x.id !== baseId) acts.append(el('span', 'ck-sub', `Today only. Your sets save and count for the week; tomorrow is ${baseName} again.`)); }
+    if (!x.mfy && x.id !== baseId) {
+      if (pickPending === x.id) { acts.append(el('span', 'ck-sub', 'Asked to make it your routine. Your coach moves you over at the next check-in.')); const c = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Cancel the switch'); c.type = 'button'; c.addEventListener('click', () => savePick(m, baseId)); acts.append(c); }
+      else { const a = el('button', 'ck-btn ck-btn--secondary ck-btn--sm', 'Make it my routine'); a.type = 'button'; a.addEventListener('click', () => savePick(m, x.id)); acts.append(a); }
+    }
     const ul = mk('ul', 'lx-rlifts', null, 'coach', 'lifts', lw);
-    const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
+    const names = x.mfy ? m.ex.filter((e) => x.ex.includes(e.ex)).map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : x.id === cur ? m.ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : runnable(x) ? x.plan_ex.map((e) => `${e.name} \u00b7 ${doseTxt(e)}`) : String(x.lifts || '').split(';').map((t) => t.trim()).filter(Boolean);
     for (const n of names) ul.append(el('li', null, n.replace(/^\w/, (c) => c.toUpperCase())));
     box.replaceChildren(top, hero, acts, ul);
   }
   async function savePick(m, id) {
     pickPending = id; if (CL()) renderRoutines(m); else renderPicker(m);
-    if (db) { try { await db.doc('lift_pref/routine').set({ pick: id, from: m.routine.routine, saved: new Date().toISOString() }); } catch (e) { status('Could not save your routine pick.', 'err'); } }
+    if (db) { try { await db.doc('lift_pref/routine').set({ pick: id, from: (m.base || m).routine.routine, saved: new Date().toISOString() }); } catch (e) { status('Could not save your routine pick.', 'err'); } }
   }
   function renderStatic(m) {
     const r = m.routine; const rw = 'kind=lift_routine&routine=' + r.routine;
@@ -618,6 +636,8 @@
     const mins = g ? Math.round(Number(g.duration_min)) || null : null;
     const id = g ? String(g.activity_id) : `manual-${d}-strength`;
     const ids = {}; for (const e of m.ex) if (v.sets[e.ex] && e.id) ids[e.ex] = e.id;
+    // a switch mid-day (Use today) never drops sets already saved under the other routine's slots
+    if (prevDoc && prevDoc.sets) { const pi = prevDoc.ids || {}; for (const k of Object.keys(prevDoc.sets)) if (!m.ex.some((e) => e.ex === k) && !(k in v.sets)) { v.sets[k] = prevDoc.sets[k]; if (pi[k]) ids[k] = pi[k]; } }
     const fin = finish ? at : (prevDoc && prevDoc.finished_at) || null;
     const doc = { date: d, routine: m.routine.routine, routine_name: m.routine.name, sets: v.sets, ids, rpe: v.rpe, activity_id: g ? id : null, minutes: mins, note: v.note, done: v.done, skipped: v.skipped, skip_why: v.skip_why || {}, saved_at: at, finished_at: fin };
     try {
@@ -637,7 +657,7 @@
         bar((finish ? 'Session saved · ' : 'All sets saved · ') + stamp(at), 'ok');
         if (finish) finBtn(true);
       }
-      renderProgress(m);
+      renderProgress(m.base || m);
     } catch (e) {
       if (d === date) bar(`Not saved yet (${e && e.code ? e.code : 'no connection'}). Kept on this phone; retrying.`, 'retry');
       if (!timer) timer = setTimeout(() => persist(false), RETRY);
@@ -705,11 +725,11 @@
     { const rc = $('l-rules'); if (rc) rc.hidden = CL(); let sl = $('l-stop'); const w = CL() && m.rules.find((x) => x.warn);
       if (w && !sl) { sl = el('p', 'lx-stop'); sl.id = 'l-stop'; $('l-rpe').closest('.lx-rpe').before(sl); }
       if (sl) { sl.hidden = !w; if (w) sl.replaceChildren(icon('watch'), mk('span', null, null, 'coach', 'text', `kind=lift_rule&routine=${w.routine}&order=${w.order}`)); if (w) sl.lastChild.append(el('b', null, w.label + ': '), w.text); } }
-    renderStatic(m); renderRotation(m);
+    renderStatic(m); renderRotation(m.base || m);
     const key = JSON.stringify([m.ex, m.phases, date, loaded]);
     if (key !== builtKey) { if (builtKey && db) { const v = snap(m); if (Object.keys(v.sets).length || v.note) draftPut(date, v); } builtKey = key; build(m); }
     $('l-rot').setAttribute('aria-busy', String(!loaded)); // the rotation choice is read from the store: busy until it answers
-    renderProgress(m);
+    renderProgress(m.base || m);
   }
   window.CX.renderLifts = renderLifts;
 
