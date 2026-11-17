@@ -232,6 +232,7 @@
     const get = async (p) => { try { const d = await db.doc(p).get(); return d.exists ? d.data() : null; } catch (e) { return null; } };
     const [t, y, tap, log, put] = await Promise.all([get('feel_daily/' + TODAY), get('feel_daily/' + Y), get('lift_tap/' + TODAY), get('lift_log/' + Y), get('seen/morning-card')]);
     if (put && put.day === TODAY) goneDay = TODAY;
+    if (gone()) return; // Done lasts the day, skipped steps too (qcdone.js)
     feel = t; yest = y && Number(y.scale) === 5 ? y : null;
     const plan = wv.filter((r) => r.kind === 'plan' && r.date === Y && (r.type === 'strength' || LIFT.test(r.title || '')));
     if (plan.length && !plan.some((r) => ['done', 'fallback', 'swapped'].includes(r.status)) && !log) {
