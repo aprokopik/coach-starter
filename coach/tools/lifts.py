@@ -615,6 +615,24 @@ def cmd_apply(args):
         else:
             row["sets"] = c["to"]
             applied.append(f"{c['ex']} {row.get('name', c['ex'])} to {c['to']} sets")
+    # row edits (6.142.0, the athlete's calf card Nov 17, 2026): in order, {match, set, drop} changes the one row whose fields equal
+    # match; {add} inserts a row unless that slot is already there
+    for c in r.get("edits", []):
+        if "add" in c:
+            a = c["add"]
+            if any(x.get("kind") == a.get("kind") and x.get("ex") == a.get("ex") and x.get("routine") == a.get("routine") for x in sdoc["rows"]):
+                print(f"slot {a.get('ex')} is taken: add skipped"); continue
+            last = max((i for i, x in enumerate(sdoc["rows"]) if x.get("kind") == a.get("kind")), default=len(sdoc["rows"]) - 1)
+            sdoc["rows"].insert(last + 1, dict(a))
+            applied.append(f"added {a.get('ex', '')} {a.get('name', a.get('id', ''))}".strip())
+            continue
+        hits = [x for x in sdoc["rows"] if all(x.get(k) == v for k, v in c["match"].items())]
+        if len(hits) != 1:
+            print(f"edit {c['match']}: {len(hits)} rows match, skipped"); continue
+        for k in c.get("drop", []):
+            hits[0].pop(k, None)
+        hits[0].update(c.get("set", {}))
+        applied.append(f"{c['match'].get('ex') or c['match'].get('block') or c['match'].get('label')} edited")
     write_json(STRENGTH, sdoc)
     r["status"], r["applied_on"] = "applied", today()
     write_json(ROTATION, doc)
@@ -640,6 +658,15 @@ def proposal_rows():
         for c in r.get("sets", []):
             swaps.append({"ex": c["ex"], "from": "", "to": "", "why": c.get("why", ""), "from_name": names.get(c["ex"], c["ex"]),
                           "to_name": f"{c['to']} sets" + (f" after {c['after']} logged sessions" if c.get("after") else ""), "to_note": "", "from_note": ""})
+        for c in r.get("edits", []):
+            if "add" in c:
+                a = c["add"]
+                swaps.append({"ex": a.get("ex", ""), "from": "", "to": a.get("id", ""), "why": c.get("why", ""), "from_name": "New",
+                              "to_name": a.get("name", a.get("id", "")), "to_note": "", "from_note": ""})
+            elif c.get("why") and c["match"].get("kind") == "lift_ex":
+                ex = c["match"].get("ex", "")
+                swaps.append({"ex": ex, "from": "", "to": "", "why": c["why"], "from_name": names.get(ex, ex),
+                              "to_name": c.get("set", {}).get("name") or (f"moves to {c['set']['ex']}" if "ex" in c.get("set", {}) else "changed"), "to_note": "", "from_note": ""})
         out.append({"kind": "lift_proposal", "block_key": r["block_key"], "block": b.get("label", r["block_key"]), "block_name": b.get("name", ""),
                     "start": b.get("start"), "focus": r.get("focus", ""), "status": r["status"], "decided_on": r.get("decided_on"), "swaps": swaps})
     return out

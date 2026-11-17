@@ -64,18 +64,40 @@
   const planEx = (m, x, rid) => x.plan_ex.map((p, i) => ({ busy: i < 4, ...(m.xlib.get(p.id) || {}), ...p, ex: p.id, id: p.id, order: i, routine: rid || x.id }));
   function model() {
     const b = baseModel(); if (!b) return null; b.lib = [...b.lib, ...mineRows(b)];
-    const own = b.routine.routine, s = Object.prototype.hasOwnProperty.call(todayPick, date) ? todayPick[date] : (logs.get(date) || {}).routine;
+    const own = b.routine.routine, dr = window.CX.app ? window.CX.app.kind('day').find((x) => x.date === date && x.type === 'strength' && x.routine) : null;
+    const s = Object.prototype.hasOwnProperty.call(todayPick, date) ? todayPick[date] : (logs.get(date) || {}).routine || (dr && dr.routine);
     const g = s && s !== own ? b.lib.find((x) => x.id === s && runnable(x)) : null; if (!g) return b;
     return { ...b, base: b, guest: g, routine: { ...b.routine, routine: g.id, name: g.name, subtitle: `Today only \u00b7 back to ${b.routine.name} tomorrow`, minutes: g.minutes, busy_minutes: g.busy_minutes },
       ex: planEx(b, g), blocks: (arr(g.plan_blocks).length ? arr(g.plan_blocks) : [...new Set(arr(g.plan_ex).map((p) => p.block || '1'))].map((k, i) => ({ block: k, order: i, label: k === '1' ? 'Block 1 \u00b7 superset' : 'Block ' + k, note: k === '1' ? 'about 90 s between rounds' : 'in order, about a minute between sets' }))).map((x) => ({ ...x, routine: g.id })) };
   }
   // Season sets (the athlete, Nov 16, 2026, card "Endurance first, two lift steps"): a lift_phase row may carry `sets` for the slots in
   // `sets_ex`, and `per_week` / `minutes` for the routine; the session on that date uses them, and the phase list shows them ahead
+  // Day types (the athlete, Nov 17, 2026, card "Show Feb 1 heavy and moderate days through rotation A"): a phase's `days` take turns in
+  // order. The session takes the day after the last session logged with one (lift_log `day`), so a missed day never skips a
+  // type; a day already saved keeps its type. Each day sets lo and hi on the `days_ex` slots and may change block notes.
+  const dayOf = (ph, d, rid) => {
+    const D = arr(ph.days); if (!D.length) return null; const at = (k) => Math.max(0, D.findIndex((x) => x.key === k));
+    const own = logs.get(d); if (own && own.day && D.some((x) => x.key === own.day)) return { i: at(own.day), D };
+    const prev = [...logs.values()].filter((x) => x && x.day && x.date < d && (!x.routine || x.routine === rid) && D.some((y) => y.key === x.day)).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    return { i: prev ? (at(prev.day) + 1) % D.length : 0, D };
+  };
+  // A split (rotation A for people who keep more than one routine, the athlete, Nov 16, 2026): the same `days` on the lift_routine row,
+  // each with `ex`, the slots that day holds (Upper body, Lower body); a phase's own days win while it runs.
   const withPhase = (m) => {
-    const ph = m.phases.find((p) => date >= p.start && date <= p.end); if (!ph) return m;
-    const ids = new Set(arr(ph.sets_ex)), n = N(ph.sets);
-    return { ...m, routine: { ...m.routine, ...(N(ph.per_week) ? { per_week: N(ph.per_week), when: `Any ${N(ph.per_week)} days that fit` } : {}), ...(N(ph.minutes) ? { minutes: N(ph.minutes) } : {}) },
-      ex: n ? m.ex.map((e) => (ids.has(e.ex) ? { ...e, sets: n } : e)) : m.ex };
+    const ph = m.phases.find((p) => date >= p.start && date <= p.end) || null;
+    const src = ph && arr(ph.days).length ? ph : arr(m.routine.days).length ? m.routine : null; if (!ph && !src) return m;
+    const ids = new Set(arr(ph && ph.sets_ex)), n = N(ph && ph.sets);
+    let ex = n ? m.ex.map((e) => (ids.has(e.ex) ? { ...e, sets: n } : e)) : m.ex, blocks = m.blocks, day = null;
+    const dt = src ? dayOf(src, date, m.routine.routine) : null;
+    if (dt) {
+      const cur = dt.D[dt.i], nx = dt.D[(dt.i + 1) % dt.D.length], dx = new Set(arr(src.days_ex).length ? arr(src.days_ex) : arr(src.sets_ex));
+      day = { key: cur.key, label: cur.label, next: nx.key !== cur.key ? nx.label : '', hint: cur.hint || '' };
+      if (arr(cur.ex).length) { const only = new Set(arr(cur.ex)); ex = ex.filter((e) => only.has(e.ex)); }
+      ex = ex.map((e) => (dx.has(e.ex) ? { ...e, ...(N(cur.lo) ? { lo: N(cur.lo) } : {}), ...(N(cur.hi) ? { hi: N(cur.hi) } : {}), day_key: cur.key, day_hint: cur.hint || '' } : e));
+      const nt = cur.notes && typeof cur.notes === 'object' ? cur.notes : {}; blocks = m.blocks.map((b) => (nt[b.block] ? { ...b, note: nt[b.block] } : b));
+    }
+    if (!ph) return { ...m, day, blocks, ex };
+    return { ...m, day, blocks, routine: { ...m.routine, ...(N(ph.per_week) ? { per_week: N(ph.per_week), when: `Any ${N(ph.per_week)} days that fit` } : {}), ...(N(ph.minutes) ? { minutes: N(ph.minutes) } : {}) }, ex };
   };
   function baseModel() {
     const d = dash.data('coach'); if (d.status !== 'ok' || !Array.isArray(d.data)) return null;
@@ -109,9 +131,9 @@
   let legacy = {};
   const idOf = (d, slot) => (d.ids && d.ids[slot]) || legacy[slot] || slot;
   const history = (exId) => [...logs.values()].filter((d) => d && d.sets).sort((a, b) => (a.date < b.date ? -1 : 1))
-    .map((d) => { const slot = Object.keys(d.sets).find((k) => idOf(d, k) === exId && Array.isArray(d.sets[k]) && d.sets[k].length); return slot ? { date: d.date, sets: d.sets[slot] } : null; })
+    .map((d) => { const slot = Object.keys(d.sets).find((k) => idOf(d, k) === exId && Array.isArray(d.sets[k]) && d.sets[k].length); return slot ? { date: d.date, sets: d.sets[slot], day: d.day || '' } : null; })
     .filter(Boolean);
-  const lastBefore = (exId, d) => { const h = history(exId).filter((x) => x.date < d); return h.length ? h[h.length - 1] : null; };
+  const lastBefore = (exId, d, dk) => { const h = history(exId).filter((x) => x.date < d); const s = dk ? h.filter((x) => x.day === dk) : []; return s.length ? s[s.length - 1] : h.length ? h[h.length - 1] : null; };
   // The next step as a key and a short value (the athlete, Nov 5, point 4): the log row shows them as a chip ("Next · same load,
   // aim for 8"); the Progress tile keeps the whole sentence (t), which adds what the chip leaves out (" on every set").
   const H = (up, k, v, more) => ({ up, k, v, t: (k ? k + ': ' : '') + v + (more || '') });
@@ -136,6 +158,7 @@
     const ld = hasLoad(e) ? (e.load === 'lb_added' && !(top > 0) ? 'BW ' : loadTxt(e, top) + ' ' + wU() + ' ') : '';
     const t = `Last time ${ld}${S.length}×${rng(S.map((st) => N(st.reps)))}${u}${ps}`;
     if (mode === 'light') return { t, aim: 'same or lighter' };
+    if (e.day_key && last.day !== e.day_key && e.day_hint) return { t, aim: '', say: e.day_hint };
     const best = Math.max(0, ...S.map((st) => N(st.reps) ?? 0)), full = S.length >= N(e.sets) && S.every((st) => N(st.reps) >= N(e.hi));
     let aim;
     if (full && hasLoad(e)) aim = `${loadTxt(e, top + (N(e.step) || 5))}×${e.lo}${u}`;
@@ -231,11 +254,11 @@
         const end = el('span', 'ck-row-end'); end.append(ok);
         row.append(mk('span', 'lx-id', e.ex, 'coach', 'ex', ew), main, end);
         if (gt) { const tg = mk('div', 'lx-gate' + (gt.off ? '' : ' ok'), gt.t, 'coach', null, 'kind=lift_phase&routine=' + e.routine + '&mode=upper', 'phase-gate'); row.append(tg); }
-        const last = lastBefore(e.id || e.ex, date); const h = gt ? null : hint(e, last, mode);
+        const last = lastBefore(e.id || e.ex, date, e.day_key); const h = gt ? null : hint(e, last, mode);
         if (cl) {
           const ch = gt ? null : cleanHint(e, last, mode), hl = mk('div', 'lx-hint', null, 'coach', null, ew, last ? 'store:lift_log/' + last.date + ' sets, next-step' : 'first-time');
-          if (ch) { hl.append(el('span', 'lx-nw', ch.t)); if (ch.aim) hl.append(' · ', el('span', 'lx-nw', 'aim ' + ch.aim)); }
-          else if (!gt) hl.append(el('span', null, hasLoad(e) ? 'First time: pick a load you could lift a few more times' : 'First time: easy version, stop with reps to spare'));
+          if (ch) { hl.append(el('span', 'lx-nw', ch.t)); if (ch.aim) hl.append(' · ', el('span', 'lx-nw', 'aim ' + ch.aim)); else if (ch.say) hl.append(' · ', el('span', null, ch.say)); }
+          else if (!gt) hl.append(el('span', null, e.day_hint || (hasLoad(e) ? 'First time: pick a load you could lift a few more times' : 'First time: easy version, stop with reps to spare')));
           if (!gt) row.append(hl);
           // How to do it (approved on the Lifts Tab Cleanup page, Nov 16, 2026): first-time lifts fold out the coach's cues
           const how = !last && !gt && (e.how || (m.xlib.get(e.id || e.ex) || {}).how);
@@ -260,7 +283,7 @@
         // One input row per set; the routine's set count is the minimum, saved sets or the + set button add more (the athlete, Oct 23)
         const setRow = (i) => {
           const g = el('div', 'lx-set' + (hasLoad(e) ? '' : ' one')); g.append(mk('span', 'lx-setn', `S${i + 1}`, null, null, null, 'set-number'));
-          const prev = last && last.sets[i] ? last.sets[i] : null; const mine = cur[i] || {};
+          const prev = last && last.sets[i] && !(e.day_key && last.day !== e.day_key) ? last.sets[i] : null; const mine = cur[i] || {}; // grey boxes come only from the same day type
           if (hasLoad(e)) {
             const w = el('input', 'ck-input lx-in'); w.type = 'number'; w.inputMode = 'decimal'; w.step = 'any'; w.min = '0'; w.dataset.ex = e.ex; w.dataset.i = i; w.dataset.f = 'lb';
             w.placeholder = prev && N(prev.lb) !== null ? String(toU(N(prev.lb))) : (cl ? '' : e.load === 'lb_added' ? '+' + wU() : wU()); w.setAttribute('aria-label', `${e.name} set ${i + 1} ${e.load === 'lb_added' ? 'added ' + wU() : wU()}`);
@@ -304,7 +327,7 @@
     paintRpe(); $('l-note').value = saved ? saved.note || '' : '';
     finBtn(!restored && stored && stored.finished_at);
     paintTicks(m); paintSkips(); paintNext();
-    if (cl) { rtLine = `${box.querySelectorAll('.lx-row').length} lifts \u00b7 ${dayMins || N(m.routine.minutes) || 25} min`; const rs = document.querySelector('#l-pick .lx-rtsub'); if (rs) rs.textContent = rtLine; else if (!rView && !mfy) renderRoutines(m); }
+    if (cl) { rtLine = m.day && !m.guest ? `${m.day.label}${m.day.next ? ' \u00b7 ' + m.day.next + ' next' : ''}` : `${box.querySelectorAll('.lx-row').length} lifts \u00b7 ${dayMins || N(m.routine.minutes) || 25} min`; const rs = document.querySelector('#l-pick .lx-rtsub'); if (rs) rs.textContent = rtLine; else if (!rView && !mfy) renderRoutines(m); }
     if (restored) { bar('Restored sets kept on this phone. Saving…', 'kept'); status(''); schedule(0); }
     else if (stored) { status('Saved ' + fWD(stored.date) + (stored.saved_at ? ', ' + stamp(stored.saved_at) : ''), 'ok'); bar('All sets saved · ' + stamp(stored.saved_at), 'ok'); }
     else { status(db ? (cl ? '' : date === TODAY ? 'No sets saved today yet' : 'No sets saved for ' + fWD(date)) : (loaded ? '' : 'Loading…')); bar(db ? 'Sets save as you type.' : (loaded ? 'Saving is not available in this view.' : '')); }
@@ -823,6 +846,7 @@
     if (prevDoc && prevDoc.sets) { const pi = prevDoc.ids || {}; for (const k of Object.keys(prevDoc.sets)) if (!m.ex.some((e) => e.ex === k) && !(k in v.sets)) { v.sets[k] = prevDoc.sets[k]; if (pi[k]) ids[k] = pi[k]; } }
     const fin = finish ? at : (prevDoc && prevDoc.finished_at) || null;
     const doc = { date: d, routine: m.routine.routine, routine_name: m.routine.name, sets: v.sets, ids, rpe: v.rpe, activity_id: g ? id : null, minutes: mins, note: v.note, done: v.done, skipped: v.skipped, skip_why: v.skip_why || {}, saved_at: at, finished_at: fin };
+    if (m.day && !m.guest) doc.day = m.day.key; else if (prevDoc && prevDoc.day && m.guest) doc.day = prevDoc.day;
     try {
       await db.doc('lift_log/' + d).set(doc); logs.set(d, doc); draftDrop(d, at); weekDiscs();
       const rateKey = id + '|' + (v.rpe ?? '');
@@ -931,7 +955,7 @@
   $('l-copy').addEventListener('click', () => {
     const m = model(); if (!m) return;
     for (const e of m.ex) {
-      const last = lastBefore(e.id || e.ex, date); if (!last) continue;
+      const last = lastBefore(e.id || e.ex, date, e.day_key); if (!last) continue;
       last.sets.forEach((st, i) => {
         for (const f of ['lb', 'reps']) { const x = document.querySelector(`#l-ex input[data-ex="${e.ex}"][data-i="${i}"][data-f="${f}"]`); if (x && N(st[f]) !== null && x.value === '') x.value = f === 'lb' ? toU(N(st[f])) : st[f]; }
       });

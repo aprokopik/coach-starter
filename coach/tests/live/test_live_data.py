@@ -56,5 +56,18 @@ class LiveData(unittest.TestCase):
                 self.assertEqual(lib[s["from"]]["pattern"], lib[s["to"]]["pattern"], (r["block_key"], s["ex"]))
 
 
+class LiftDays(unittest.TestCase):
+    """6.142.0: from Feb 1 every season step takes turns, heavy then moderate, on the four main lifts (the athlete, Nov 17, 2026)."""
+
+    def test_phases_from_feb_carry_heavy_then_moderate(self):
+        rows = json.load(open(os.path.join(ROOT, "coach", "strength.json")))["rows"]
+        ph = [r for r in rows if r.get("kind") == "lift_phase" and r["start"] >= "2027-02-01"]
+        self.assertTrue(ph)
+        for p in ph:
+            self.assertEqual([(d["key"], d["lo"], d["hi"]) for d in p["days"]], [("heavy", 4, 6), ("moderate", 8, 12)], p["label"])
+            self.assertEqual(p["days_ex"], ["1a", "1b", "2a", "2b"])
+            self.assertTrue(all(d.get("hint") for d in p["days"]))
+
+
 if __name__ == "__main__":
     unittest.main()
