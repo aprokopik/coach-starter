@@ -15,7 +15,7 @@ A personal endurance and health coach that runs on Claude. It reads your sleep, 
 
 **A coach that listens.** Reply in plain words ("my knee hurts going downstairs", "I'm travelling Thursday to Sunday") and the plan changes, with a note of why.
 
-**Built around you.** Three tap cards about your goals, your health and your week shape everything. A beginner building a habit and an athlete chasing a race get different coaches from the same kit.
+**Built around you.** Four tap cards about your goals, your health, your week and how you like to lift shape everything. A beginner building a habit and an athlete chasing a race get different coaches from the same kit.
 
 ## Start in two steps
 

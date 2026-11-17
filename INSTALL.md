@@ -20,11 +20,11 @@ Something not working or not clear? Tell your coach. It notes it in `setup/SETUP
 2. Connect your GitHub account when Claude asks, and give the Claude GitHub app access to your coach repository (choose **Only select repositories**, then pick `my-coach`).
 3. Start a new session with `my-coach` selected, type **start** and send it.
 
-**Check:** your coach answers with "Three cards and you are looking at your own coach".
+**Check:** your coach answers with "Four cards and you are looking at your own coach".
 
 From here your coach leads, and you only tap:
 
-- **Three tap cards**, about three minutes. Your goals and what records your sleep; a short health screen; your hours, the days that never work and when your morning check-in should arrive. Every question has a "Something else" option for your own words, and every question can be skipped.
+- **Four tap cards**, about three minutes. Your goals and what records your sleep; a short health screen; your hours, the days that never work and when your morning check-in should arrive; how you like to lift and what kit you can use. Every question has a "Something else" option for your own words, and every question can be skipped.
 - **Your device**, now or later. Your coach asks whether to connect it now or start without it. Garmin takes about 90 seconds (see below). A ring or Apple Watch takes about 20 minutes on your iPhone: a free Strava account for workouts and one Shortcut for sleep and recovery.
 - **Claude finishes the setup** while you do other things, about 20 minutes: your first week, your private dashboard, your daily check-in, and a button for your phone's home screen.
 - **Four feedback taps** at the end, and a link to send the setup log back.

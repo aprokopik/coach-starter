@@ -5,7 +5,7 @@ Coach is a personal endurance and health coach that runs on Claude. Every mornin
 ## Start in two steps
 
 1. **Make your own private copy.** Open **github.com/new?template_owner=aprokopik&template_name=coach-starter&name=my-coach&visibility=private** and click **Create repository**. (Free GitHub account; about 20 seconds.)
-2. **Type "start" in Claude Code.** Open **claude.ai/code**, connect GitHub when asked, pick your `my-coach` repository, type **start** and send it. Your coach takes it from there: three tap cards about you, then it builds your plan, your dashboard and your morning check-in.
+2. **Type "start" in Claude Code.** Open **claude.ai/code**, connect GitHub when asked, pick your `my-coach` repository, type **start** and send it. Your coach takes it from there: four tap cards about you, then it builds your plan, your dashboard and your morning check-in.
 
 That is the whole path. Your coach lives in **Claude Code** (claude.ai/code), never in a regular Claude chat: a regular chat cannot save anything to your repository. `INSTALL.md` has the same two steps with a check after each, and what to do if something goes wrong.
 
@@ -23,7 +23,7 @@ That is the whole path. Your coach lives in **Claude Code** (claude.ai/code), ne
 | Your part | Time |
 |---|---|
 | Make your copy and connect it to Claude | about 1 min |
-| Three tap cards: your goals, a short health screen, your week | about 3 min |
+| Four tap cards: your goals, a short health screen, your week, your lifting | about 3 min |
 | Dashboard button on your phone, four feedback taps | about 2 min |
 
 Connecting your device comes on top, now or any day later:

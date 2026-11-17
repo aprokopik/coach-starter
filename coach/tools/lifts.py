@@ -15,6 +15,8 @@ Usage (from the repo root):
   python3 coach/tools/lifts.py library [--have a,b,...]   the exercise library by movement; with --have, what fits that equipment
   python3 coach/tools/lifts.py start <id,id,...> [--per-week N] [--minutes M] [--name NAME]
                                                           a first routine for a coach that has none (after the athlete's yes)
+  python3 coach/tools/lifts.py start --kit bodyweight,bands,dumbbells,gym [--per-week N] [--minutes M]
+                                                          the starter routine for that kit (onboarding card 4); --routine ID names one
   python3 coach/tools/lifts.py list                       rotation rows with status
   python3 coach/tools/lifts.py due [date]                 what the run has to do about rotation today
   python3 coach/tools/lifts.py propose <block_key> [--drop EX,...]
@@ -663,11 +665,59 @@ def cmd_library(args):
     return 0
 
 
+KIT_STARTER = (("gym", "gym_bb"), ("dumbbells", "kettlebell"), ("bands", "bands"), ("bodyweight", "home_bw"))  # best kit first
+
+
+def starter_for(kit):
+    """The starter routine (coach/routines.json id) for the kit ticked at onboarding (answers.json lifting.kit: bodyweight,
+    bands, dumbbells, gym): the one that uses the most kit they have. None when nothing was ticked."""
+    kit = {str(k).strip().lower() for k in kit or []}
+    return next((rid for k, rid in KIT_STARTER if k in kit), None)
+
+
+def start_from_routine(rid, per_week, minutes, replace=False):
+    """Write a starter routine from coach/routines.json into coach/strength.json as the routine the person is on: its own
+    plan, blocks and name, under its own id so the Routine picker marks it. Slots are numbered by block (1a, 1b, 2a)."""
+    doc, lib = read_json(STRENGTH), library()
+    if any(r.get("kind") == "lift_routine" for r in doc.get("rows", [])) and not replace:
+        print("There is a routine already. Exercises change through the rotation (lifts.py propose); --replace starts over."); return 1
+    row = next((r for r in read_json("coach/routines.json", {"rows": []}).get("rows", []) if r.get("kind") == "lift_lib" and r.get("id") == rid), None)
+    ex, bl = plan_rows(row, lib) if row else ([], [])
+    if not ex:
+        print(f"Not written: no starter routine '{rid}' with a plan in coach/routines.json"); return 1
+    per_week, minutes = int(per_week or row.get("per_week") or 2), int(minutes or row.get("minutes") or 25)
+    rows = [{"kind": "lift_routine", "routine": rid, "name": row["name"], "subtitle": row.get("best_for") or "Built around what you have",
+             "per_week": per_week, "minutes": minutes, "busy_minutes": row.get("busy_minutes") or 15, "days": None,
+             "rir": "stop with 1\u20132 reps left", "from": today(), "when": f"Any {per_week} days that fit", "legacy_ids": {}}]
+    rows += [{"kind": "lift_block", "routine": rid, **b} for b in bl]
+    seen = {}
+    for e in ex:
+        n = seen.get(e["block"], 0); seen[e["block"]] = n + 1
+        slot = e["block"] if e["block"] == "W" and n == 0 else e["block"] + "abcdefghi"[n]
+        rows.append({"kind": "lift_ex", "routine": rid, **e, "ex": slot})
+    rules = [("Progress", "Top of the range on every set: add load, or move to the next harder version, next time.", False),
+             ("Timing", f"Any {per_week} days that fit your week; hard leg work at least 48 h before a long or key session.", False),
+             (f"Busy week ({rows[0]['busy_minutes']} min)", "The first four lifts.", False),
+             ("Stop signals", "Pain that is sharp, one-sided or changes how you move: stop that lift and tell your coach.", True)]
+    for n, (label, text, warn) in enumerate(rules, 1):
+        rows.append({"kind": "lift_rule", "routine": rid, "order": n, "label": label, "text": text, **({"warn": True} if warn else {})})
+    doc["rows"] = rows
+    write_json(STRENGTH, doc)
+    print(f"Wrote {row['name']} ({len(ex)} lifts, {per_week} a week, {minutes} min) to {STRENGTH}. It shows on the Lifts tab after the next dashboard rebuild.")
+    return 0
+
+
 def cmd_start(args):
-    """Write a first routine into coach/strength.json from library ids, in the order given. Only after the athlete says yes."""
-    if not args or args[0].startswith("--"):
-        print("usage: lifts.py start <id,id,...> [--per-week N] [--minutes M] [--name NAME] [--replace]"); return 2
+    """Write a first routine into coach/strength.json: from library ids in the order given, or a starter routine by id
+    (--routine) or by the kit ticked at onboarding (--kit). Only after the athlete says yes."""
     opt = lambda k, dflt: args[args.index(k) + 1] if k in args else dflt
+    if "--routine" in args or "--kit" in args:
+        rid = opt("--routine", None) or starter_for(opt("--kit", "").split(","))
+        if not rid:
+            print("Not written: --kit names none of bodyweight, bands, dumbbells, gym"); return 1
+        return start_from_routine(rid, opt("--per-week", None), opt("--minutes", None), "--replace" in args)
+    if not args or args[0].startswith("--"):
+        print("usage: lifts.py start <id,id,...> | --kit bodyweight,bands,dumbbells,gym | --routine ID  [--per-week N] [--minutes M] [--name NAME] [--replace]"); return 2
     doc, lib = read_json(STRENGTH), library()
     if any(r.get("kind") == "lift_routine" for r in doc.get("rows", [])) and "--replace" not in args:
         print("There is a routine already. Exercises change through the rotation (lifts.py propose); --replace starts over."); return 1

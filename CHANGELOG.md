@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.134.0 (2026-11-17)
+- Package: onboarding asks how you like to lift on a fourth tap card (style, days a week, minutes a session, kit you can use), saved as `lifting` in setup/answers.json and carried into the profile; setup then starts the starter routine that fits the kit (`lifts.py start --kit`), so a new coach has a lifting routine on day one. A split preference starts on the matching full body routine and is noted for later. The dashboard no longer asks strength sessions a week a second time.
+
 ## 6.133.0 (2026-11-17)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 

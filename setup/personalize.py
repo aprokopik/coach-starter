@@ -99,6 +99,37 @@ def modules(a):
     return ["strength" if m == "stronger" else m for m in out]
 
 
+LIFT_STYLES = {"full_body": "full body each time", "upper_lower": "upper and lower split", "ppl": "push, pull, legs split"}
+LIFT_KIT = {"bodyweight": "body weight only", "bands": "bands", "dumbbells": "dumbbells or a kettlebell", "gym": "a full gym"}
+
+
+def lifting_per_week(a):
+    """Strength sessions a week: the lifting card's number when one was tapped (2, 3 or 4), else the schedule default."""
+    n = (a.get("lifting") or {}).get("per_week")
+    return n if isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= 6 else a.get("schedule", {}).get("strength_per_week", 2)
+
+
+def lifting_prefs(a):
+    """What the person tapped on the lifting card, minus sessions a week (one home: strength_minimum_per_week).
+    style or minutes None means Coach picks or skipped; kit is a list of bodyweight, bands, dumbbells, gym."""
+    l = a.get("lifting") or {}
+    return {"style": l.get("style") if l.get("style") in LIFT_STYLES else None,
+            "minutes": l.get("minutes") if isinstance(l.get("minutes"), int) else None,
+            "kit": [k for k in l.get("kit") or [] if k in LIFT_KIT]}
+
+
+def lifting_line(a):
+    """One PROFILE.md line; a split preference is named so the coach can offer it once splits are available."""
+    p, bits = lifting_prefs(a), []
+    if p["style"]:
+        bits.append(LIFT_STYLES[p["style"]] + (" preferred (starts on the matching full body routine; offer the split when one is available)" if p["style"] != "full_body" else ""))
+    if p["minutes"]:
+        bits.append(f"about {p['minutes']} minutes a session")
+    if p["kit"]:
+        bits.append("can use " + ", ".join(LIFT_KIT[k] for k in p["kit"]))
+    return "- Lifting: " + ("; ".join(bits) if bits else "no preferences given; the coach picks") + ".\n"
+
+
 def main_goal(a):
     sel, m = goal_ids(a), a.get("goals", {}).get("main")
     return m if m in sel else (sel[0] if sel else None)
@@ -196,7 +227,8 @@ def build(a, today):
                               "note": "Starting guess; the coach replaces it after 4 weeks of data. Watch item, not a gate."},
         "feel_scale_cutover": today.isoformat(),
         "run_history_notes": a.get("health", {}).get("injury_notes", ""),
-        "strength_minimum_per_week": sch.get("strength_per_week", 2),
+        "strength_minimum_per_week": lifting_per_week(a),
+        "lifting": lifting_prefs(a),  # onboarding card 4; sessions a week live in strength_minimum_per_week only
         "swims_per_month_minimum": sch.get("swims_per_month", 0),
         "office_days_default": False,
         "data_source": source_of(a),
@@ -359,7 +391,7 @@ Written at onboarding on {today.isoformat()} from {name}'s own answers (Reported
 ## Time and schedule
 - Training budget {lo} to {hi} h a week (a plan, not a ceiling). Days that usually do not work: {sch.get('blocked_days', 'none given')}.
 - Strength sessions a week: {profile['strength_minimum_per_week']}. Swims a month: {profile['swims_per_month_minimum']}.
-
+{lifting_line(a)}
 ## Health context (Reported)
 - Injuries and niggles: {a.get('health', {}).get('injury_notes') or 'none reported'}.
 - Conditions or medications that affect exercise: {a.get('health', {}).get('conditions') or 'none reported'}.
