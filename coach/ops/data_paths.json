@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-11-15",
+ "updated": "2026-11-18",
  "note": "Single source for how each data feed and each scheduled task reaches the repo: route, cadence, how lateness is detected and the fallback. RUNBOOK, CURRENT-STATE and the task prompts point here instead of restating routes. A PR that changes a route edits this file in the same PR (PR template checkbox). Reference data, not coaching instructions.",
  "written_in_sessions": {
   "note": "Athlete files no feed or task writes on a schedule: changed only in a session the athlete starts (a project thread, a reply to the check-in) or by a reviewed PR. Every tracked athlete file under coach/ and state/ is named under a path's writes or here (coach/tests/test_data_paths_writers.py, 6.61.0), so a new file cannot appear without a stated writer.",
@@ -101,7 +101,8 @@
     "coach/experiments.json (experiments.py)",
     "coach/CURRENT-STATE.md (when something changed)",
     "coach/BACKLOG.md",
-    "coach/races.json (race plan or status)"
+    "coach/races.json (race plan or status)",
+    "coach/week_reviews.csv (week_review.py ingest, done, told)"
    ],
    "cadence": "daily",
    "evidence": {
@@ -180,7 +181,8 @@
    "writes": [
     "coach/refresh.json",
     "coach/dashboard/coach.json",
-    "coach/vo2max.csv"
+    "coach/vo2max.csv",
+    "coach/week_reviews.csv (week_review.py ingest, done)"
    ],
    "cadence": "every 2 hours 9:41 AM to 9:41 PM ET, and the 7:45 run",
    "evidence": {

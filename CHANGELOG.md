@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.149.3 (2026-11-18)
+- Changes to the original athlete's own coaching only; nothing in the shared engine.
+
 ## 6.149.2 (2026-11-18)
 - Package: the morning message guide's Heads up list says "failed GitHub check" and "handoff taken on" where it said "hiccup" and "board item taken on", so the kit friends' copy names nothing they do not have. Same meaning for the kit maker.
 - Package: `.github/workflows/tests.yml` skips the unit tests on a data-only push to main only when main's previous run passed. On Nov 17 the failing commit was followed by data-only pushes that skipped the tests and showed green, so the failure went unnoticed until a pull request (#292) ran the full suite. Now a red main stays red until it is fixed (about 35 s per data push while red).
