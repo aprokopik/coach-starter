@@ -9,7 +9,8 @@ name: Coach tests
 # twice (the live data guard used to rerun everything in a child); (2) a newer push to the same pull
 # request cancels the older run; (3) a push to main that changes only live data files (frozen.is_live:
 # BP rows, weigh-ins, check-ins) skips the unit tests, which cannot change on data, and still runs the
-# live data checks, so a broken data file is still reported the same day.
+# live data checks, so a broken data file is still reported the same day. (4) 6.149.2: (3) applies only while main's
+# previous run passed, so a system failure cannot hide behind data-only pushes.
 on:
   pull_request:
   push:
@@ -18,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
@@ -53,8 +55,21 @@ jobs:
           else
             echo "could not compare with the previous commit, running everything"
           fi
+      # 6.149.2: a red main must stay red until fixed. On Nov 17 a stage tap commit failed the unit tests and the next
+      # data-only pushes skipped them and showed green, so nobody was told for 13 hours. A data-only push now skips the
+      # unit tests only when main's previous finished run passed; otherwise it runs them again (about 35 s).
+      - name: Was main green before this push?
+        id: prev
+        if: steps.scope.outputs.data_only == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/actions/workflows/tests.yml/runs?branch=main&event=push&status=completed&per_page=5" \
+                 --jq '[.workflow_runs[] | select(.id != ${{ github.run_id }})][0].conclusion' 2>/dev/null || true)
+          echo "previous main run: ${last:-unknown}"
+          if [ "$last" = "success" ]; then echo "green=1" >> "$GITHUB_OUTPUT"; fi
       - name: Unit and regression tests (once, under the live data guard)
-        if: steps.scope.outputs.data_only != '1'
+        if: steps.scope.outputs.data_only != '1' || steps.prev.outputs.green != '1'
         run: python coach/tests/live_guard.py
       # Today's athlete files (key sessions, shared race page, briefs, lift rotation). A failure means a data
       # file needs fixing, not the code, so it is reported here and never blocks a merge.

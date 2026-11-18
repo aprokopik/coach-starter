@@ -347,6 +347,8 @@
     const best = new Map(); for (const u of out) { if (u.goal || u.stage) continue; const b = best.get(u.key); if (!b || u.lv > b.lv) best.set(u.key, u); }
     const byDate = (x, y) => (x.date < y.date ? 1 : -1); return [...out.filter((u) => u.stage).sort(byDate), ...[...best.values()].sort(byDate), ...out.filter((u) => u.goal).sort(byDate)];
   }
+  // 6.149.1: a level up of a skill and day already seen is seen (test_live_app_checks.py)
+  const lvJumpSeen = (u, seen) => !u.stage && !u.goal && [...seen].some((id) => { const [k, l, d] = id.split('|'); return k === u.key && d === u.date && !/^(stage-|goal-)/.test(l); });
   const lvSeen = () => { let loc = []; try { loc = JSON.parse(localStorage.getItem('cx-lvseen') || '[]') || []; } catch (e) { loc = []; } return [...new Set([...loc, ...(window.CX.lvSeenShared ? window.CX.lvSeenShared() : [])])]; }; // this device's and the store's (metrics.js)
   // Level up moment (6.48.0). the athlete, Nov 14, 2026, picked S2 "Lean" from the gold full screen takes (options pages
   // (link not included in the kit), then (link not included in the kit), then
@@ -403,7 +405,7 @@
   function renderKudos() {
     const box = $('t-lvup'); if (!box || document.documentElement.dataset.lvx === 'off') return; // harness/build.py sets lvx off (the screen covers Today) unless --lvx
     if (!window.CX.lvReady) return; // 6.77.4: not before metrics.js has the store's seen list
-    const seen = new Set(lvSeen()); const groups = lvGroups(levelUps().filter((u) => !seen.has(u.id)));
+    const seen = new Set(lvSeen()); const groups = lvGroups(levelUps().filter((u) => !seen.has(u.id) && !lvJumpSeen(u, seen)));
     if (!groups.length) { box.hidden = true; box.replaceChildren(); if (lvOpen) { document.documentElement.classList.remove('td-lvx-on'); lvOpen = null; } return; }
     const g = groups[0]; if (lvOpen && lvOpen.ids.join() === g.ids.join() && !box.hidden) return; // a re-render keeps the screen as it is
     const u = g.main; const lvSt = (/^level (\d+)-/.exec(u.lvTxt || '') || [])[1]; // the athlete, Nov 15: no "1-4" on this screen; the level alone, the stage in words

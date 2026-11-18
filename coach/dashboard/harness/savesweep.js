@@ -3,7 +3,8 @@
 // Taps every button on every tab, once, against the stand-in store (frozen like the live one since 6.105.0), then checks:
 //   1. every store kind in savesweep-expect.json got at least one write (a tap that used to save still saves),
 //   2. no page error and no failed save the page recorded (window.CX.saveLog),
-//   3. with every write refused (__failWrites), the tapped card shows the red "Not saved" chip (6.111.0; the top bar is gone, the athlete: "less intrusive").
+//   3. with every write refused (__failWrites), the tapped card shows the red "Not saved" chip (6.111.0; the top bar is gone, the athlete: "less intrusive"),
+//      checked on screen right after each failed tap (6.149.1), and at the end of each tab still on the page.
 // Usage: node savesweep.js <page.html> [--learn]   (--learn prints the kinds written, to refresh savesweep-expect.json)
 // Exit 1 on a failure. Build the page with build.py --lvx so the level up screen and its "Thanks, coach" are in the sweep.
 const { chromium } = require('playwright');
@@ -21,6 +22,7 @@ async function sweep(b, page, fail) {
     // count the buttons with the tab open, and again as taps add more (Nov 17, 2026: counted on the first tab, the sweep ran out
     // before the Lifts set Done buttons once the day picker added 8 buttons above them, so lift_log looked missing)
     await p.evaluate((t) => { const b = document.getElementById('tab-' + t); if (b) b.click(); }, tab); await p.waitForTimeout(300);
+    let tapSeen = await p.evaluate(() => ((window.CX && window.CX.saveLog) || []).length);
     for (let i = 0; i < 400; i++) {
       if (i >= await p.evaluate(() => document.querySelectorAll('button').length)) break;
       await p.evaluate((t) => { const b = document.getElementById('tab-' + t); if (b && b.getAttribute('aria-selected') !== 'true') b.click(); }, tab);
@@ -34,10 +36,15 @@ async function sweep(b, page, fail) {
         el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); el.click(); return true;
       }, [i, SKIP.source]);
       if (ok) await p.waitForTimeout(fail ? 30 : 15);
+      // 6.149.1: with writes refused, every tap that failed must show the red chip right then, on screen (the end of tab count
+      // below missed it once a later tap opened a race with no Kit card; the chip itself had been hidden by the card's own text)
+      if (ok && fail) { await p.waitForTimeout(120); const c = await p.evaluate((seen) => { const t = ((window.CX && window.CX.saveLog) || []).slice(seen).filter((x) => /^tap /.test(x));
+        const chip = [...document.querySelectorAll('.cx-unsaved')].some((x) => x.getBoundingClientRect().height && !x.closest('[hidden]')); return { n: (window.CX.saveLog || []).length, t, chip }; }, tapSeen);
+        if (c.t.length && !c.chip) errs.push(`${tab}: refused ${c.t[0]} with no Not saved chip on screen`); tapSeen = c.n; }
     }
     await p.waitForTimeout(fail ? 1500 : 600);
     const r = await p.evaluate(() => ({ writes: window.__harness.writes.map((w) => w[0].split('/')[0]), log: (window.CX && window.CX.saveLog) || [],
-      line: (document.body.innerText.match(/Not saved/g) || []).length, failed: window.__harness.failed || 0 }));
+      line: (document.body.innerText.match(/Not saved/g) || []).length + document.querySelectorAll('.cx-unsaved').length, /* a chip on a card a later tap hid (a race with no Kit) still counts: it shows when the card does */ failed: window.__harness.failed || 0 }));
     r.writes.forEach((k) => kinds.add(k)); saveLog.push(...r.log.map((x) => tab + ': ' + x));
     if (fail) { const taps = r.log.filter((x) => /^tap /.test(x)); if (taps.length && !r.line) errs.push(`${tab}: refused ${taps.join('; ') || 'probe only'}, Not saved lines ${r.line}`); }
     await p.close();

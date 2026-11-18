@@ -5,39 +5,39 @@
  "rows": [
   {
    "id": "lift_kg",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "set_changes",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "short_morning",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "week_review",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "lift_time",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "lift_lite",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "lift_clean",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "float_chat",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "day_sessions",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "stage_coins",
@@ -45,15 +45,15 @@
   },
   {
    "id": "strength_levels",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "own_hr_model",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "race_toggles",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "any_person",
@@ -141,19 +141,19 @@
   },
   {
    "id": "elite_stage",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "race_coins_rest",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "race_scales",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "race_type_panels",
-   "status": "alpha"
+   "status": "beta"
   }
  ]
 }

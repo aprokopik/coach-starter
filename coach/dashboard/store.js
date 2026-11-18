@@ -5,12 +5,19 @@
   const keep = (f) => { try { const m = JSON.parse(localStorage.getItem(K) || '{}'); f(m); localStorage.setItem(K, JSON.stringify(m)); } catch (e) {} };
   const near = (e) => { const t = e.target.closest && e.target.closest('.ck-tile,article,section'); if (t) { tile = t; at = now(); } };
   addEventListener('pointerdown', near, true); addEventListener('keydown', near, true);
-  const chip = (t) => setTimeout(() => { // the athlete, Nov 16: less intrusive, still red; a chip by the card title, a tap retries
-    if (!t || !t.isConnected || t.closest('[hidden]') || /Not saved/.test(t.textContent)) return;
+  // 6.149.1: a card with a refused tap keeps its chip through redraws until a save lands
+  const pend = new Set(); let mo, mt;
+  const put = (t) => { // the athlete, Nov 16: a chip by the card title, a tap retries
+    if (!t || !t.isConnected || t.closest('[hidden]') || t.querySelector('.cx-unsaved')) return;
     const c = document.createElement('button'); c.type = 'button'; c.className = 'cx-unsaved'; c.textContent = '↻ Not saved'; c.setAttribute('aria-label', 'Not saved. Kept on this phone. Tap to try again'); c.onclick = (e) => { e.stopPropagation(); resend(); };
     const h = t.querySelector('.ck-tile-head'); h ? h.insertBefore(c, h.children[1] || null) : t.prepend(c);
+  };
+  const again = () => { clearTimeout(mt); mt = setTimeout(() => { for (const id of pend) put(document.getElementById(id)); }, 60); };
+  const chip = (t) => setTimeout(() => {
+    if (t && t.id) { pend.add(t.id); if (!mo && window.MutationObserver) { mo = new MutationObserver(again); mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] }); } t = document.getElementById(t.id) || t; }
+    put(t);
   }, 60);
-  const ok = (k) => { keep((m) => { delete m[k]; }); document.querySelectorAll('.cx-unsaved').forEach((l) => l.remove()); };
+  const ok = (k) => { keep((m) => { delete m[k]; }); pend.clear(); document.querySelectorAll('.cx-unsaved').forEach((l) => l.remove()); };
   const bad = (k, e, t) => { log.push((t ? 'tap ' : 'auto ') + k + ' ' + String((e && (e.code || e.message)) || e).slice(0, 80)); chip(t); };
   async function write(k, body) {
     const t = now() - at < 3e3 ? tile : null, v = JSON.parse(JSON.stringify(body));
