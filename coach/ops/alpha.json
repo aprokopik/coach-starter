@@ -166,6 +166,10 @@
   {
    "id": "day_weather",
    "status": "alpha"
+  },
+  {
+   "id": "no_train_today",
+   "status": "alpha"
   }
  ]
 }

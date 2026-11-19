@@ -22,8 +22,9 @@ from datetime import date, datetime, timedelta, timezone
 
 PATH = "coach/day_changes.csv"
 FIELDS = ["date", "reason", "note", "use_min", "saved_at", "source", "status", "done_at", "done_note"]
-# the reasons the card offers, in its order, and their words (change.js REASONS holds the same five)
-REASONS = {"gym_closed": "Gym closed", "travel": "Traveling", "less_time": "Less time", "swap_order": "Swap order", "other": "Something else"}
+# the reasons the card offers, in its order, and their words (change.js ALL holds the same ones)
+# no_train (6.155.0, alpha no_train_today; the athlete, Nov 19, 2026): the card offers it only with the switch on
+REASONS = {"no_train": "Can’t train", "gym_closed": "Gym closed", "travel": "Traveling", "less_time": "Less time", "swap_order": "Swap order", "other": "Something else"}
 DAYS_SHOWN = 7  # build_dashboard carries the last week of changes
 
 

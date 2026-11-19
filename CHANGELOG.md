@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.155.0 (2026-11-19)
+- Dashboard, Feature: no_train_today (alpha), a Can’t train choice on Today changed? (the kit maker, Nov 19, 2026: home late, skipping the easy ride; "Let's get that implemented"). Before, a skipped day had to go in as Something else with a typed note.
+
 ## 6.154.0 (2026-11-19)
 - Dashboard fix, Feature: one_readiness (alpha), the Readiness card no longer shows states that contradict (the kit maker, Nov 19, 2026, Today at 6:25 AM: "How is there sleep data below if no watch data. How is my reading well low if i surveyed ok for everything?", "And it also says primed").
 

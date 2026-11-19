@@ -13,9 +13,12 @@
   const CX = window.CX;
   const A = () => CX.app;
   const $ = (id) => document.getElementById(id);
-  // the same five reasons, in the same order, as coach/tools/day_change.py REASONS (test_day_change checks they match)
-  const REASONS = [['gym_closed', 'Gym closed'], ['travel', 'Traveling'], ['less_time', 'Less time'], ['swap_order', 'Swap order'], ['other', 'Something else']];
-  const word = (k) => (REASONS.find(([v]) => v === k) || [k, 'Something else'])[1];
+  // the same reasons, in the same order, as coach/tools/day_change.py REASONS (test_day_change checks they match).
+  // Can’t train (6.155.0, alpha no_train_today; the athlete, Nov 19, 2026): today comes off, no Min; the coach drops or moves it.
+  const ALL = [['no_train', 'Can’t train'], ['gym_closed', 'Gym closed'], ['travel', 'Traveling'], ['less_time', 'Less time'], ['swap_order', 'Swap order'], ['other', 'Something else']];
+  const alpha = (id) => !!(A() && A().kind('alpha').some((b) => b.id === id));
+  let REASONS = ALL.slice(1);
+  const word = (k) => (ALL.find(([v]) => v === k) || [k, 'Something else'])[1];
   const clock = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
   let db = null, built = false, saved = null, pick = '', minApplied = false;
 
@@ -29,7 +32,7 @@
     for (const [k, w] of REASONS) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'qc-chip' + (pick === k ? ' sel' : ''); b.textContent = w;
       b.setAttribute('aria-pressed', String(pick === k));
-      b.addEventListener('click', () => { pick = pick === k ? '' : k; paintChips(); $('t-chg-save').disabled = !pick; const f = $('t-chg-r').children[REASONS.findIndex(([v]) => v === k)]; if (f) f.focus(); });
+      b.addEventListener('click', () => { pick = pick === k ? '' : k; paintChips(); paintMin(); $('t-chg-save').disabled = !pick; const f = $('t-chg-r').children[REASONS.findIndex(([v]) => v === k)]; if (f) f.focus(); });
       box.append(b);
     }
   }
@@ -55,7 +58,7 @@
   }
   function paintMin() {
     const r = minRadio(), on = r && !r.disabled, l = $('t-chg-minl');
-    l.hidden = !on; $('t-chg-minv').textContent = on ? ($('t-bm-fallback').textContent || '').trim() : '';
+    l.hidden = !on || pick === 'no_train'; $('t-chg-minv').textContent = on ? ($('t-bm-fallback').textContent || '').trim() : '';
   }
 
   async function send(cleared) {
@@ -89,6 +92,7 @@
     if (!$('t-chg-btn') || !A()) return;
     if (!built) {
       built = true;
+      if (alpha('no_train_today')) REASONS = ALL;
       try { db = await window.CX.store(); } catch (e) { db = null; }
       if (!db) return; // nowhere to save: say it in chat
       try { const d = await db.doc('day_change/' + A().TODAY).get(); saved = d.exists ? d.data() : null; } catch (e) { saved = null; }
