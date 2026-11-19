@@ -434,6 +434,8 @@ def section_readiness_level(th, pain, night_pattern, feel):
         lv, why = "ease_off", "two mornings in a row a full point under your usual"
     elif watch and night_pattern.get("suggest") == "yellow":
         lv, why = "ease_off", night_pattern.get("why") or "low nights"
+    elif survey and feel.get("today_feel_low"):
+        lv, why = "ready", "this morning's feel a full point under your usual holds Primed back"
     elif based == "both" and good_nights and fresh:
         lv, why = "primed", f"{k} nights at or above normal and energy and legs at 4 or above"
     elif based == "watch" and good_nights:
@@ -514,6 +516,18 @@ def section_feel(today, data, th):
             break
         fresh += 1
         cur -= timedelta(days=1)
+    # this morning's feel against the mornings before, as the dashboard meter (ready.js feelCtx z): the mean of sleep,
+    # energy, legs and 6 - stress, over a spread never under a full point (answers move in whole steps; 6.153.1)
+    def score(x):
+        v = [x.get(k) for k in ("sleep_q", "energy", "legs")] + [None if x.get("stress") is None else 6 - x["stress"]]
+        v = [a for a in v if a is not None]
+        return sum(v) / len(v) if v else None
+    feel_z = None
+    sc = [score(x) for x in ref]
+    sc = [a for a in sc if a is not None]
+    if t and score(t) is not None and len(sc) >= th["feel_meter_min_mornings"]:
+        m, sd, _ = mean_sd(sc)
+        feel_z = round((score(t) - m) / max(sd or 0, th["feel_departure_points"]), 1)
     missing_today = t is None
     unanswered_days = 0
     cur = today
@@ -531,6 +545,7 @@ def section_feel(today, data, th):
         "reference_days": th["feel_reference_days"], "reference_n": n_ref, "reference_means": means,
         "today_departure": departure(t), "yesterday_departure": departure(y),
         "two_mornings_low": two_low,
+        "today_feel_sd": feel_z, "today_feel_low": feel_z is not None and feel_z <= -1,
         "energy_or_legs_at_or_below_2": bool(t and ((t.get("energy") or 9) <= th["feel_fallback_at_or_below"] or (t.get("legs") or 9) <= th["feel_fallback_at_or_below"])),
         "energy_and_legs_at_or_above_4": bool(t and (t.get("energy") or 0) >= th["feel_strong_day_at_or_above"] and (t.get("legs") or 0) >= th["feel_strong_day_at_or_above"]),
         "fresh_mornings_in_a_row": fresh,

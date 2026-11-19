@@ -861,8 +861,9 @@
     $('n-date').textContent = s && TN - dayN(s.date) < 1 ? `Morning of ${fWd(P(s.date))}` : '';
     // stale: the newest night is older than this morning
     const age = s ? TN - dayN(s.date) : 0;
-    $('n-stale').hidden = !(s && age >= 1);
-    if (s && age >= 1) $('n-stale-t').textContent = `The newest night is from ${fWd(P(s.date))}, ${age === 1 ? '1 day' : age + ' days'} ago. Today's arrives with the next Garmin pull.`;
+    // an old night shows no watch figures, only that it is waiting (6.154.0, the athlete Nov 19: "shouldn't we not see any watch metrics")
+    const old = !!s && age >= 1; $('n-stale').hidden = !old; $('n-gauge').hidden = $('n-all').hidden = old;
+    if (old) $('n-stale-t').textContent = `Waiting for last night from your watch. It arrives with the next Garmin pull (newest: ${fWd(P(s.date))}).`;
     for (const m of VITALS) {
       const r = by[m]; if (!r) continue;
       const w = 'metric=' + m, vs = vState(r), z = vs.z;
@@ -960,7 +961,7 @@
     // As a small table, colour coded like the track's steps (the athlete, Nov 15: "can you make this a table? Or color code"):
     // within 1σ the usual-range green, 1σ to 2σ the light accent, beyond 2σ the warm tint; the words carry the direction.
     { const cd = $('n-g-ctx-d'), cn = $('n-g-ctx-n'); cd.replaceChildren(); cn.replaceChildren();
-      wk.forEach((x) => { const pv = N(x.value), pa = Math.abs(pv), th = el('th', null, x.date === r.date ? 'Today' : wdn(x.date)); th.scope = 'col'; cd.append(th);
+      wk.forEach((x) => { const pv = N(x.value), pa = Math.abs(pv), th = el('th', null, x.date === TODAY ? 'Today' : wdn(x.date)); th.scope = 'col'; cd.append(th);
         const td = el('td'); td.append(mark(el('span', 'td-nz td-nz-' + (pa < 1 ? 'b1' : pa < 2 ? 'b2' : 'b3'), zw(pv)), 'night_week', null, 'key=' + x.date, 'zone')); cn.append(td); });
       const td = kind('today')[0], rw = td && td.date === TODAY ? READY_MEAN[String(td.readiness || '').toUpperCase()] : null;
       $('n-g-ctx-t').textContent = rw || 'Arrives with the morning check-in.';

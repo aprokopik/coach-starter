@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.154.0 (2026-11-19)
+- Dashboard fix, Feature: one_readiness (alpha), the Readiness card no longer shows states that contradict (the kit maker, Nov 19, 2026, Today at 6:25 AM: "How is there sleep data below if no watch data. How is my reading well low if i surveyed ok for everything?", "And it also says primed").
+
 ## 6.153.0 (2026-11-19)
 - Data feeds, Feature: none (a fix that fills in history on the live run time tile; nothing new to gate): runs from Apr to Sep 2024 now count on the run time tile (the kit maker, Nov 19, 2026: "How far back do my garmin logs go? I feel like we are missing some history"). Observed: the tile said "88 runs since Sep 2024" though Garmin history starts Apr 11, 2024 and every run since is in the repo. Root cause: Garmin filed no `fastestSplit_*` on runs before about Sep 10, 2024, and `markers.best_efforts` read only that field, so 47 runs of 5 km or more (Apr 13 to Sep 9, 2024, including a 21.5 km half) never reached the 5K, mile, 10K or half lines. Fix: the Garmin pull and the backfill keep a time and distance track (`data/run_tracks/<id>.csv.gz`, timer time and metres every 5 s, no location or heart rate) for any outdoor run of a mile or more with no Garmin best split, and `best_efforts` works the bests out from it (Garmin's own split still wins where it exists). Covers any future run Garmin files without splits. The 5K tile's note counts runs of 5 km or more still lacking a time, so a fetch that keeps failing shows. One backfill run after the merge fetches the 47 tracks. Guard: `coach/tests/test_run_tracks.py`.
 

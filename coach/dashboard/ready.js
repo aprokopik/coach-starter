@@ -16,7 +16,10 @@
     const avg = (v) => v.reduce((a, b) => a + b, 0) / v.length;
     const Y = isoN(TN - 1), yd = past.find((d) => d.date === Y), dp = N(r.feel_departure_points);
     const low = (d, at) => FEELK.some((k) => { const v = ref(k, at); return d && N(d[k]) !== null && v.length && N(d[k]) - avg(v) <= -dp; });
-    return { past, ref, avg, Y, yd, low };
+    // spread never under a full point: answers move in whole steps (6.154.0)
+    const z = (d) => { const sc = ref(null, TODAY), n = sc.length, s0 = d && feelScore(d); if (n < N(r.feel_meter_min_mornings) || s0 == null) return null;
+      const m = avg(sc), sd = Math.sqrt(sc.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)); return { v: Math.round((s0 - m) / Math.max(sd, dp) * 10) / 10, n }; };
+    return { past, ref, avg, Y, yd, low, z };
   }
   function surveyRead() {
     const note = $('t-early'), r = kind('feel_rule')[0], t = kind('today')[0], f = window.CX.feelToday;
@@ -31,7 +34,7 @@
       const mb0 = $('t-nm-btn'); if (mb0.parentNode && note.nextSibling !== mb0) mb0.before(note);
       return;
     }
-    const { past, ref, avg, Y, yd, low } = feelCtx(r);
+    const { yd, Y, low, z } = feelCtx(r);
     if (pre) { // one readiness on the card (the athlete, Nov 18): after the call a late survey adds no second read
     const p = N(f.pain) || 0, fb = N(r.feel_fallback_at_or_below), e = N(f.energy), l = N(f.legs);
     const call = p >= N(r.pain_stop) ? 'RED' : p >= N(r.pain_hurts) || (e !== null && e <= fb) || (l !== null && l <= fb) || (low(f, TODAY) && low(yd, Y)) ? 'YELLOW' : 'GREEN';
@@ -45,9 +48,8 @@
     }
     const gz = rowsOk('night_gauge'), nr = gz && gz[0];
     if (nr && nr.date === TODAY && N(nr.value) !== null) return; // last night is in: its own meter stays
-    const sc = ref(null, TODAY), n = sc.length, m = n ? avg(sc) : null, sd = n > 1 ? Math.sqrt(sc.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)) : 0;
-    if (n < N(r.feel_meter_min_mornings) || !sd) return;
-    const v = Math.round((feelScore(f) - m) / sd * 10) / 10, a = Math.abs(v), word = a < 1 ? 'Typical' : (a >= 2 ? 'Well ' : '') + (v > 0 ? (a >= 2 ? 'high' : 'High') : (a >= 2 ? 'low' : 'Low'));
+    const fz = z(f); if (!fz) return;
+    const { v, n } = fz, a = Math.abs(v), word = a < 1 ? 'Typical' : (a >= 2 ? 'Well ' : '') + (v > 0 ? (a >= 2 ? 'high' : 'High') : (a >= 2 ? 'low' : 'Low'));
     const s = a < 1 ? 'good' : v <= -1.5 ? 'watch' : 'plain';
     delete mb.dataset.learn; mb.hidden = false; const scl = mb.querySelector('.td-nm-scale'); if (scl) scl.hidden = false;
     mb.querySelector('.td-nm-k').textContent = "This morning's feel";
@@ -73,7 +75,7 @@
   // After the call the coach's level stands; a survey saved later moves it by the table, never above a level the coach lowered.
   const LEVEL = { primed: ['Primed', 'good', 'Take the bigger size'], ready: ['Ready', 'good', 'Train as planned'], ease_off: ['Ease off', 'watch', 'Take the shorter or easier size'], stressed: ['Stressed', 'act', 'Stop the planned stress today'] };
   const SIZE = { primed: 'upper', ready: 'nominal', ease_off: 'fallback' };
-  const LEVEL_OF = { GREEN: 'ready', YELLOW: 'ease_off', RED: 'stressed' }, RANK = ['stressed', 'ease_off', 'ready', 'primed'];
+  const LOW_SD = 1; const LEVEL_OF = { GREEN: 'ready', YELLOW: 'ease_off', RED: 'stressed' }, RANK = ['stressed', 'ease_off', 'ready', 'primed'];
   // The card's top (the athlete, Nov 18, 2026: the day on top; "chips in the top right corner ... confidence, it'll always be in the
   // same place, as well as survey, and then watch ... grey if you don't have it yet, or green if you do, and then confidence
   // can be color-coded"; "as small vertically that's still well legible")
@@ -101,7 +103,7 @@
     moveOffer(null);
     const r = kind('feel_rule')[0], t = kind('today')[0], f = window.CX.feelToday;
     if (!alpha('one_readiness') || !r || !t) { if (was) plan(); return; }
-    const pre = t.date !== TODAY, sv = !!(f && f.saved_at && feelScore(f) !== null), { past, Y, yd, low } = feelCtx(r);
+    const pre = t.date !== TODAY, sv = !!(f && f.saved_at && feelScore(f) !== null), { past, Y, yd, low, z } = feelCtx(r);
     const nw = (rowsOk('night_week') || []).filter((x) => x.date), last = nw[nw.length - 1], lastV = last ? N(last.value) : null;
     const watch = !!last && last.date === TODAY && lastV !== null, k = N(r.primed_good_nights), tail = nw.slice(-k).map((x) => N(x.value));
     const goodN = watch && tail.length >= k && tail.every((v) => v !== null && v >= N(r.primed_night_min_sd));
@@ -109,10 +111,12 @@
     const table = () => {
       if (!sv && !watch) return null;
       const p = sv ? N(f.pain) || 0 : 0, fb = N(r.feel_fallback_at_or_below), st = N(r.feel_strong_day_at_or_above), e = sv ? N(f.energy) : null, l = sv ? N(f.legs) : null;
+      const fz = sv ? z(f) : null, feelLow = !!fz && fz.v <= -LOW_SD;
       const fresh = (d) => !!d && N(d.energy) !== null && N(d.legs) !== null && N(d.energy) >= st && N(d.legs) >= st;
       if ((sv && p >= N(r.pain_stop)) || (watch && lowRun >= N(r.stressed_low_nights))) return 'stressed';
       if (sv && (p >= N(r.pain_hurts) || (e !== null && e <= fb) || (l !== null && l <= fb) || (low(f, TODAY) && low(yd, Y)))) return 'ease_off';
       if (watch && (lowRun >= N(r.night_pattern_yellow_low_nights) || (sv && lastV <= N(r.night_pattern_well_low_sd) && low(f, TODAY)))) return 'ease_off';
+      if (feelLow) return 'ready';
       if (watch) return goodN && (!sv || fresh(f)) ? 'primed' : 'ready';
       let run = 0; for (; run < N(r.primed_fresh_mornings); run++) if (!fresh(run ? past.find((d) => d.date === isoN(TN - run)) : f)) break;
       return run >= N(r.primed_fresh_mornings) ? 'primed' : 'ready';
