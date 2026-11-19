@@ -37,6 +37,8 @@ RIDE_TRACKS = ROOT / "data" / "ride_tracks"
 RIDE_FIELDS = ["t_s", "dist_m"]
 RIDE_MIN_M = 20000
 RIDE_T_KEYS = ("sumDuration", "sumMovingDuration", "sumElapsedDuration")  # timer time first, as Garmin's own best splits
+RUN_TRACKS = ROOT / "data" / "run_tracks"
+RUN_MIN_M = 1609  # the shortest run best (the mile)
 TYPES = ("run", "hik")  # running, trail_running, treadmill excluded below; hiking
 
 
@@ -210,6 +212,48 @@ def pull_ride(g, call, summary: dict) -> str:
     if state != "ok":
         return state if err is None else f"{state}: {err}"
     rows = compact_ride(value)
+    if len(rows) < 10:
+        return "empty"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(ride_to_bytes(rows))
+    return "ok"
+
+
+# Outdoor runs Garmin filed with no best splits (the athlete, Nov 19, 2026: "I feel like we are missing some history"). Garmin did
+# not record fastestSplit_* for his runs before about Sep 10, 2024, so the run time tile never saw them. Those runs keep the
+# same time and distance track as a long ride, and coach/tools/markers.py best_efforts works the bests out from it.
+#   data/run_tracks/<activityId>.csv.gz   t_s, dist_m   (timer seconds and metres about every 5 s; no location, no heart rate)
+
+
+def is_run_without_bests(summary: dict) -> bool:
+    """An outdoor run of a mile or more whose summary carries no Garmin best split."""
+    t = str(((summary or {}).get("activityType") or {}).get("typeKey") or "").lower()
+    if "run" not in t or "treadmill" in t or "virtual" in t or "indoor" in t:
+        return False
+    dist = summary.get("distance")
+    if not isinstance(dist, (int, float)) or dist < RUN_MIN_M:
+        return False
+    return not any(k.startswith("fastestSplit_") and summary.get(k) for k in summary)
+
+
+def run_path_for(aid) -> Path:
+    return RUN_TRACKS / f"{aid}.csv.gz"
+
+
+def pull_run(g, call, summary: dict) -> str:
+    """Fetch and store the track for one outdoor run with no Garmin best splits when not stored yet. Returns a status word."""
+    aid = summary.get("activityId")
+    if aid is None or not is_run_without_bests(summary):
+        return "skipped"
+    p = run_path_for(aid)
+    if p.exists():
+        return "kept"
+    dur = summary.get("elapsedDuration") or summary.get("duration") or 3600
+    points = int(min(20000, max(500, dur / STEP_S + 50)))
+    state, value, err = call(g, "get_activity_details", str(aid), points, 0)
+    if state != "ok":
+        return state if err is None else f"{state}: {err}"
+    rows = compact_ride(value)  # the same timer time and distance columns as a ride track
     if len(rows) < 10:
         return "empty"
     p.parent.mkdir(parents=True, exist_ok=True)

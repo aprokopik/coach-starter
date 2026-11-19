@@ -779,7 +779,10 @@ def htime(minutes):
 
 def best_efforts(acts, split="fastestSplit_5000", lo=12, hi=60):
     """Garmin's fastest stretch of one distance inside each run (activity summary fastestSplit_<metres>, seconds), oldest
-    first: (date, minutes, run km, avg HR, activity name). Treadmill runs are left out (no GPS distance)."""
+    first: (date, minutes, run km, avg HR, activity name). Treadmill runs are left out (no GPS distance).
+    Garmin filed no best splits for runs before about Sep 2024 (the athlete, Nov 19, 2026: "missing some history"); for a run
+    with none, the fastest stretch comes from its time and distance track (data/run_tracks, scripts/streams.py pull_run)."""
+    metres = int(split.rsplit("_", 1)[1])
     out = []
     for a in acts:
         t = (a.get("type") or "").lower()
@@ -789,12 +792,42 @@ def best_efforts(acts, split="fastestSplit_5000", lo=12, hi=60):
         if not os.path.exists(p):
             continue
         s = json.load(open(p)).get("summary") or {}
-        v = s.get(split)
-        k1 = s.get("fastestSplit_1000")
+        v, k1 = s.get(split), s.get("fastestSplit_1000")
+        if not any(k.startswith("fastestSplit_") and s.get(k) for k in s):
+            v, k1 = track_best(a["activity_id"], metres), track_best(a["activity_id"], 1000)
         if not v or v < lo * 60 or v > hi * 60 or (split != "fastestSplit_5000" and k1 and k1 < GLITCH_1K_SEC):
             continue
         out.append((a["local_start"][:10], round(v / 60, 2), round((s.get("distance") or 0) / 1000, 1), s.get("averageHR"), a.get("name") or ""))
     return sorted(out)
+
+
+def track_best(aid, metres):
+    """Fastest time in seconds over `metres` from a run's stored track (timer time, as Garmin's own splits); None without one."""
+    tp = f"data/run_tracks/{aid}.csv.gz"
+    if not os.path.exists(tp):
+        return None
+    import ride_dist
+    return ride_dist.best_from_track(ride_dist.read_track(tp), metres)
+
+
+def runs_without_effort(acts, metres=5000):
+    """Outdoor runs of `metres` or more with neither a Garmin best split nor a stored track: history the run time tile cannot
+    see yet. The next pull fetches their tracks; a count that stays above zero means that fetch is failing."""
+    n = 0
+    for a in acts:
+        t = (a.get("type") or "").lower()
+        if "run" not in t or "treadmill" in t or "virtual" in t:
+            continue
+        try:
+            if float(a.get("distance_km") or 0) * 1000 < metres:
+                continue
+        except ValueError:
+            continue
+        p = f"data/activities/{a['activity_id']}.json"
+        s = (json.load(open(p)).get("summary") or {}) if os.path.exists(p) else {}
+        if not any(k.startswith("fastestSplit_") and s.get(k) for k in s) and not os.path.exists(f"data/run_tracks/{a['activity_id']}.csv.gz"):
+            n += 1
+    return n
 
 
 # The Bike FTP tile's Effort switch (the athlete, Nov 12, 2026: "for biking, there should likely be additionally different bike distance
@@ -1414,7 +1447,7 @@ def build(today, rows_so_far):
             sub = (f"5K · Best in a run, last {FIVEK_WINDOW} days ({_d(cur[0]).strftime('%b %-d')})" if cur else f"No 5K run in {FIVEK_WINDOW} days; last best {_d(best5['points'][-1][0]).strftime('%b %-d, %Y')}") + \
                 f" · all-time {mss(ab[1] * 60)} ({_d(ab[0]).strftime('%b %Y')})" + (f" · next test {_d(nxt).strftime('%b %-d')}" if nxt else "")
             marker("fitness", order, key, label, mss((cur or (None, best5["points"][-1][1]))[1] * 60), "", sub, "", dfn.get("why", ""),
-                   f"Fastest 5 km inside any run, from Garmin's best-effort split (GPS), as the best of the {FIVEK_WINDOW} days up to each run. Dots are each run's own fastest 5 km; most are easy runs, so they sit slower than a race. Reported test results count too. Estimated. Test protocol: " + dfn.get("protocol", ""),
+                   f"Fastest 5 km inside any run, from Garmin's best-effort split (GPS; for runs Garmin filed without one, the run's own time and distance track), as the best of the {FIVEK_WINDOW} days up to each run. Dots are each run's own fastest 5 km; most are easy runs, so they sit slower than a race. Reported test results count too. Estimated. Test protocol: " + dfn.get("protocol", ""),
                    "Estimated", "line")
             out[-1].update(tile_label="Run time")  # the tile is named for what it is; its distance is the first word of the line under the figure (the athlete, Nov 12, 2026)
             # the same figure at other distances, behind the tile's Distance switch; no level ladder until norms exist for them
@@ -1509,7 +1542,9 @@ def build(today, rows_so_far):
             _std = age_grade.standard(*_sex_age(T), "5k") or AG_5K_STD_SEC
             ag = _std / secs * 100
             m5 = next((r for r in out if r.get("kind") == "marker" and r["key"] == "5k"), None)
-            ev5 = f"Garmin best efforts from {len(efforts5)} runs since {_d(efforts5[0][0]).strftime('%b %Y')}; a best effort inside a training run is a floor on race fitness, not a race." if efforts5 else "One result on record (Oct 2024, Reported)."
+            gap5 = runs_without_effort(acts)
+            ev5 = (f"Garmin best efforts from {len(efforts5)} runs since {_d(efforts5[0][0]).strftime('%b %Y')}; a best effort inside a training run is a floor on race fitness, not a race." if efforts5 else "One result on record (Oct 2024, Reported).") \
+                + (f" {gap5} runs of 5 km or more have no 5K time yet (no Garmin split and no track); a Garmin backfill run fetches them." if gap5 else "")
             wma5 = f"Age grade as a second reference: the {age_grade.SOURCE} world standard for your age and sex is {mss(_std)}. "
             if N5K:
                 if m5 is not None:

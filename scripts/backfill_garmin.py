@@ -9,6 +9,7 @@ dashboard read backfilled days exactly like daily pulls. Differences:
   - backfilled daily files are written compact (no indent) and marked "capture": "backfill";
   - a date where Garmin has no core data (watch not worn yet) is not written; it is listed
     in state/backfill_progress.json so a re-run skips it;
+  - outdoor runs with no Garmin best splits (before about Sep 2024) get a time and distance track (data/run_tracks);
   - hilly runs and hikes get their 5 s stream (scripts/streams.py) when they have none yet, old or new;
   - the run stops itself at BACKFILL_MINUTES, or when Garmin starts refusing calls, and a
     re-run carries on where it stopped.
@@ -72,6 +73,8 @@ def backfill_activities(g, start: date, end: date, status: dict, out_of_time) ->
             status.setdefault("streams", {})[str(aid)] = st
         if streams.is_ride(a) and not streams.ride_path_for(aid).exists() and not out_of_time():  # tracks for past outdoor rides too
             status.setdefault("ride_tracks", {})[str(aid)] = streams.pull_ride(g, pg.call, a)
+        if streams.is_run_without_bests(a) and not streams.run_path_for(aid).exists() and not out_of_time():  # past runs Garmin filed with no best splits
+            status.setdefault("run_tracks", {})[str(aid)] = streams.pull_run(g, pg.call, a)
         path = pg.ACTS / f"{aid}.json"
         if path.exists() or out_of_time():  # captured already, or no time left for extras
             continue

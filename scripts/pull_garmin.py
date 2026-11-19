@@ -8,6 +8,7 @@ Layout written (relative to repo root):
   data/activities/<activityId>.json exact activity summary, splits, HR zones, weather
   data/streams/<activityId>.csv.gz  hilly runs and hikes only: a compact 5 s stream (scripts/streams.py)
   data/ride_tracks/<activityId>.csv.gz  outdoor rides of 20 km or more: time and distance every 5 s (scripts/streams.py)
+  data/run_tracks/<activityId>.csv.gz   outdoor runs Garmin filed with no best splits: the same time and distance track
   data/summary.csv                  one row per date of key metrics (derived, labeled); weight
                                     comes from data/body_comp.csv (the scale) when there is one
   data/activities.csv               one row per activity (derived)
@@ -429,6 +430,9 @@ def main() -> int:
         rt = streams.pull_ride(g, call, a)  # outdoor rides of 20 km or more: a time and distance track for 20K, 40K, 90K bests
         if rt != "skipped":
             status["activities"][str(aid)]["ride_track"] = rt
+        rn = streams.pull_run(g, call, a)  # an outdoor run Garmin filed with no best splits: a track so the run time tile still counts it
+        if rn != "skipped":
+            status["activities"][str(aid)]["run_track"] = rn
         act_rows.append(activity_row(a))
 
     upsert_csv(DATA / "summary.csv", SUMMARY_FIELDS, "date", summary_rows)

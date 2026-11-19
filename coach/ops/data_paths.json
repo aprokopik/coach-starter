@@ -36,7 +36,7 @@
   {
    "id": "garmin",
    "what": "Garmin daily health and activities",
-   "route": "GitHub Actions pull-garmin.yml: four cron pulls a day (UTC 10:23, 11:23, 16:23, 23:23) that in practice land 5 to 10 h late (Oct 23 to Nov 3, 2026), plus the morning check-in's own workflow_dispatch, which lands in about a minute; an on-request dispatch during the day is followed by a dashboard refresh (RUNBOOK, On-request refresh); hilly runs and hikes also get a 5 s detail stream (scripts/streams.py, Nov 8, 2026), and a stream that fails to land is flagged in that morning's check-in (morning_facts freshness)",
+   "route": "GitHub Actions pull-garmin.yml: four cron pulls a day (UTC 10:23, 11:23, 16:23, 23:23) that in practice land 5 to 10 h late (Oct 23 to Nov 3, 2026), plus the morning check-in's own workflow_dispatch, which lands in about a minute; an on-request dispatch during the day is followed by a dashboard refresh (RUNBOOK, On-request refresh); hilly runs and hikes also get a 5 s detail stream (scripts/streams.py, Nov 8, 2026), outdoor runs Garmin filed with no best splits a time and distance track (data/run_tracks, 6.153.0), and a stream that fails to land is flagged in that morning's check-in (morning_facts freshness)",
    "writes": [
     "data/summary.csv",
     "data/activities.csv",
@@ -44,6 +44,7 @@
     "data/status/last_run.json",
     "data/streams/<activityId>.csv.gz",
     "data/ride_tracks/<activityId>.csv.gz",
+    "data/run_tracks/<activityId>.csv.gz",
     "state/garmin_tokens.enc",
     "state/backfill_progress.json (backfill-garmin.yml, by hand)"
    ],
