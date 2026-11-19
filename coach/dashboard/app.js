@@ -1645,17 +1645,38 @@
   // no scroll call from the page. So for 0.6 s after a tap the tapped tile is held at its place on screen, until a finger scrolls.
   { const sbox = (n) => { for (let e = n.parentElement; e; e = e.parentElement) if (e.scrollHeight > e.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(e).overflowY)) return e; return document.scrollingElement; };
     // every open or close tap, on every tab (the athlete, Nov 16: Week and Map jumped too); a tap that scrolls on purpose (scrollIntoView) is left alone
+    const open = () => (document.querySelector('#f-tiles .ft-tile[aria-expanded="true"], #f-tiles .ft-tile[data-open="true"]') || {}).id;
+    const segOf = (name) => { const i = document.querySelector(`input[name="${name}"]`); return i ? i.closest('.ck-seg') : null; }; // a rebuilt switch, found again by its radios' name
     let intent = 0; const siv = Element.prototype.scrollIntoView; Element.prototype.scrollIntoView = function (...a) { intent = performance.now(); return siv.apply(this, a); };
     document.addEventListener('click', (e) => {
-      const t = e.target && e.target.closest ? e.target.closest('[aria-expanded], [role=switch], #f-tiles .ft-tile, #f-bkseg, #f-sport, #f-race') : null; if (!t || t.closest('.cx-tabs')) return;
-      // a Compare with coin (#f-race, the athlete Nov 16: "jumping again when I switch between badges") holds the open tile above it
-      const open = () => (document.querySelector('#f-tiles .ft-tile[aria-expanded="true"], #f-tiles .ft-tile[data-open="true"]') || {}).id;
-      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id === 'f-race' ? open() : t.id, k = t.dataset.k, tag = t.tagName, p = (id && $(id)) || t;
-      const find = () => (id && $(id)) || (k && [...document.querySelectorAll(tag + '[data-k]')].find((n) => n.dataset.k === k)) || (t.isConnected ? t : null);
-      const at = performance.now(), sc = sbox(p), top = p.getBoundingClientRect().top, end = at + 600; let off = false;
+      const t = e.target && e.target.closest ? e.target.closest('[aria-expanded], [role=switch], #f-tiles .ft-tile, #f-bkseg, #f-sport, #f-race, .ck-seg') : null; if (!t || t.closest('.cx-tabs')) return;
+      // a Compare with coin (#f-race, the athlete Nov 16: "jumping again when I switch between badges") holds the open tile above it (open)
+      // the range switch (1M 3M 1Y All, the athlete Nov 19: "went from 1 year to full time, and the page jumped up to the top") is docked,
+      // so it never moves itself: it holds what is under it, the open tile when it is on screen, else the topmost named block in view
+      const dock = t.closest('.ft-span'), name = !t.id && (t.querySelector('input[type=radio]') || {}).name;
+      const id = t.id === 'f-bkseg' ? 'f-bike' : t.id === 'f-race' ? open() : dock ? underDock(dock) : t.id, k = t.dataset.k, tag = t.tagName, p = (id && $(id)) || t;
+      const find = () => (id && $(id)) || (k && [...document.querySelectorAll(tag + '[data-k]')].find((n) => n.dataset.k === k)) || (t.isConnected ? t : null) || (name && segOf(name));
+      // a range tap redraws every chart on the tab, slower than a tile on a phone, so it is held longer
+      const at = performance.now(), sc = sbox(p), top = p.getBoundingClientRect().top, end = at + (dock ? 1500 : 600); let off = false;
       addEventListener('touchmove', () => { off = true; }, { passive: true, once: true });
       const hold = () => { const n = find(); if (off || intent > at || !n) return; const d = n.getBoundingClientRect().top - top; if (Math.abs(d) > 2) sc.scrollTop += d; if (performance.now() < end) requestAnimationFrame(hold); };
-      requestAnimationFrame(hold); }, true); }
+      requestAnimationFrame(hold); }, true);
+    // the block under the docked range row: the open tile when any of it is on screen, else the named block nearest its bottom
+    function underDock(dock) {
+      const pg = dock.closest('.page'), line = dock.getBoundingClientRect().bottom, sc = sbox(dock), b = Math.min(innerHeight, sc === document.scrollingElement ? innerHeight : sc.getBoundingClientRect().bottom);
+      const o = open() && $(open()), seen = (r) => r.bottom > line && r.top < b;
+      if (o && seen(o.getBoundingClientRect())) return o.id;
+      let best = null, bt = Infinity;
+      for (const n of pg ? pg.querySelectorAll('[id]') : []) { if (dock.contains(n) || n.hidden) continue; const r = n.getBoundingClientRect(); if (r.height && r.top >= line && r.top < b && r.top < bt) { best = n; bt = r.top; } }
+      return best ? best.id : null;
+    }
+    // a tap on a segmented option picks its radio without the browser scrolling to it (the 1M to All options sit in the docked
+    // row, and focusing a radio there scrolled the page toward the row's own place at the top of the tab); change fires as before
+    document.addEventListener('click', (e) => {
+      const lab = e.target && e.target.closest ? e.target.closest('label.ck-seg-opt') : null; const inp = lab && lab.querySelector('input[type=radio]');
+      if (!inp || e.target === inp) return; e.preventDefault(); if (inp.disabled) return;
+      inp.focus({ preventScroll: true });
+      if (!inp.checked) { inp.checked = true; inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true })); } }); }
   const ftFocus = (sel) => { const t = document.querySelector(sel); if (t) t.focus({ preventScroll: true }); };
 
   function renderTrends() {
@@ -2256,9 +2277,11 @@
         words: k === 'run' ? ['slower', 'faster'] : undefined, title: k === 'run' ? `Run pace at ${ANC().run} bpm, 28-day average` : `Bike power at ${ANC().bike} bpm, 28-day average`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
         blocks: blockDraw.map((b) => ({ ...b, goal: undefined })), sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
         series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
+        // the tip leads with the figure the dot is drawn at, and bike watts carry one decimal, so two dots at different heights never
+        // read the same (the athlete, Nov 19, 2026: Nov 18 sat under Nov 13 yet both said 104 W; they were 103.6 and 104.0)
         tipLines: (r) => k === 'run'
-          ? [{ text: `${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, ${f1(r.miles)} ${U.distU()}` }, { text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
-          : [{ text: `${r.raw} W at ${r.hr} bpm, ${r.minutes} min` }, { text: `At ${N(r.anchor) || ANC().bike} bpm: ${f0(r.value)} W` }, r.avg28 !== null ? { tone, text: `28-day average: ${f0(r.avg28)} W` } : null].filter(Boolean),
+          ? [{ text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, { text: `Ran ${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, ${f1(r.miles)} ${U.distU()}` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
+          : [{ text: `At ${N(r.anchor) || ANC().bike} bpm: ${f1(r.value)} W` }, { text: `Rode ${r.raw} W at ${r.hr} bpm, ${r.minutes} min` }, r.avg28 !== null ? { tone, text: `28-day average: ${f1(r.avg28)} W` } : null].filter(Boolean),
       });
       lg.replaceChildren(); lg.hidden = true; // direct labels replace the legend
       if (blockDraw.length) box.append(zoomBar(k, renderFitness));

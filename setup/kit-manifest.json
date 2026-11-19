@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.152.0",
+ "version": "6.152.1",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -70,6 +70,7 @@
   "coach/dashboard/harness/savesweep.js",
   "coach/dashboard/harness/shoot-dark.js",
   "coach/dashboard/harness/shoot.js",
+  "coach/dashboard/harness/spanhold.js",
   "coach/dashboard/harness/speed-budget.json",
   "coach/dashboard/harness/speed.js",
   "coach/dashboard/harness/sweep.js",
