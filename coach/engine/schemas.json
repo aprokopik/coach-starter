@@ -34,6 +34,7 @@
   "feel_departure_mornings": 2,
   "feel_fallback_at_or_below": 2,
   "feel_strong_day_at_or_above": 4,
+  "feel_meter_min_mornings": 7,
   "stress_trim_at_or_above": 4,
   "pain_persistent_mornings_flag": 3,
   "pain_persistent_mornings_physio": 5,

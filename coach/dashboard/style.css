@@ -249,6 +249,9 @@
    opens #t-hn (stale line, gauge, the six vitals). On the bar: a mark at 0, 1 px dashed marks at -1 and +1 SD in the muted
    token (the usual range), the fill from 0 to the value in the status colour, the dot at the value. */
 .ck .td-hn-meta { display: grid; justify-items: end; text-align: right; }
+.ck .td-src::before { content: '● '; color: var(--ck-fg-3, currentColor); }
+.ck .td-src[data-s=good]::before { color: var(--ck-good); }
+.ck .td-src[data-s=part]::before { color: var(--ck-watch); }
 .ck .td-hn, .ck .td-hn-body, .ck .td-nall { display: grid; gap: var(--ck-s2); min-width: 0; }
 .ck .td-hn { border-top: 1px solid var(--ck-line); padding-top: var(--ck-s2); }
 .ck .td-hn-stale { display: flex; flex-wrap: wrap; gap: 0 var(--ck-s1); }
@@ -1433,6 +1436,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck #t-hero .ck-call-main { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 4px; }
 .ck #t-hero .ck-call-main .td-ready-m { display: inline; margin: 0; }
 .ck #t-hero .ck-call-main .td-ready-m[hidden] { display: none; }
+.ck #t-hero .ck-call-main .td-early { flex-basis: 100%; margin: 0; }
+.ck #t-hero .ck-call-main .td-early[hidden] { display: none; }
 /* Gauge word and sentence on one line, same size (the athlete, Nov 15, 2026: "the text next to typical should be in line with it"). */
 .ck .td-g-line .td-g-sent { font-size: var(--ck-t2); line-height: var(--ck-l2); }
 .ck .td-bell-stem { stroke: var(--ck-fg); stroke-width: 1.5; stroke-dasharray: 3 3; }

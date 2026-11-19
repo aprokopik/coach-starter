@@ -510,6 +510,15 @@
       set('t-call', t.call); set('t-call-t', t.workout_title);
       { const cw = CALL_WORD[String(t.call || '').toLowerCase()]; if (cw) { $('t-call').textContent = cw; $('t-call').removeAttribute('data-field'); $('t-call').setAttribute('data-derived', 'call in plain words'); $('t-call').setAttribute('data-rule', 'app.js CALL_WORD: push, hold, restrain (RULES 13)'); } }
       { const rm = $('t-ready-m'); if (rm) { const w = READY_MEAN[String(t.readiness || '').toUpperCase()]; rm.textContent = w || ''; rm.hidden = !w; } }
+      // No info yet before today's call lands (the athlete, Nov 18, 2026); yesterday's confidence and Why stay out
+      { const old = t.date !== TODAY, rd = $('t-ready'); rd.removeAttribute('data-rule');
+        if (old) {
+          const g0 = $('t-ready-g'); g0.dataset.s = 'unknown'; g0.replaceChildren(icon('unknown', 'ck-g')); $('t-ready-sr').textContent = ST_NAME.unknown + ': ';
+          rd.textContent = 'No info yet'; rd.removeAttribute('data-field'); rd.setAttribute('data-derived', 'no call for today yet');
+          const rm = $('t-ready-m'); if (rm) { rm.replaceChildren('Arrives after the ', RUN_AT(), ' run'); rm.hidden = false; }
+          $('t-conf-w').hidden = true;
+        } else { rd.setAttribute('data-field', 'readiness'); rd.removeAttribute('data-derived'); }
+        $('t-why-btn').hidden = old; if (old) { $('t-why').hidden = true; $('t-why-btn').setAttribute('aria-expanded', 'false'); } }
       { const dq = $('t-dq'); if (dq && /\d{1,2}:\d{2}Z/.test(dq.textContent)) { dq.textContent = dq.textContent.replace(/(\d{1,2}):(\d{2})Z/g, (x, h, mi) => { const lt = new Date(`${TODAY}T${String(h).padStart(2, '0')}:${mi}:00Z`); return Number.isNaN(lt.getTime()) ? x : lt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }); dq.removeAttribute('data-field'); dq.setAttribute('data-derived', 'data_quality with UTC times shown in local time'); } }
       set('t-title', noTime(t.workout_title)); $('t-title').removeAttribute('data-field'); $('t-title').setAttribute('data-derived', 'workout_title without its time'); set('t-purpose', t.purpose); set('t-b-nominal', t.nominal); set('t-b-upper', t.upper); set('t-b-fallback', t.fallback); set('t-rule', t.choice_rule); ['t-purpose', 't-b-nominal', 't-b-upper', 't-b-fallback', 't-rule'].forEach((id) => plainEl($(id))); set('t-q', t.question);
       const stale = t.date !== TODAY;
@@ -605,7 +614,7 @@
       if (hb.hidden) { hb.setAttribute('aria-expanded', 'false'); $('t-pick').hidden = true; } }
     renderBound();
     renderRaceTile(r);
-    renderNight();
+    renderNight(); surveyRead(); basedOn();
     renderWatch();
     if (window.CX.renderChange) window.CX.renderChange(); // change.js: Today changed?, after the size is drawn
     if (window.CX.renderReview) window.CX.renderReview(); // review.js: Next week on the plan check day (alpha week_review)
@@ -832,7 +841,7 @@
     nightOpen(true);
   }
   function renderNight() {
-    nightHome();
+    nightHome(); $('t-nm-btn').querySelector('.td-nm-k').textContent = "Last night's recovery";
     const sect = $('t-hn'), box = $('n-grid'), d = ds('night');
     const st = dsState('night');
     if (st) { nightOpen(false); cardState(sect, st, 'Last night\'s data did not arrive. Nothing saved is lost.'); renderCall(null); return; }
@@ -842,7 +851,7 @@
     const s = by.sleep_h;
     if (!VITALS.some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
     cardState(sect, null);
-    $('n-date').textContent = s ? `Morning of ${fWd(P(s.date))}` : '';
+    $('n-date').textContent = s && TN - dayN(s.date) < 1 ? `Morning of ${fWd(P(s.date))}` : '';
     // stale: the newest night is older than this morning
     const age = s ? TN - dayN(s.date) : 0;
     $('n-stale').hidden = !(s && age >= 1);
@@ -875,6 +884,75 @@
       foot.append('Bar: your average, give or take ', r1, ', over the ', r2, ' before (', mark(el('span', null, String(s.n)), 'night', 'n', 'metric=sleep_h'), ' nights); the dot is last night. It informs the call; it never decides it alone. Garmin reads sleep about ', r3, ' high.'); }
     renderCall(by);
   }
+  // the meter's track, for last night and the survey's feel
+  function nmBar(v, s) {
+    const TR = 2.5, at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, bar = $('t-nm-bar'); bar.replaceChildren(); bar.dataset.s = s;
+    for (const [a0, a1, c] of [[-TR, -2, 'b3'], [-2, -USUAL, 'b2'], [-USUAL, USUAL, 'b1'], [USUAL, 2, 'b2'], [2, TR, 'b3']]) {
+      const g = el('i', 'td-nm-seg td-nm-' + c + (v >= a0 && (v < a1 || (a1 === TR && v >= a1)) ? ' on' : '')); g.style.left = at(a0) + '%'; g.style.width = (at(a1) - at(a0)) + '%'; bar.append(g);
+    }
+    const mk = (c, u) => { const i = el('i', c); i.style.left = at(u) + '%'; return i; };
+    bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', v));
+    for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) { const k = mk('td-nm-tk', u); k.textContent = t; bar.append(k); }
+    return TR;
+  }
+  // Early read (the athlete, Nov 18, 2026, option 3; alpha survey_read): before the call, the answers against the coach's thresholds
+  // (feel_rule, schemas.json); with last night not in, the meter shows this morning's feel against the mornings before it
+  const FEELK = ['sleep_q', 'energy', 'legs'];
+  const feelScore = (d) => { const v = [...FEELK.map((k) => N(d[k])), N(d.stress) === null ? null : 6 - N(d.stress)].filter((x) => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  function surveyRead() {
+    const note = $('t-early'), r = kind('feel_rule')[0], t = kind('today')[0], f = window.CX.feelToday;
+    if (note) note.hidden = true;
+    if (!alpha('survey_read') || !r || !t) return;
+    const pre = t.date !== TODAY, mb = $('t-nm-btn'); // pre: before today's call
+    if (!f || !f.saved_at || feelScore(f) === null) { if (!pre) return; // no answers yet: No info yet asks for them (the athlete, Nov 18, 2026)
+      const watch = (rowsOk('night') || []).length > 0, go = el('button', 'qc-link td-early-go', 'Do your morning check-in'); go.type = 'button';
+      go.addEventListener('click', () => { const c = $('t-qc'), b = c && !c.hidden && c.querySelector('.qc-tile'); if (b) { c.scrollIntoView({ block: 'center' }); b.focus(); } else { show('checkins', true); if (window.CX.openMorning) setTimeout(window.CX.openMorning, 60); } });
+      $('t-ready-m').replaceChildren(go);
+      note.replaceChildren(watch ? 'Your answers make today\'s call more accurate.' : 'Your answers give an early read right away.'); note.hidden = false;
+      const mb0 = $('t-nm-btn'); if (mb0.parentNode && note.nextSibling !== mb0) mb0.before(note);
+      return;
+    }
+    const past = kind('feel_day').filter((d) => Number(d.scale) === 5 && d.date < TODAY);
+    const ref = (k, before) => { const v = past.filter((d) => d.date < before && dayN(d.date) >= dayN(before) - N(r.feel_reference_days)).map((d) => (k ? N(d[k]) : feelScore(d))).filter((x) => x !== null); return v; };
+    const avg = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+    const Y = isoN(TN - 1), yd = past.find((d) => d.date === Y), dp = N(r.feel_departure_points);
+    const low = (d, at) => FEELK.some((k) => { const v = ref(k, at); return d && N(d[k]) !== null && v.length && N(d[k]) - avg(v) <= -dp; });
+    if (pre) { // one readiness on the card (the athlete, Nov 18): after the call a late survey adds no second read
+    const p = N(f.pain) || 0, fb = N(r.feel_fallback_at_or_below), e = N(f.energy), l = N(f.legs);
+    const call = p >= N(r.pain_stop) ? 'RED' : p >= N(r.pain_hurts) || (e !== null && e <= fb) || (l !== null && l <= fb) || (low(f, TODAY) && low(yd, Y)) ? 'YELLOW' : 'GREEN';
+    const strong = call === 'GREEN' && e >= N(r.feel_strong_day_at_or_above) && l >= N(r.feel_strong_day_at_or_above);
+    const rs = READY_S[call], g = $('t-ready-g'), rd = $('t-ready'), rm = $('t-ready-m');
+    g.dataset.s = rs; g.replaceChildren(icon(rs, 'ck-g')); $('t-ready-sr').textContent = ST_NAME[rs] + ': '; rd.textContent = call; rd.setAttribute('data-derived', 'early read from this morning\'s survey');
+    rd.setAttribute('data-rule', 'app.js surveyRead: pain Stop RED; Hurts, energy or legs at feel_fallback_at_or_below or two low mornings YELLOW; else GREEN (schemas.json, RULES 5a and 6)');
+    rm.textContent = strong ? 'Train as planned. The strong-day size is on offer' : READY_MEAN[call]; rm.hidden = false;
+    note.replaceChildren('Early read from your survey.'); note.hidden = false;
+    if (mb.parentNode && note.nextSibling !== mb) mb.before(note);
+    }
+    const gz = rowsOk('night_gauge'), nr = gz && gz[0];
+    if (nr && nr.date === TODAY && N(nr.value) !== null) return; // last night is in: its own meter stays
+    const sc = ref(null, TODAY), n = sc.length, m = n ? avg(sc) : null, sd = n > 1 ? Math.sqrt(sc.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)) : 0;
+    if (n < N(r.feel_meter_min_mornings) || !sd) return;
+    const v = Math.round((feelScore(f) - m) / sd * 10) / 10, a = Math.abs(v), word = a < 1 ? 'Typical' : (a >= 2 ? 'Well ' : '') + (v > 0 ? (a >= 2 ? 'high' : 'High') : (a >= 2 ? 'low' : 'Low'));
+    const s = a < 1 ? 'good' : v <= -1.5 ? 'watch' : 'plain';
+    delete mb.dataset.learn; mb.hidden = false; const scl = mb.querySelector('.td-nm-scale'); if (scl) scl.hidden = false;
+    mb.querySelector('.td-nm-k').textContent = "This morning's feel";
+    const nv = $('t-nm-v'); nv.textContent = (v > 0 ? '+' : v < 0 ? '−' : '') + f1(a); nv.removeAttribute('data-field'); nv.setAttribute('data-derived', 'survey feel vs the mornings before');
+    $('t-nm-word').replaceChildren(s === 'plain' ? neutralChip(word) : badge(s, word));
+    const TR = nmBar(v, s);
+    mb.setAttribute('aria-label', `This morning's feel ${nv.textContent} SD, ${word}, against your last ${n} mornings, on a scale from -${TR} to +${TR} sigma. Show last night's vitals`);
+  }
+  // Based on (the athlete, Nov 18, 2026: "some kind of indication if you've done either just the survey or just have watch data"):
+  // what today's read has in, beside the confidence: the survey, last night from the watch, both or neither
+  function basedOn() {
+    const e = $('t-src'); if (!e) return; e.hidden = true;
+    if (!alpha('survey_read')) return;
+    const f = window.CX.feelToday, row = kind('feel_day').some((d) => d.date === TODAY);
+    const nt = rowsOk('night') || [], wt = nt.some((r) => r.date === TODAY && r.value !== null && r.value !== undefined);
+    const sv = row || !!(f && f.saved_at);
+    e.textContent = sv && wt ? 'Survey and watch' : sv ? 'Survey only' : wt ? 'Watch only' : 'Nothing yet';
+    e.dataset.s = sv && wt ? 'good' : sv || wt ? 'part' : 'none'; e.hidden = false;
+  }
+  window.CX.renderEarly = () => { surveyRead(); basedOn(); }; // ask.js and forms.js, after a morning save
   // Last night in one number (Phase 6, option A): a fuel-style half arc from the row's lo (-2 SD, empty, left) to hi (+2 SD,
   // full, right), a tick at 0, the fill in the status colour and a dot at the value. The number is calc night_gauge (the mean
   // of the four SD distances, read here, never recomputed). The word uses the tiles' cut-offs (zText): Typical inside 1 SD,
@@ -934,7 +1012,7 @@
     { const cd = $('n-g-ctx-d'), cn = $('n-g-ctx-n'); cd.replaceChildren(); cn.replaceChildren();
       wk.forEach((x) => { const pv = N(x.value), pa = Math.abs(pv), th = el('th', null, x.date === r.date ? 'Today' : wdn(x.date)); th.scope = 'col'; cd.append(th);
         const td = el('td'); td.append(mark(el('span', 'td-nz td-nz-' + (pa < 1 ? 'b1' : pa < 2 ? 'b2' : 'b3'), zw(pv)), 'night_week', null, 'key=' + x.date, 'zone')); cn.append(td); });
-      const td = kind('today')[0], rw = td ? READY_MEAN[String(td.readiness || '').toUpperCase()] : null;
+      const td = kind('today')[0], rw = td && td.date === TODAY ? READY_MEAN[String(td.readiness || '').toUpperCase()] : null;
       $('n-g-ctx-t').textContent = rw || 'Arrives with the morning check-in.';
       $('n-g-ctx-t').closest('p').hidden = false; }
     const lst = $('n-g-last'); lst.replaceChildren();
@@ -944,18 +1022,20 @@
     if (window.CK && window.CK.firstDraw) window.CK.firstDraw(draw, 'night-gauge');
     // the meter line in the call (the same figure and word, marked the same): a bar from lo to hi, the fill from 0 to the
     // value in the status colour, a mark at 0, dashed marks at -1 and +1, and the dot at the value
+    // No info yet when the newest night is older than this morning (the athlete, Nov 18, 2026); the panel still opens on it
+    const oldNight = r.date && TN - dayN(r.date) >= 1, scl = $('t-nm-btn').querySelector('.td-nm-scale');
+    if (scl) scl.hidden = !!oldNight; $('t-nm-v').toggleAttribute('data-field', !oldNight); if (!oldNight) $('t-nm-v').dataset.field = 'value';
+    if (oldNight) {
+      $('t-nm-v').textContent = ''; $('t-nm-word').replaceChildren(neutralChip('No info yet')); $('t-nm-bar').replaceChildren();
+      $('t-nm-btn').setAttribute('aria-label', "Last night's recovery: no info yet. Show the vitals");
+      return;
+    }
     $('t-nm-v').textContent = $('n-g-v').textContent;
     $('t-nm-word').replaceChildren(s === 'plain' ? neutralChip(word) : badge(s, word));
     // Sigma blend (the athlete, Nov 15, 2026: options 1, 2 and 3 together, sigma options page E1nGjsBnsHSDBg1gvqfB7M): the track
     // runs -2.5 to +2.5 SD in five joined steps like the level bars (beyond 2 SD, 1 to 2 SD, within 1 SD, 1 to 2 SD, beyond
     // 2 SD); the step last night sits in is filled, the dot marks the spot, and the 1 and 2 SD edges are labelled under it.
-    const TR = 2.5, at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, bar = $('t-nm-bar'); bar.replaceChildren(); bar.dataset.s = s;
-    for (const [a0, a1, c] of [[-TR, -2, 'b3'], [-2, -USUAL, 'b2'], [-USUAL, USUAL, 'b1'], [USUAL, 2, 'b2'], [2, TR, 'b3']]) {
-      const g = el('i', 'td-nm-seg td-nm-' + c + (v >= a0 && (v < a1 || (a1 === TR && v >= a1)) ? ' on' : '')); g.style.left = at(a0) + '%'; g.style.width = (at(a1) - at(a0)) + '%'; bar.append(g);
-    }
-    const mk = (c, u) => { const i = el('i', c); i.style.left = at(u) + '%'; return i; };
-    bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', v));
-    for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) { const k = mk('td-nm-tk', u); k.textContent = t; bar.append(k); }
+    const TR = nmBar(v, s);
     $('t-nm-btn').setAttribute('aria-label', `Last night ${$('t-nm-v').textContent} SD, ${word}, on a scale from -${TR} to +${TR} sigma; within 1 sigma is usual, 1 to 2 sigma is outside usual, beyond 2 sigma is well outside. Show the gauge and all vitals`);
   }
   // The deck's Watch notice: the six vitals under the rule above (no new rule).

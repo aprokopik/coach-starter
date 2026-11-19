@@ -10,7 +10,8 @@
 //                      coach/lift_taps.csv (RUNBOOK Data 4) and outcomes.py counts a yes as done, a no as skipped.
 //   Sleep, Energy, Legs, Stress (1 to 5) and Pain (Stop, Hurts, Niggle, None; Where? when not None): the morning feel,
 //                      the same answers and the same feel_daily/<today> document as the Check-in tab form (forms.js),
-//                      which reloads after each save. The first one offers Same as yesterday.
+//                      which reloads after each save; a save on the form takes the morning questions off this card
+//                      (CX.feelSaved). The first one offers Same as yesterday.
 // The card is hidden when there is no store.
 (() => {
   const CX = window.CX;
@@ -74,6 +75,7 @@
     const body = { date: A().TODAY, scale: 5, sleep_q: null, energy: null, legs: null, stress: null, pain: null, pain_site: '', note: '', ...(feel || {}), ...patch, saved_at: new Date().toISOString() };
     for (const k of ['sleep_q', 'energy', 'legs', 'stress', 'pain']) body[k] = blank(body[k]) ? null : Number(body[k]);
     feel = body; // on screen at once
+    CX.feelToday = feel; if (CX.renderEarly) CX.renderEarly(); // the early read on Readiness (alpha survey_read)
     return queue(() => db.doc('feel_daily/' + A().TODAY).set(feel), () => {
       if (CX.reloadMorning) CX.reloadMorning(); // the Check-in tab form shows the same answers
       if (CX.onMorningSaved) CX.onMorningSaved(); // the due list and Today's check-ins line drop the morning check-in
@@ -221,6 +223,18 @@
     if (focus) { const f = body.querySelector('.qc-tile'); if (f) f.focus(); }
   }
 
+  // a Check-in tab form save (forms.js) takes the morning questions off this card (the athlete, Nov 18, 2026); Change is left alone
+  CX.feelSaved = function (body) {
+    if (body) { CX.feelToday = body; if (CX.renderEarly) CX.renderEarly(); }
+    if (!built || !db || open || !body) return;
+    feel = body;
+    const card = A().$('t-qc'); if (!card || card.hidden) return;
+    if (at >= steps.length) { paint(false); return; }
+    const id = steps[at] && steps[at].id, left = buildSteps(false);
+    if (!left.length) { card.hidden = true; steps = []; at = 0; return; }
+    steps = left; const i = steps.findIndex((x) => x.id === id); at = i >= 0 ? i : 0; where = false; paint(false);
+  };
+
   CX.renderAsk = async function () {
     const { $, rowsOk, TODAY, dayN, isoN } = A();
     if (built || !$('t-qc')) return; // built once per page load; answers move it on
@@ -231,6 +245,7 @@
     const Y = isoN(dayN(TODAY) - 1);
     const get = async (p) => { try { const d = await db.doc(p).get(); return d.exists ? d.data() : null; } catch (e) { return null; } };
     const [t, y, tap, log, put] = await Promise.all([get('feel_daily/' + TODAY), get('feel_daily/' + Y), get('lift_tap/' + TODAY), get('lift_log/' + Y), get('seen/morning-card')]);
+    CX.feelToday = t; if (CX.renderEarly) CX.renderEarly();
     if (put && put.day === TODAY) goneDay = TODAY;
     if (gone()) return; // Done lasts the day, skipped steps too (qcdone.js)
     feel = t; yest = y && Number(y.scale) === 5 ? y : null;

@@ -297,6 +297,13 @@ _mods = (_prof.get("goals") or {}).get("modules")
 _setup_on = _mods is not None and not (_prof.get("setup") or {}).get("closed")
 # The home blood pressure week survey shows only to someone who keeps those weeks (setup drops the home_bp path
 # when it was not chosen; same rule as morning_facts.bp_week_flags; 6.90.0)
+# Survey early read (the athlete, Nov 18, 2026, option 3 "Both"): the coach's own feel thresholds (schemas.json, RULES 5a and 6),
+# so the Today page reads them instead of restating a number; it shows an early read until the morning call lands.
+_th = read_json("coach/engine/schemas.json", {}).get("thresholds", {})
+_pain = read_json("coach/engine/schemas.json", {}).get("feel", {}).get("pain", {})
+rows.append({"kind": "feel_rule", **{k: _th.get(k) for k in ("feel_reference_days", "feel_departure_points", "feel_departure_mornings",
+             "feel_fallback_at_or_below", "feel_strong_day_at_or_above", "feel_meter_min_mornings")},
+             "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop")})
 _off = set() if any(p.get("id") == "home_bp" for p in read_json("coach/ops/data_paths.json", {}).get("paths", [])) else {"half"}
 rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])
             if (s.get("id") != "setup" or _setup_on) and s.get("id") not in _off)

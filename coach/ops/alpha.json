@@ -154,6 +154,10 @@
   {
    "id": "race_type_panels",
    "status": "beta"
+  },
+  {
+   "id": "survey_read",
+   "status": "alpha"
   }
  ]
 }

@@ -102,7 +102,7 @@
     if (!db) { status('fm-status', 'Saving is not available in this view; reply to the check-in instead.', 'err'); return; }
     const s = m.st;
     const body = { date: TODAY, scale: 5, sleep_q: numOrNull(s.sleep_q), energy: numOrNull(s.energy), legs: numOrNull(s.legs), stress: numOrNull(s.stress), pain: numOrNull(s.pain), pain_site: (s.pain_site || []).join(';'), note: $('fm-note').value.trim(), saved_at: new Date().toISOString() };
-    mSaving = mSaving.then(() => db.doc('feel_daily/' + TODAY).set(body)).then(() => { mSaved = body; status('fm-status', 'Saved ' + stamp(body.saved_at), 'ok', body.saved_at); $('fm-sumtext').textContent = words(body); if (window.CX.onMorningSaved) window.CX.onMorningSaved(); }).catch((e) => status('fm-status', `Not saved (${e && e.code ? e.code : 'error'}). Reply to the check-in instead.`, 'err'));
+    mSaving = mSaving.then(() => db.doc('feel_daily/' + TODAY).set(body)).then(() => { mSaved = body; status('fm-status', 'Saved ' + stamp(body.saved_at), 'ok', body.saved_at); $('fm-sumtext').textContent = words(body); if (window.CX.onMorningSaved) window.CX.onMorningSaved(); if (window.CX.feelSaved) window.CX.feelSaved(body); }).catch((e) => status('fm-status', `Not saved (${e && e.code ? e.code : 'error'}). Reply to the check-in instead.`, 'err'));
   }
   function morningView(saved) {
     const late = new Date().getHours() >= 12;
