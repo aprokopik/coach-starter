@@ -1338,6 +1338,34 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck #t-hero:has(#t-ready-g[data-s=good]) .td-ready { color: var(--ck-good); }
 .ck #t-hero:has(#t-ready-g[data-s=watch]) .td-ready { color: var(--ck-watch); }
 .ck #t-hero:has(#t-ready-g[data-s=act]) .td-ready { color: var(--ck-act); }
+/* One readiness (the athlete, Nov 18, 2026: "prime ... solid filled to make it a little bit more prominent, and ... red ... filled in as well") */
+.ck #t-hero[data-lv] .td-ready { text-transform: none; }
+.ck .td-daybar { display: flex; justify-content: space-between; align-items: center; gap: var(--ck-s2); margin: 0 0 var(--ck-s2); } .ck .td-daybar[hidden], .ck .td-chips[hidden] { display: none; }
+.ck .td-daybar strong { font-size: var(--ck-t2, 15px); color: var(--ck-fg); }
+.ck #t-hero.td-one .ck-call-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px var(--ck-s2); }
+.ck #t-hero.td-one .ck-call-main > * { grid-column: 1 / -1; } .ck #t-hero.td-one .ck-call-glyph { display: none; }
+.ck #t-hero.td-one .ck-call-main > .td-ready { grid-column: 1; grid-row: 1; justify-self: start; white-space: nowrap; }
+.ck #t-hero.td-one .ck-call-main > .td-ready-m { grid-column: 1; grid-row: 2; display: block; } .ck #t-hero.td-one .ck-call-main > .td-ready-m[hidden] { display: none; }
+.ck #t-hero.td-one .ck-call-main > .td-chips { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: 4px; justify-items: end; }
+.ck #t-hero.td-one .ck-call-main > .td-ready-m:has(button) { grid-column: 1 / -1; grid-row: 3; }
+.ck .td-chips-r { display: flex; gap: 4px; }
+.ck .td-move { border: 1.5px solid var(--ck-accent); border-radius: 10px; padding: 10px 12px; display: grid; gap: var(--ck-s2); background: var(--ck-surface); } .ck .td-move[hidden] { display: none; } .ck .td-move p { margin: 0; color: var(--ck-fg); font-size: var(--ck-t2, 15px); line-height: 1.35; }
+/* Confidence as signal bars and the word (the athlete, Nov 18, 2026, picked "Signal bars and the word") */
+.ck #t-chip-c { border: 0; padding: 0; font-weight: 400; color: var(--ck-fg); } .ck #t-chip-c::before { content: none; }
+.ck .td-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; } .ck .td-bars i { width: 4px; border: 1px solid var(--ck-fg-2); border-radius: 1px; box-sizing: border-box; }
+.ck .td-bars i:nth-child(1) { height: 4px; } .ck .td-bars i:nth-child(2) { height: 8px; } .ck .td-bars i:nth-child(3) { height: 12px; }
+.ck #t-chip-c[data-s=good] .td-bars i.on { background: var(--ck-good); border-color: var(--ck-good); } .ck #t-chip-c[data-s=watch] .td-bars i.on { background: var(--ck-watch); border-color: var(--ck-watch); } .ck #t-chip-c[data-s=none] .td-bars i.on { background: var(--ck-fg-2); }
+/* The move buttons always sit in one row (the athlete, Nov 18, 2026: "make sure they always fit in one row no matter what") */
+.ck .td-move .ck-btn-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; } .ck .td-move .ck-btn { padding: 0 6px; white-space: nowrap; min-width: 0; font-size: 14px; }
+.ck .td-chip { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--ck-good); border-radius: 999px; padding: 1px 8px; font-size: 12px; line-height: 18px; font-weight: var(--ck-w-bold); color: var(--ck-fg); white-space: nowrap; }
+.ck .td-chip::before { content: '\25CF'; color: var(--ck-good); } .ck .td-chip[data-s=in]::before { content: '\2713'; }
+.ck .td-chip[data-s=watch] { border-color: var(--ck-watch); } .ck .td-chip[data-s=watch]::before { color: var(--ck-watch); }
+.ck .td-chip[data-s=none] { border-style: dashed; border-color: var(--ck-fg-2); color: var(--ck-fg-2); font-weight: 400; } .ck .td-chip[data-s=none]::before { content: '\2013'; color: inherit; }
+/* Survey and Watch: a tick and the word, green when in, grey when not (the athlete, Nov 18, 2026: "get rid of the chip and just do the check mark and word, gray or green") */
+.ck .td-chips-r { gap: var(--ck-s2); } .ck .td-chips-r .td-chip { border: 0; padding: 0; } .ck .td-chips-r .td-chip[data-s=in] { color: var(--ck-good); } .ck .td-chips-r .td-chip[data-s=none]::before { content: '\2713'; }
+.ck #t-hero[data-lv=primed] .td-ready { background: var(--ck-good); border-color: var(--ck-good); }
+.ck #t-hero[data-lv=stressed] .td-ready { background: var(--ck-act); border-color: var(--ck-act); }
+.ck #t-hero[data-lv=primed] .td-ready > #t-ready, .ck #t-hero[data-lv=stressed] .td-ready > #t-ready { color: var(--ck-surface); }
 /* Pillars, game look round two (option 1; the athlete: "use my structure, but give it a refresh visually"): every part of the row stays;
    the icon sits in a small tile tinted by the pillar's status and a thin status edge runs down the row's left side */
 .ck .hp-p { --pst: var(--ck-line); }
@@ -1573,3 +1601,7 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .lx-bday .lx-dodays { margin-left: auto; }
 /* the Talk to the coach button sits clear of the sticky Finish session bar (Nov 17, 2026: it covered the button's right end) */
 .ck:has(.cx-chat) .lx-bar { margin-right: 68px; }
+
+/* one readiness: Stressed takes today's session off (app.js renderBound, ready.js) */
+.ck #t-workout.is-off .ck-session-title { text-decoration: line-through; color: var(--ck-fg-2); }
+.ck .wk-moved { margin-left: auto; font-size: var(--ck-t1); }

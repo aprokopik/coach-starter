@@ -15,7 +15,7 @@
 | today.json | Structured copy of the latest check-in, used by the dashboard | coach, every morning |
 | DASHBOARD.md | Dashboard link and how each run refreshes it | coach |
 | wellness.csv | Sunday 1 to 5 ratings: energy, mood, stress, motivation | coach, from the athlete's answer |
-| feel_daily.csv | Daily feel check: sleep, energy, legs, stress 1 to 5 from Oct 18, 2026 (scale column; 1 to 10 before), pain none/niggle/hurts/stop stored 0/1/3/6 plus site, Reported | coach, from the athlete's replies |
+| feel_daily.csv | Daily feel check: sleep, energy, legs, stress 1 to 5 from Oct 18, 2026 (scale column; 1 to 10 before), pain none/twinge/hurts/stop stored 0/1/3/6 plus site, Reported | coach, from the athlete's replies |
 | feel_sessions.csv | Session RPE (CR-10), vs plan, pain, fuel; srpe_load = RPE x minutes, Reported; last column activity_id (Garmin id or manual-<date>-<type>) | coach, from the athlete's replies and the dashboard |
 | week.json | Week plan by day for the dashboard's Week view (schema in DASHBOARD.md) | coach: Sundays for the next week, and on any replan |
 | zones.json | Heart rate zones used for the dashboard's time-in-zone (provisional) | coach: after threshold tests |

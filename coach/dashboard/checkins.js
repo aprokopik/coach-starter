@@ -345,7 +345,7 @@
   const focusIn = (f) => { if (f) f.focus({ preventScroll: true }); };
   // the morning row: the open form gets its first choice focused; a form folded to its summary after a save shows that summary;
   // folded at 12:00 with nothing saved ("Log it now"), the row opens the form the way that button does
-  window.CX.openMorning = () => openMorning(); // Today's Readiness prompt (app.js surveyRead)
+  window.CX.openMorning = () => openMorning(); // Today's Readiness prompt (ready.js surveyRead)
   function openMorning() {
     const card = $('t-feel'), fm = $('fm-form'), sm = $('fm-summary'); if (!card) return;
     goTo(card);

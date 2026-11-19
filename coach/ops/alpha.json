@@ -158,6 +158,10 @@
   {
    "id": "survey_read",
    "status": "alpha"
+  },
+  {
+   "id": "one_readiness",
+   "status": "alpha"
   }
  ]
 }

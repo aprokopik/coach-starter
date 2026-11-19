@@ -14,6 +14,7 @@ Sections of facts.json (every number carries its label; a missing value is null,
   freshness   is the latest night complete, which night it is, weigh-in date, data flags
   night       latest night's metrics against the athlete's own 28-day band (n, mean, sd, z, position)
   night_pattern  the last 3 nights as one SD number each and what they suggest (RULES.md 5, night pattern)
+  readiness_level  the one readiness level (primed, ready, ease_off, stressed) from the survey, the watch or both (RULES.md 5, one readiness)
   feel        today's and yesterday's answers (on the 1-5 scale), 14-day means, departures, pain streaks
   yesterday   activities yesterday and so far today, matched to week.json rows, completion class, guardrail
   load        7- and 28-day minutes/km/ascent by discipline; sRPE 7-day; longest run in 30 days and the spike cap
@@ -400,6 +401,51 @@ def section_night_pattern(today, data, th, night, feel):
     return out
 
 
+LEVEL_SIZE = {"primed": "upper", "ready": "nominal", "ease_off": "fallback", "stressed": "rest"}
+
+
+def section_readiness_level(th, pain, night_pattern, feel):
+    """RULES.md 5, one readiness (the athlete, Nov 18, 2026: "There should only be one indication of readiness that either comes
+    from just the watch, just the survey, or both combined"; Primed rule A "three nights at or above normal"). One table for
+    the level, read by the morning run and written to the dashboard as the same thresholds, so a survey that lands after
+    the call moves the one level by the same rules. Pain and feel outrank the nights; illness and injury stay the coach's."""
+    t = feel.get("today")
+    nights = [x.get("value") for x in (night_pattern.get("nights") or [])]
+    watch = bool(nights) and nights[-1] is not None and not night_pattern.get("note")
+    survey = bool(t)
+    based = "both" if survey and watch else "survey" if survey else "watch" if watch else "none"
+    out = {"level": None, "size": None, "based_on": based, "why": "no survey and no complete night yet",
+           "provenance": "Calculated from Reported feel and Measured nights"}
+    if based == "none":
+        return out
+    p = (t or {}).get("pain") or 0
+    k = th["primed_good_nights"]
+    good_nights = watch and len(nights) >= k and all(v is not None and v >= th["primed_night_min_sd"] for v in nights[-k:])
+    fresh = bool(feel.get("energy_and_legs_at_or_above_4"))
+    if survey and p >= pain["stop"]:
+        lv, why = "stressed", "pain at stop"
+    elif watch and (night_pattern.get("low_run") or 0) >= th["stressed_low_nights"]:
+        lv, why = "stressed", f"{night_pattern['low_run']} low nights in a row"
+    elif survey and p >= pain["hurts"]:
+        lv, why = "ease_off", "pain at hurts"
+    elif survey and feel.get("energy_or_legs_at_or_below_2"):
+        lv, why = "ease_off", "energy or legs at 2 or below"
+    elif survey and feel.get("two_mornings_low"):
+        lv, why = "ease_off", "two mornings in a row a full point under your usual"
+    elif watch and night_pattern.get("suggest") == "yellow":
+        lv, why = "ease_off", night_pattern.get("why") or "low nights"
+    elif based == "both" and good_nights and fresh:
+        lv, why = "primed", f"{k} nights at or above normal and energy and legs at 4 or above"
+    elif based == "watch" and good_nights:
+        lv, why = "primed", f"{k} nights at or above normal (no survey yet)"
+    elif based == "survey" and (feel.get("fresh_mornings_in_a_row") or 0) >= th["primed_fresh_mornings"]:
+        lv, why = "primed", f"{th['primed_fresh_mornings']} mornings in a row with energy and legs at 4 or above"
+    else:
+        lv, why = "ready", "nothing unusual"
+    out.update(level=lv, size=LEVEL_SIZE[lv], why=why)
+    return out
+
+
 def to5(v, scale):
     if v is None:
         return None
@@ -459,6 +505,15 @@ def section_feel(today, data, th):
             if s.strip():
                 sites.add(s.strip())
         cur -= timedelta(days=1)
+    # mornings in a row, ending today, with energy and legs both at the strong-day mark (RULES 5, one readiness: Primed without a watch)
+    fresh = 0
+    cur = today
+    while True:
+        x = by.get(iso(cur))
+        if not x or (x.get("energy") or 0) < th["feel_strong_day_at_or_above"] or (x.get("legs") or 0) < th["feel_strong_day_at_or_above"]:
+            break
+        fresh += 1
+        cur -= timedelta(days=1)
     missing_today = t is None
     unanswered_days = 0
     cur = today
@@ -478,6 +533,7 @@ def section_feel(today, data, th):
         "two_mornings_low": two_low,
         "energy_or_legs_at_or_below_2": bool(t and ((t.get("energy") or 9) <= th["feel_fallback_at_or_below"] or (t.get("legs") or 9) <= th["feel_fallback_at_or_below"])),
         "energy_and_legs_at_or_above_4": bool(t and (t.get("energy") or 0) >= th["feel_strong_day_at_or_above"] and (t.get("legs") or 0) >= th["feel_strong_day_at_or_above"]),
+        "fresh_mornings_in_a_row": fresh,
         "stress_at_or_above_4": bool(t and (t.get("stress") or 0) >= th["stress_trim_at_or_above"]),
         "pain_streak_mornings": streak, "pain_streak_sites": sorted(sites), "pain_streak_ends": iso(streak_end) if streak else None,
         "provenance": "Reported",
@@ -1304,9 +1360,9 @@ def build_flags(f, th):
         flags.append({"rule": "5a / 13 push", "text": "Energy and legs both 4 or above: the strong-day bound is allowed if nothing else objects."})
     s = fe.get("pain_streak_mornings") or 0
     if s >= th["pain_persistent_mornings_physio"]:
-        flags.append({"rule": "5a persistent niggle", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: recommend a physio or sports medicine look; hold load, no new stressor, load test before running."})
+        flags.append({"rule": "5a persistent twinge", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: recommend a physio or sports medicine look; hold load, no new stressor, load test before running."})
     elif s >= th["pain_persistent_mornings_flag"]:
-        flags.append({"rule": "5a persistent niggle", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: hold load at or below current, no new stressor, load test before running."})
+        flags.append({"rule": "5a persistent twinge", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: hold load at or below current, no new stressor, load test before running."})
     # pain near a key session
     key_soon = [k for k in rc.get("upcoming", []) if k["within_3_days"]]
     near = f["week"].get("key_long_or_race_within_3_days", [])
@@ -1440,6 +1496,7 @@ def build(today):
     mark_partial(f["night"], f["freshness"])
     f["feel"] = section_feel(today, data, th)
     f["night_pattern"] = section_night_pattern(today, data, th, f["night"], f["feel"])
+    f["readiness_level"] = section_readiness_level(th, (data["schemas"].get("feel") or {}).get("pain") or {}, f["night_pattern"], f["feel"])
     f["yesterday"] = section_yesterday(today, data, prof, th)
     f["load"] = section_load(today, data, th)
     f["week"] = section_week(today, data, prof)

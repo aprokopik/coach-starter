@@ -69,7 +69,7 @@
       saved = doc;
       if (!cleared && doc.use_min) useMin();
       const btn = $('t-chg-btn'); btn.setAttribute('aria-expanded', 'false'); $('t-chg').hidden = true;
-      if (cleared) { pick = ''; $('t-chg-note').value = ''; paintChips(); }
+      if (cleared) { pick = ''; $('t-chg-note').value = ''; paintChips(); if (CX.redrawPlan) CX.redrawPlan(); } // an undone move goes back
       paintStatus(); btn.focus();
     } catch (e) {
       st.hidden = false; st.textContent = 'Not saved. Try again, or tell the coach in chat.';
@@ -77,6 +77,14 @@
     s.disabled = !pick;
   }
 
+  // A key session moved from the Readiness card (ready.js moveOffer): the same document, reason swap_order, with the two dates
+  CX.movedDoc = () => saved;
+  CX.sendMove = async function (doc) {
+    if (!db) db = await window.CX.store();
+    await db.doc('day_change/' + doc.date).set(doc);
+    saved = doc; pick = doc.reason;
+    if (built && $('t-chg-st')) { paintChips(); paintStatus(); }
+  };
   CX.renderChange = async function () {
     if (!$('t-chg-btn') || !A()) return;
     if (!built) {
@@ -84,6 +92,7 @@
       try { db = await window.CX.store(); } catch (e) { db = null; }
       if (!db) return; // nowhere to save: say it in chat
       try { const d = await db.doc('day_change/' + A().TODAY).get(); saved = d.exists ? d.data() : null; } catch (e) { saved = null; }
+      if (saved && saved.move && CX.redrawPlan) CX.redrawPlan(); // the Readiness card shows the move instead of the offer
       if (saved && !saved.cleared) { pick = REASONS.some(([v]) => v === saved.reason) ? saved.reason : ''; $('t-chg-note').value = saved.note || ''; $('t-chg-min').checked = !!saved.use_min; }
       else $('t-chg-min').checked = true; // Plan B is the usual answer to a changed day; untick to keep the size
       paintChips();

@@ -393,7 +393,7 @@ Written at onboarding on {today.isoformat()} from {name}'s own answers (Reported
 - Strength sessions a week: {profile['strength_minimum_per_week']}. Swims a month: {profile['swims_per_month_minimum']}.
 {lifting_line(a)}
 ## Health context (Reported)
-- Injuries and niggles: {a.get('health', {}).get('injury_notes') or 'none reported'}.
+- Injuries and twinges: {a.get('health', {}).get('injury_notes') or 'none reported'}.
 - Conditions or medications that affect exercise: {a.get('health', {}).get('conditions') or 'none reported'}.
 - Pre-participation screen: {'NEEDS CLINICIAN: ' + ', '.join(i['question'] for i in flagged) if flagged else 'all clear'} (`screen.json`).
 

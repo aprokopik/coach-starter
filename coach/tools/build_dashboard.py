@@ -302,7 +302,9 @@ _setup_on = _mods is not None and not (_prof.get("setup") or {}).get("closed")
 _th = read_json("coach/engine/schemas.json", {}).get("thresholds", {})
 _pain = read_json("coach/engine/schemas.json", {}).get("feel", {}).get("pain", {})
 rows.append({"kind": "feel_rule", **{k: _th.get(k) for k in ("feel_reference_days", "feel_departure_points", "feel_departure_mornings",
-             "feel_fallback_at_or_below", "feel_strong_day_at_or_above", "feel_meter_min_mornings")},
+             "feel_fallback_at_or_below", "feel_strong_day_at_or_above", "feel_meter_min_mornings",
+             "stressed_low_nights", "primed_good_nights", "primed_night_min_sd", "primed_fresh_mornings", "key_move_max_days",
+             "night_pattern_low_sd", "night_pattern_well_low_sd", "night_pattern_yellow_low_nights")},
              "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop")})
 _off = set() if any(p.get("id") == "home_bp" for p in read_json("coach/ops/data_paths.json", {}).get("paths", [])) else {"half"}
 rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])

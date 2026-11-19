@@ -492,6 +492,9 @@
   // plain reading (6.47.0): what each call means, in the words of RULES 3, 13 and the pain ladder, read by a first-time user
   const READY_MEAN = { GREEN: 'Train as planned', YELLOW: 'Ease off: the shorter or easier size is the smart pick', RED: 'Stop the planned stress today' };
   const CALL_WORD = { push: 'Go for more', hold: 'Keep to the plan', restrain: 'Back off' };
+  // The plan's day rows; a key session moved from the Readiness card sits on its new day at once (ready.js CX.planDays)
+  const fWdLong = (d) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long' });
+  const dayRows = () => (window.CX.planDays ? window.CX.planDays() : kind('day'));
   function renderToday() {
     applyScales(); // stages first, so Skills and the ribbon read the stage in use
     renderKudos(); renderProgress(); renderAdh(); if (window.CX.renderAsk) window.CX.renderAsk();
@@ -530,16 +533,17 @@
       if (missed) $('t-stale').dataset.s = 'act'; else delete $('t-stale').dataset.s; $('t-stale-w').textContent = missed ? 'Missed' : 'Out of date';
       if (stale) { const st = $('t-stale-t'); st.replaceChildren(); if (!missed) st.append(`This is ${fDow(P(t.date))}'s check-in. Today's arrives after the `, RUN_AT(), ' run.'); else st.append('No check-in today: the ', RUN_AT(), ` run has not landed by `, ruleSpan(clockAt(missedAt()), 'app.js missedAt: the first daytime refresh, 9:41 AM (data_paths daytime_refresh), or two hours after the check-in when there is none'), `. Ask the coach in a chat for today's call. This is ${fDow(P(t.date))}'s.`); $('t-stale-age').textContent = t.generated_at_utc ? `Check-in ${stamp(t.generated_at_utc)}.` : ''; }
       const box = $('t-planned'); box.replaceChildren();
-      const todays = kind('day').filter((r) => r.date === TODAY).sort((a, b) => (a.order || 0) - (b.order || 0));
+      const todays = dayRows().filter((r) => r.date === TODAY).sort((a, b) => (a.order || 0) - (b.order || 0));
+      const mvd = todays.find((r) => r.moved) || null; // a session moved in or out today: the card shows the plan row, not the morning's call
       // week-plan state (Phase 6 round 3, the athlete: the size control and Help me pick every day): before today's check-in the tile
       // shows the week plan for today; its first day row drives Fallback / Plan / Strong day and their size texts, its details
       // go in Help me pick, and yesterday's purpose, choice rule and question stay out. A rest day has no sizes.
-      const usePlan = stale && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
+      const usePlan = (stale || !!mvd) && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
       const multi = usePlan && todays.length > 1 && alpha('day_sessions'), bnd = $('t-bounds'); if (bnd.parentNode !== $('t-presc-b')) { $('t-presc-b').append(bnd); $('t-presc-b').after($('t-presc-s'), $('t-more')); }
       const sized = !pd || pd.type !== 'rest', det = $('t-pdet'); det.replaceChildren(); det.hidden = !usePlan;
       box.hidden = !usePlan; $('t-presc-a').hidden = usePlan; $('t-presc-b').hidden = !sized || multi; $('t-presc-s').hidden = !sized; $('t-purpose').hidden = usePlan || !t.purpose; $('t-rule').hidden = usePlan || !t.choice_rule;
       state.usePlan = usePlan; state.sized = sized; state.multi = multi;
-      state.from = usePlan || !stale ? '' : `From ${fWd(P(t.date))}'s check-in`;
+      state.from = mvd ? `Moved ${mvd.type === 'rest' ? 'to' : 'here from'} ${fWdLong(mvd.moved)}` : usePlan || !stale ? '' : `From ${fWd(P(t.date))}'s check-in`;
       if (usePlan) {
         for (const [i, r] of todays.entries()) {
           const w = `kind=day&date=${r.date}&order=${r.order}`;
@@ -577,7 +581,7 @@
         if (v !== null) sub.append(mark(el('span', null, hmin(v)), 'coach', null, pd ? pdw : pw, 'h:mm of ' + f)); else if (pd) sub.append('not set');
       }
     }
-    const keyToday = kind('day').filter((r) => r.date === TODAY && (r.key === true || r.key === 'true' || N(r.pillar) !== null));
+    const keyToday = dayRows().filter((r) => r.date === TODAY && r.type !== 'rest' && (r.key === true || r.key === 'true' || N(r.pillar) !== null));
     state.keyN = keyToday.length ? (N(keyToday[0].pillar) !== null ? `Key ${N(keyToday[0].pillar)} of 3` : 'Key session') : '';
     renderPath();
     const doneBox = $('t-done'); doneBox.replaceChildren();
@@ -614,7 +618,7 @@
       if (hb.hidden) { hb.setAttribute('aria-expanded', 'false'); $('t-pick').hidden = true; } }
     renderBound();
     renderRaceTile(r);
-    renderNight(); surveyRead(); basedOn();
+    renderNight(); if (window.CX.renderEarly) window.CX.renderEarly(); // ready.js
     renderWatch();
     if (window.CX.renderChange) window.CX.renderChange(); // change.js: Today changed?, after the size is drawn
     if (window.CX.renderReview) window.CX.renderReview(); // review.js: Next week on the plan check day (alpha week_review)
@@ -710,17 +714,18 @@
     const ol = $('t-path'); ol.replaceChildren(); const m0 = dayN(monday(TODAY)), wv = rowsOk('week_view') || [];
     let keys = 0, keysDone = 0;
     for (let i = 0; i < 7; i++) {
-      const d = isoN(m0 + i), rs = kind('day').filter((r) => r.date === d);
-      const key = rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null));
+      const d = isoN(m0 + i), rs = dayRows().filter((r) => r.date === d);
+      const offDay = d === TODAY && !!state.off; // Stressed: today reads as rest (ready.js)
+      const key = offDay ? null : rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null));
       const done = wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
-      const planned = rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
+      const planned = !offDay && rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
       const sg = el('span', 'td-nw-sg'); sg.setAttribute('aria-hidden', 'true'); // a symbol per session, as on Next week (the athlete, Nov 16)
       if (alpha('day_sessions')) for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
       const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '') + (done ? ' is-done' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
       nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
       li.append(nd, el('span', 'td-dow', DOW[i]), sg, el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (n > 1 ? `, ${n} sessions` : '') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
       ol.append(li);
-      if (key) { keys++; if (done) keysDone++; }
+      if (key || (offDay && rs.some((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null)))) { keys++; if (done) keysDone++; } // a session taken off today still counts: it moves, it is not lost
     }
     $('t-path-n').textContent = keys ? `${keysDone} of ${keys} key done` : '';
   }
@@ -760,6 +765,8 @@
     return f;
   }
   function renderBound() {
+    // one readiness (ready.js): Stressed takes today's session off, so the sizes leave and the line under the title says so
+    const off = !!state.off && state.sized && !state.multi; $('t-presc-b').hidden = !state.sized || state.multi || off; $('t-presc-s').hidden = !state.sized || off; $('t-workout').classList.toggle('is-off', off);
     for (const inp of document.querySelectorAll('#t-bounds input[type=radio]')) { inp.checked = inp.value === state.bound; inp.closest('.ck-seg-opt').classList.toggle('is-rec', inp.value === state.rec); }
     for (const k of ['nominal', 'upper', 'fallback']) $('t-b-' + k).hidden = state.usePlan || k !== state.bound || !$('t-b-' + k).textContent.replace('—', '').trim();
     const line = $('t-size'); line.replaceChildren();
@@ -775,8 +782,8 @@
     // a rest day never says "coach says 0 min" (the athlete, Nov 16, 2026)
     const rest = !!sp && String(sp.row.type || '') === 'rest', restWord = rest && !/^\s*rest\b/i.test($(state.usePlan ? 't-planned' : 't-title').textContent) ? 'Rest day' : '';
     const said = rv !== null && !rest && !state.multi;
-    const bits = [state.keyN, state.from, said ? 'coach says ' + hmin(rv) : restWord].filter(Boolean);
-    bits.forEach((b, i) => { if (i) sub.append(' · '); sub.append(i === bits.length - 1 && said ? mark(el('span', null, b), 'coach', null, sp.w, 'coach size h:mm') : b); });
+    const bits = off ? ['Off today', 'rest and recover'] : [state.keyN, state.from, said ? 'coach says ' + hmin(rv) : restWord].filter(Boolean);
+    bits.forEach((b, i) => { if (i) sub.append(' · '); sub.append(i === bits.length - 1 && said && !off ? mark(el('span', null, b), 'coach', null, sp.w, 'coach size h:mm') : b); });
     const more = $('t-more'), mb = $('t-more-btn');
     const hasMore = [...more.children].some((c) => !c.hidden && c.textContent.replace('—', '').trim());
     mb.hidden = !hasMore; if (!hasMore) { more.hidden = true; mb.setAttribute('aria-expanded', 'false'); }
@@ -895,64 +902,7 @@
     for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) { const k = mk('td-nm-tk', u); k.textContent = t; bar.append(k); }
     return TR;
   }
-  // Early read (the athlete, Nov 18, 2026, option 3; alpha survey_read): before the call, the answers against the coach's thresholds
-  // (feel_rule, schemas.json); with last night not in, the meter shows this morning's feel against the mornings before it
-  const FEELK = ['sleep_q', 'energy', 'legs'];
-  const feelScore = (d) => { const v = [...FEELK.map((k) => N(d[k])), N(d.stress) === null ? null : 6 - N(d.stress)].filter((x) => x !== null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-  function surveyRead() {
-    const note = $('t-early'), r = kind('feel_rule')[0], t = kind('today')[0], f = window.CX.feelToday;
-    if (note) note.hidden = true;
-    if (!alpha('survey_read') || !r || !t) return;
-    const pre = t.date !== TODAY, mb = $('t-nm-btn'); // pre: before today's call
-    if (!f || !f.saved_at || feelScore(f) === null) { if (!pre) return; // no answers yet: No info yet asks for them (the athlete, Nov 18, 2026)
-      const watch = (rowsOk('night') || []).length > 0, go = el('button', 'qc-link td-early-go', 'Do your morning check-in'); go.type = 'button';
-      go.addEventListener('click', () => { const c = $('t-qc'), b = c && !c.hidden && c.querySelector('.qc-tile'); if (b) { c.scrollIntoView({ block: 'center' }); b.focus(); } else { show('checkins', true); if (window.CX.openMorning) setTimeout(window.CX.openMorning, 60); } });
-      $('t-ready-m').replaceChildren(go);
-      note.replaceChildren(watch ? 'Your answers make today\'s call more accurate.' : 'Your answers give an early read right away.'); note.hidden = false;
-      const mb0 = $('t-nm-btn'); if (mb0.parentNode && note.nextSibling !== mb0) mb0.before(note);
-      return;
-    }
-    const past = kind('feel_day').filter((d) => Number(d.scale) === 5 && d.date < TODAY);
-    const ref = (k, before) => { const v = past.filter((d) => d.date < before && dayN(d.date) >= dayN(before) - N(r.feel_reference_days)).map((d) => (k ? N(d[k]) : feelScore(d))).filter((x) => x !== null); return v; };
-    const avg = (v) => v.reduce((a, b) => a + b, 0) / v.length;
-    const Y = isoN(TN - 1), yd = past.find((d) => d.date === Y), dp = N(r.feel_departure_points);
-    const low = (d, at) => FEELK.some((k) => { const v = ref(k, at); return d && N(d[k]) !== null && v.length && N(d[k]) - avg(v) <= -dp; });
-    if (pre) { // one readiness on the card (the athlete, Nov 18): after the call a late survey adds no second read
-    const p = N(f.pain) || 0, fb = N(r.feel_fallback_at_or_below), e = N(f.energy), l = N(f.legs);
-    const call = p >= N(r.pain_stop) ? 'RED' : p >= N(r.pain_hurts) || (e !== null && e <= fb) || (l !== null && l <= fb) || (low(f, TODAY) && low(yd, Y)) ? 'YELLOW' : 'GREEN';
-    const strong = call === 'GREEN' && e >= N(r.feel_strong_day_at_or_above) && l >= N(r.feel_strong_day_at_or_above);
-    const rs = READY_S[call], g = $('t-ready-g'), rd = $('t-ready'), rm = $('t-ready-m');
-    g.dataset.s = rs; g.replaceChildren(icon(rs, 'ck-g')); $('t-ready-sr').textContent = ST_NAME[rs] + ': '; rd.textContent = call; rd.setAttribute('data-derived', 'early read from this morning\'s survey');
-    rd.setAttribute('data-rule', 'app.js surveyRead: pain Stop RED; Hurts, energy or legs at feel_fallback_at_or_below or two low mornings YELLOW; else GREEN (schemas.json, RULES 5a and 6)');
-    rm.textContent = strong ? 'Train as planned. The strong-day size is on offer' : READY_MEAN[call]; rm.hidden = false;
-    note.replaceChildren('Early read from your survey.'); note.hidden = false;
-    if (mb.parentNode && note.nextSibling !== mb) mb.before(note);
-    }
-    const gz = rowsOk('night_gauge'), nr = gz && gz[0];
-    if (nr && nr.date === TODAY && N(nr.value) !== null) return; // last night is in: its own meter stays
-    const sc = ref(null, TODAY), n = sc.length, m = n ? avg(sc) : null, sd = n > 1 ? Math.sqrt(sc.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1)) : 0;
-    if (n < N(r.feel_meter_min_mornings) || !sd) return;
-    const v = Math.round((feelScore(f) - m) / sd * 10) / 10, a = Math.abs(v), word = a < 1 ? 'Typical' : (a >= 2 ? 'Well ' : '') + (v > 0 ? (a >= 2 ? 'high' : 'High') : (a >= 2 ? 'low' : 'Low'));
-    const s = a < 1 ? 'good' : v <= -1.5 ? 'watch' : 'plain';
-    delete mb.dataset.learn; mb.hidden = false; const scl = mb.querySelector('.td-nm-scale'); if (scl) scl.hidden = false;
-    mb.querySelector('.td-nm-k').textContent = "This morning's feel";
-    const nv = $('t-nm-v'); nv.textContent = (v > 0 ? '+' : v < 0 ? '−' : '') + f1(a); nv.removeAttribute('data-field'); nv.setAttribute('data-derived', 'survey feel vs the mornings before');
-    $('t-nm-word').replaceChildren(s === 'plain' ? neutralChip(word) : badge(s, word));
-    const TR = nmBar(v, s);
-    mb.setAttribute('aria-label', `This morning's feel ${nv.textContent} SD, ${word}, against your last ${n} mornings, on a scale from -${TR} to +${TR} sigma. Show last night's vitals`);
-  }
-  // Based on (the athlete, Nov 18, 2026: "some kind of indication if you've done either just the survey or just have watch data"):
-  // what today's read has in, beside the confidence: the survey, last night from the watch, both or neither
-  function basedOn() {
-    const e = $('t-src'); if (!e) return; e.hidden = true;
-    if (!alpha('survey_read')) return;
-    const f = window.CX.feelToday, row = kind('feel_day').some((d) => d.date === TODAY);
-    const nt = rowsOk('night') || [], wt = nt.some((r) => r.date === TODAY && r.value !== null && r.value !== undefined);
-    const sv = row || !!(f && f.saved_at);
-    e.textContent = sv && wt ? 'Survey and watch' : sv ? 'Survey only' : wt ? 'Watch only' : 'Nothing yet';
-    e.dataset.s = sv && wt ? 'good' : sv || wt ? 'part' : 'none'; e.hidden = false;
-  }
-  window.CX.renderEarly = () => { surveyRead(); basedOn(); }; // ask.js and forms.js, after a morning save
+  // The early read, the one readiness level and the key session move offer live in ready.js (CX.renderEarly)
   // Last night in one number (Phase 6, option A): a fuel-style half arc from the row's lo (-2 SD, empty, left) to hi (+2 SD,
   // full, right), a tick at 0, the fill in the status colour and a dot at the value. The number is calc night_gauge (the mean
   // of the four SD distances, read here, never recomputed). The word uses the tiles' cut-offs (zText): Typical inside 1 SD,
@@ -1079,10 +1029,10 @@
     const where = sites.join(', ') || 'pain';
     let streak = 0; for (let d = TN; d > TN - 30; d--) { const r = fs.find((q) => dayN(q.date) === d); if (r && N(r.pain) > 0) streak++; else if (r || d < TN) break; }
     const soon = kind('day').filter((d) => d.type !== 'rest' && (truthy(d.key) || d.type === 'race' || d.intensity === 'race' || d.intensity === 'long') && dayN(d.date) >= TN && dayN(d.date) <= TN + 3).sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-    const pw = (p) => (p <= 0 ? 'none' : p <= 2 ? 'a niggle' : p <= 4 ? 'hurts' : 'stop');
+    const pw = (p) => (p <= 0 ? 'none' : p <= 2 ? 'a twinge' : p <= 4 ? 'hurts' : 'stop');
     const flags = [];
     if (streak >= 5) flags.push(`${streak} mornings in a row: get it checked by a physio or sports doctor`);
-    else if (streak >= 3) flags.push(`${streak} mornings in a row: treat it as more than a niggle, keep load the same or lower, no new stress`);
+    else if (streak >= 3) flags.push(`${streak} mornings in a row: treat it as more than a twinge, keep load the same or lower, no new stress`);
     if (soon && N(last.pain) > 0 && dayN(last.date) >= TN - 1) flags.push(`${soon.title} ${inDays(daysTo(soon.date))}: do a load test first (walk, stairs, hops), and drop to the fallback if it isn't clearly better`);
     const wt = $('w-watch-text'); wt.setAttribute('data-where', 'date=' + last.date);
     wt.textContent = `${where.charAt(0).toUpperCase() + where.slice(1)}: ${pw(N(last.pain))} on ${fDow(P(last.date))}; pain on ${withPain.length} of the last ${recent.length} check-ins, ${trend}.` + (flags.length ? ' Flag: ' + flags.join('; ') + '.' : '') + ' Hurts or Stop, rising, or changing your stride: injury rules apply.';
@@ -1445,7 +1395,7 @@
     if (wst) { const msg = wst === 'error' ? 'The week plan did not arrive. Nothing saved is lost.' : ''; for (const id of ['w-keys', 'w-list', 'w-totals']) cardState($(id), wst, msg); return; }
     const wv = rowsOk('week_view');
     const tiles = $('w-tiles'), days = $('w-days');
-    const items = wv.filter((r) => r.week === wk);
+    const items = (window.CX.movedWeek ? window.CX.movedWeek(wv) : wv).filter((r) => r.week === wk); // a moved key session on its new day (ready.js)
     const plan = items.filter((r) => r.kind === 'plan' && !['rest', 'test'].includes(r.type));
     const doneRows = items.filter((r) => ['done', 'fallback', 'swapped', 'extra'].includes(r.status));
     const planMin = plan.reduce((s, r) => s + (N(r.minutes) || 0), 0);
@@ -1526,6 +1476,7 @@
       const de = el('div', 'wk-day' + (d === TODAY ? ' is-today' : '') + (past ? ' is-past' : '') + (openDay ? '' : ' is-folded'));
       const h = el(past ? 'button' : 'div', 'wk-dayh'); if (past) { h.type = 'button'; h.setAttribute('aria-expanded', String(openDay)); h.dataset.d = d; h.addEventListener('click', () => { if (state.openDays.has(d)) state.openDays.delete(d); else state.openDays.add(d); renderWeek(); wkFocus('#w-days .wk-dayh', (e) => e.dataset.d === d); }); }
       const dn = el('span', 'wk-dayn'); dn.append(el('b', null, fDow(P(d))), ' ', mark(el('span', null, fDay(P(d))), null, null, null, 'date')); h.append(dn);
+      { const m = its.find((r) => r.moved); if (m) { const c = el('span', 'ck-chip wk-moved', m.moved_word + ' ' + fDow(P(m.moved))); c.setAttribute('data-derived', 'your move from the Readiness card, the coach confirms it at the next update'); h.append(c); } }
       if (d === TODAY) h.setAttribute('aria-current', 'date'); // the session badges say Today; no second Today chip on the header
       if (past && !openDay) {
         const sum = el('span', 'wk-daysum');
@@ -2776,7 +2727,7 @@
   }
   window.CX.render = render;
   // the helpers season.js (loaded next) reads
-  window.CX.app = { $, CKC, drawMarker, section, sentences, kvRow, plainEl, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, sportIcon, stamp, state, truthy };
+  window.CX.app = { $, CKC, renderBound, renderPath, renderToday, renderWeek, alpha, READY_S, READY_MEAN, ST_NAME, nmBar, badge, show, drawMarker, section, sentences, kvRow, plainEl, speedChart, levelUps, COL, GARMIN_MAX_H, KEY_RULE_FROM, N, P, RACE_TONE, TN, TODAY, adhOf, cardState, dayN, daysTo, dsState, el, f1, fDay, fDow, fMon, fWd, hm, icon, inDays, isoN, autoStage, kind, ladderOf, levelOf, mark, milestoneInfo, mkSpan, monday, neutralChip, nextRace, now, pad2, renderRaceTile, rowsOk, ruleSpan, seasonTile, seriesFor, skillSeries, startDay, SKILL_ICON, spaced, sportGroups, sportIcon, stamp, state, truthy };
   Object.assign(window.CX, { stageInfo, lineChart, legend, inSpan, spanStart, spanName, drawWeight, sportCol, sportTok, sportGroups, seasonTile, blockContext, kind, ck: { icon, badge, neutralChip, mark, ruleSpan, cardState, dsState },
     weekSoFar: (w) => { const d = TN - dayN(w) + 1; return d >= 1 && d < 7 ? { x: w, days: d, of: 7 } : null; } }); // the open week of a per-week bar chart
   // Check-ins due on Today (Phase 6): checkins.js renderStrip writes the due count into #t-ci's data-n, the names into

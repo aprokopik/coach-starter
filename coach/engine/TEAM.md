@@ -53,7 +53,7 @@ Ground rules for every lens:
   2. If a run or key session is within 3 days and pain was above none: has the load test (walk, stairs, heel raises, hops) been asked for?
   3. Is today's run inside the single run spike cap and the week's run progression?
   4. Is any push on a run day? Run pushes need 7 pain free mornings in a row.
-* Referral: persistent niggle 3 mornings in a row holds load; 5 mornings in a row, or not clearly better after a week, recommends a physio or sports medicine look (RULES 5a). Pain that changes gait goes to RULES 6.
+* Referral: persistent twinge 3 mornings in a row holds load; 5 mornings in a row, or not clearly better after a week, recommends a physio or sports medicine look (RULES 5a). Pain that changes gait goes to RULES 6.
 * Evidence: IR-03, IR-05, IR-06, IR-07, IR-13. Open question 1 in QUEUE.md (return to run criteria after medial ankle pain) stays open; no criteria are invented here.
 * Covered: RULES 3 spike rule, 5a pain rules, 6. New: the 7 pain free mornings gate for run pushes.
 

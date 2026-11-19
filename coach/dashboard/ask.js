@@ -8,7 +8,7 @@
 //                      coach/tools/outcomes.py) not done in week_view, with no Lifts tab log for that day. Saved as
 //                      lift_tap/<today> {for_date, answer yes|no, saved_at}; the morning run copies it into
 //                      coach/lift_taps.csv (RUNBOOK Data 4) and outcomes.py counts a yes as done, a no as skipped.
-//   Sleep, Energy, Legs, Stress (1 to 5) and Pain (Stop, Hurts, Niggle, None; Where? when not None): the morning feel,
+//   Sleep, Energy, Legs, Stress (1 to 5) and Pain (Stop, Hurts, Twinge, None; Where? when not None): the morning feel,
 //                      the same answers and the same feel_daily/<today> document as the Check-in tab form (forms.js),
 //                      which reloads after each save; a save on the form takes the morning questions off this card
 //                      (CX.feelSaved). The first one offers Same as yesterday.
@@ -45,7 +45,7 @@
     if (goneDay === A().TODAY) return true;
     try { return localStorage.getItem(KEY) === A().TODAY; } catch (e) { return false; } };
   const blank = (v) => v === null || v === undefined || v === '';
-  const painWord = (p) => { p = Number(p); return p <= 0 ? 'None' : p <= 2 ? 'Niggle' : p <= 4 ? 'Hurts' : 'Stop'; };
+  const painWord = (p) => { p = Number(p); return p <= 0 ? 'None' : p <= 2 ? 'Twinge' : p <= 4 ? 'Hurts' : 'Stop'; };
   function summary() {
     const out = [];
     if (feel) {
@@ -95,7 +95,7 @@
         cur: () => (feel && !blank(feel[f.k]) ? String(feel[f.k]) : null), save: (v) => saveFeel({ [f.k]: v }),
       });
       s.push({
-        id: 'pain', q: 'Pain', sub: 'Stop: changes how you move. Hurts: affects training. Niggle: noticed, changes nothing.', cols: 4,
+        id: 'pain', q: 'Pain', sub: 'Stop: changes how you move. Hurts: affects training. Twinge: noticed, changes nothing.', cols: 4,
         opts: scale('pain'), cur: () => (feel && !blank(feel.pain) ? String(feel.pain) : null),
         save: (v) => saveFeel(v === '0' ? { pain: v, pain_site: '' } : { pain: v }), more: (v) => v !== '0',
       });

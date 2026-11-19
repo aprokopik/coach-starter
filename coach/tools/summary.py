@@ -13,7 +13,7 @@ goes missing. This tool writes the `summary` row a Sunday review reads: one row 
     readiness_word   1 poor, 2 weak, 3 fair, 4 good, 5 strong
     mornings         how many morning calls the readiness is built on
     pain_flag        "yes" when a morning in the week had pain at hurts or stop (3 or more), or pain above none on
-                     3 or more mornings (the persistent niggle rule, RULES 4); else "no". Never a site or a value
+                     3 or more mornings (the persistent twinge rule, RULES 4); else "no". Never a site or a value
     markers_watch    names of the health and fitness markers marked watch or act (names only, never values)
     hours_7d         training hours in the week, walks and sauna left out (Garmin activities.csv)
     next_race        the next registered or planned race: "name, YYYY-MM-DD"

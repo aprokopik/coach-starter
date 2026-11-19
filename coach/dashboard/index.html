@@ -114,6 +114,7 @@
         <div id="t-qc-body" data-source="week_view"></div>
       </article>
       <article class="ck-tile ck-call" id="t-hero" aria-labelledby="t-call-h">
+        <div class="td-daybar" id="t-day" hidden><strong id="t-day-d" data-derived="today's date"></strong></div>
         <div class="ck-tile-head">
           <h2 class="ck-eyebrow" id="t-call-h"><svg class="ck-i" aria-hidden="true"><use href="#cx-today"/></svg>Readiness</h2>
           <div class="td-hn-meta">
@@ -129,6 +130,8 @@
             <span class="ck-ready td-ready"><span class="ck-sr" id="t-ready-sr"></span><span id="t-ready" data-source="coach" data-field="readiness" data-where="kind=today">—</span></span>
             <span class="td-ready-m" id="t-ready-m" data-source="coach" data-where="kind=today" data-derived="readiness meaning" data-rule="app.js READY_MEAN: GREEN train as planned, YELLOW ease off, RED stop the planned stress (RULES 3, pain ladder)" hidden></span> <!-- beside the call word (the athlete, Nov 15, 2026: arrow from "Train as planned" up beside Green) -->
             <p class="ck-note td-early" id="t-early" data-derived="early read note" hidden></p>
+            <div class="td-chips" id="t-rchips" hidden><span class="td-chip" id="t-chip-c" data-source="coach" data-where="kind=today" data-derived="confidence chip"></span><span class="td-chips-r"><span class="td-chip" id="t-chip-s" data-derived="survey in today"></span><span class="td-chip" id="t-chip-w" data-derived="watch night in today"></span></span></div>
+            <div class="td-move" id="t-move" data-derived="key session move offer" data-rule="app.js moveOffer: Primed pulls the next key session forward, Ease off and Stressed push today's back, up to key_move_max_days, same week, never two hard days in a row, tests and races fixed (RULES 5)" hidden></div>
           </div>
           <!-- Last night in one line (Phase 6 round 2, T-B as the athlete picked, with the bigger meter he asked for): the gauge's
                figure and word, then a full-width -2 to +2 SD bar with dashed marks at -1 and +1 (the usual range) and a mark at
@@ -351,7 +354,7 @@
               <fieldset class="ck-choices ck-choices--row" data-key="energy" data-opts="1|2|3|4|5" data-labels="Drained|Low|OK|Good|Great" data-label="Energy"></fieldset>
               <fieldset class="ck-choices ck-choices--row" data-key="legs" data-opts="1|2|3|4|5" data-labels="Trashed|Heavy|OK|Good|Fresh" data-label="Legs"></fieldset>
               <fieldset class="ck-choices ck-choices--row" data-key="stress" data-opts="5|4|3|2|1" data-labels="Maxed|High|Some|Low|Calm" data-rule="index.html fm-form: worst on the left, best on the right; stored values unchanged (1 Calm to 5 Maxed)" data-label="Stress" data-hint="work, study, life"></fieldset>
-              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="6|3|1|0" data-labels="Stop|Hurts|Niggle|None" data-rule="index.html: worst on the left, best on the right; stored values unchanged (0 None to 6 Stop)" data-label="Pain" data-hint="Stop: changes how you move · Hurts: affects training · Niggle: noticed, changes nothing"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="6|3|1|0" data-labels="Stop|Hurts|Twinge|None" data-rule="index.html: worst on the left, best on the right; stored values unchanged (0 None to 6 Stop)" data-label="Pain" data-hint="Stop: changes how you move · Hurts: affects training · Twinge: noticed, changes nothing"></fieldset>
               <fieldset class="ck-choices ci-wrap" data-sites="pain_site" data-key="pain_site" data-multi="1" data-label="Where" data-opts="inside ankle|behind knee|calf|hamstring|knee|hip|back|shoulder|other" hidden></fieldset>
               <details class="ci-note"><summary class="ci-sum"><svg class="ck-i ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>Add a note</summary><input class="ck-input" type="text" id="fm-note" maxlength="300" placeholder="Anything the coach should know" aria-label="Morning note"></details>
               <button type="button" class="ck-btn ck-btn--primary ci-done" id="fm-done" hidden>Done</button>
@@ -375,7 +378,7 @@
               <fieldset class="ck-choices ck-choices--row" data-key="rpe" data-opts="2|3|4|6|8" data-labels="Very easy|Easy|Steady|Hard|Very hard" data-label="How hard was it?" data-hint="whole session, about 30 min after" data-rule="index.html fs-form: the RPE hint, about 30 min after"></fieldset>
               <p class="ck-note" id="fs-anchor">How much you could have said: easy, full sentences · steady, short sentences · hard, a few words</p>
               <fieldset class="ck-choices ck-choices--row" data-key="vs_plan" data-opts="-|=|+" data-labels="Easier|As planned|Harder" data-label="Versus the plan"></fieldset>
-              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="6|3|1|0" data-labels="Stop|Hurts|Niggle|None" data-rule="index.html: worst on the left, best on the right; stored values unchanged (0 None to 6 Stop)" data-label="Pain during or after"></fieldset>
+              <fieldset class="ck-choices ck-choices--row" data-key="pain" data-opts="6|3|1|0" data-labels="Stop|Hurts|Twinge|None" data-rule="index.html: worst on the left, best on the right; stored values unchanged (0 None to 6 Stop)" data-label="Pain during or after"></fieldset>
               <fieldset class="ck-choices ci-wrap" data-sites="pain_site" data-key="pain_site" data-multi="1" data-label="Where" data-opts="inside ankle|behind knee|calf|hamstring|knee|hip|back|shoulder|other" hidden></fieldset>
               <fieldset class="ck-choices ck-choices--row fs-foot" id="fs-footq" data-key="footing" data-opts="easy|moderate|tough|hard|expert" data-labels="Smooth|Mild|Technical|Rugged|Scramble" data-label="Trail conditions" data-hint="footing, mostly · smooth to scramble" data-rule="forms.js footVis: the footing and ground questions show only after hilly runs and hikes (60 ft of climb per mile or more)" hidden></fieldset><p class="fs-footdef" id="fs-footdef" aria-live="polite" hidden></p><fieldset class="ck-choices ck-choices--row fs-ground" id="fs-groundq" data-key="ground" data-multi="1" data-opts="wet|mud|snow" data-labels="Wet|Mud|Snow or ice" data-label="Ground" data-hint="tap any that applied · none means dry" hidden></fieldset>
               <fieldset class="ck-choices ci-wrap" id="fs-fuelq" data-key="fuel" data-opts="nothing|water only|under 30 g carb/h|30 to 60 g/h|over 60 g/h" data-label="Fuel (90 min or longer)" data-rule="forms.js fuelVis: the fuel question shows from 90 min; index.html: the carb bands 30 and 60 g/h" hidden></fieldset>
@@ -767,6 +770,7 @@
 <script src="cockpit.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>
+<script src="ready.js"></script>
 <script src="plan.js"></script>
 <script src="ask.js"></script>
 <script src="fresh.js"></script>
