@@ -1605,3 +1605,5 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 /* one readiness: Stressed takes today's session off (app.js renderBound, ready.js) */
 .ck #t-workout.is-off .ck-session-title { text-decoration: line-through; color: var(--ck-fg-2); }
 .ck .wk-moved { margin-left: auto; font-size: var(--ck-t1); }
+.ck .td-wx { font-size: var(--ck-t1); color: var(--ck-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ck .td-daybar strong { white-space: nowrap; }

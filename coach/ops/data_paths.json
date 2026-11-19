@@ -373,6 +373,24 @@
    "alert": false,
    "fallback": "unanswered by decide_by, the brief goes live as proposed (engine/BLOCK-BRIEF.md section 2)",
    "owner": "the athlete"
+  },
+  {
+   "id": "weather",
+   "what": "Day forecast for the Today day strip (alpha day_weather): today and the next two days for the town in coach/athlete/profile.json `weather`; optional, off when the profile names no town",
+   "route": "GitHub Actions pull-garmin.yml, the step after the Garmin pull (scripts/pull_weather.py): one request to Open-Meteo with the town's coordinates and nothing else; build_dashboard.py copies the days into coach.json rows kind weather",
+   "writes": [
+    "data/weather.json"
+   ],
+   "cadence": "with every Garmin pull",
+   "evidence": {
+    "kind": "json_field",
+    "file": "data/weather.json",
+    "field": "fetched_at_utc"
+   },
+   "max_age_hours": 36,
+   "alert": false,
+   "fallback": "none needed: a failed fetch leaves the last file, and the page shows a forecast only for a day the file has",
+   "owner": "pipeline"
   }
  ],
  "consumers_outside_repo": [

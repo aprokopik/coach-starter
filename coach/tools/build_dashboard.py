@@ -306,6 +306,10 @@ rows.append({"kind": "feel_rule", **{k: _th.get(k) for k in ("feel_reference_day
              "stressed_low_nights", "primed_good_nights", "primed_night_min_sd", "primed_fresh_mornings", "key_move_max_days",
              "night_pattern_low_sd", "night_pattern_well_low_sd", "night_pattern_yellow_low_nights")},
              "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop")})
+# Day forecast for the Today day strip (alpha day_weather; scripts/pull_weather.py writes data/weather.json when the
+# profile names a town). One row per day the file has; the page shows a day only when its row is there.
+for _w in (read_json("data/weather.json", {}) or {}).get("days", []):
+    rows.append({"kind": "weather", "town": read_json("data/weather.json", {}).get("town"), **{k: _w.get(k) for k in ("date", "text", "high_f", "low_f", "rain_pct", "wind_mph")}})
 _off = set() if any(p.get("id") == "home_bp" for p in read_json("coach/ops/data_paths.json", {}).get("paths", [])) else {"half"}
 rows.extend({"kind": "ci_survey", **s} for s in _ci.get("surveys", [])
             if (s.get("id") != "setup" or _setup_on) and s.get("id") not in _off)

@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.151.0",
+ "version": "6.152.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -198,6 +198,7 @@
   "scripts/body_comp.py",
   "scripts/pull_garmin.py",
   "scripts/pull_strava.py",
+  "scripts/pull_weather.py",
   "scripts/setup_strava.py",
   "scripts/setup_token.py",
   "scripts/streams.py",

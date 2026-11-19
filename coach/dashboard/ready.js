@@ -81,7 +81,12 @@
     const hero = $('t-hero'), on = alpha('one_readiness'); hero.classList.toggle('td-one', on); $('t-day').hidden = !on; $('t-rchips').hidden = !on;
     hero.querySelector('.ck-tile-head').classList.toggle('ck-vh', on);
     if (!on) return;
-    $('t-day-d').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    // today's forecast on the right of the strip (alpha day_weather; a coach row kind weather, only when today has one)
+    { const wx = $('t-wx'), w = alpha('day_weather') ? kind('weather').find((x) => x.date === TODAY && N(x.high_f) !== null && N(x.low_f) !== null) : null; wx.hidden = !w; wx.replaceChildren();
+      if (w) { const where = 'kind=weather&date=' + TODAY, m = (v, fld) => { const e = el('span', null, String(v)); e.setAttribute('data-source', 'coach'); e.setAttribute('data-field', fld); e.setAttribute('data-where', where); return e; };
+        if (w.text) wx.append(m(w.text, 'text'), ' · '); wx.append(m(N(w.high_f), 'high_f'), '° / ', m(N(w.low_f), 'low_f'), '°');
+        wx.setAttribute('role', 'group'); wx.setAttribute('aria-label', `${w.town ? w.town + ' today' : 'Today'}: ${w.text ? w.text + ', ' : ''}high ${N(w.high_f)}, low ${N(w.low_f)} degrees Fahrenheit`); }
+      $('t-day-d').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', ...(w ? {} : { year: 'numeric' }) }); } // with the forecast beside it the year leaves, so the strip stays on one line
     const t = kind('today')[0], f = window.CX.feelToday, conf = t && t.date === TODAY ? String(t.confidence || '').toLowerCase() : '';
     const sv = kind('feel_day').some((d) => d.date === TODAY) || !!(f && f.saved_at), wt = (rowsOk('night') || []).some((r) => r.date === TODAY && r.value !== null && r.value !== undefined);
     const chip = (id, text, s, say) => { const e = $(id); e.textContent = text; e.dataset.s = s; e.setAttribute('aria-label', say); };

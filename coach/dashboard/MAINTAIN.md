@@ -22,7 +22,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `cockpit.js` | Built: `window.CK` behaviours |
 | `charts.js` | Built: the chart library, `window.CKC` |
 | `app.js` | Tabs, drawing helpers, Today, Week, Fitness and Health; hands helpers on as `window.CX.app` |
-| `ready.js` | Today's Readiness card beyond the coach's call: the survey's early read and feel meter (alpha `survey_read`), the one readiness level, day strip, confidence bars and the key session move offer (alpha `one_readiness`); registers `CX.renderEarly` |
+| `ready.js` | Today's Readiness card beyond the coach's call: the survey's early read and feel meter (alpha `survey_read`), the one readiness level, day strip, confidence bars and the key session move offer (alpha `one_readiness`), today's forecast on the day strip (alpha `day_weather`, coach rows kind `weather` from `data/weather.json`); registers `CX.renderEarly` |
 | `season.js` | Season tab and the Week race-week card; registers `CX.renderRaces` and `CX.renderRaceWeek` |
 | `fresh.js` | The refresh status icon in the header (next scheduled update; a tap points to pull in chat) |
 | `metrics.js` | Fitness tab: locked and waiting tiles, the unlock panel, Add a metric and "Want to track something else?" (rows `cat_*` from `coach/metric_catalog.json`; hooked from app.js `groupFitness`) |

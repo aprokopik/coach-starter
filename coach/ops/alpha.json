@@ -162,6 +162,10 @@
   {
    "id": "one_readiness",
    "status": "alpha"
+  },
+  {
+   "id": "day_weather",
+   "status": "alpha"
   }
  ]
 }

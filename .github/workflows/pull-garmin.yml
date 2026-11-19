@@ -41,6 +41,9 @@ jobs:
           python scripts/pull_garmin.py
           echo "rc=$?" >> "$GITHUB_OUTPUT"
 
+      - name: Day forecast (only when the profile names a town; never fails the pull)
+        run: python scripts/pull_weather.py || true
+
       - name: Commit changes
         run: |
           git config user.name "garmin-pull-bot"
