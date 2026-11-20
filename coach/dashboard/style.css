@@ -1607,3 +1607,22 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .wk-moved { margin-left: auto; font-size: var(--ck-t1); }
 .ck .td-wx { font-size: var(--ck-t1); color: var(--ck-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ck .td-daybar strong { white-space: nowrap; }
+
+/* ---------- Tap a day on This week (daypick.js, alpha day_pick; the athlete, Nov 20, 2026: card switches, gold ring marks the day) ---------- */
+.ck .td-dbtn { display: grid; justify-items: center; gap: 4px; width: calc(100% + 2px); min-width: 44px; min-height: 64px; padding: 0 0 4px; margin: 0 -1px; border: 0; border-radius: 12px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.ck .td-dbtn:focus-visible { outline: 2px solid var(--ck-focus); outline-offset: 1px; }
+.ck .td-path.has-pick .td-node.is-now { box-shadow: none; }
+.ck .td-day.is-pick .td-node { box-shadow: 0 0 0 3px var(--ck-surface), 0 0 0 5px var(--ck-watch), 0 0 12px 5px color-mix(in srgb, var(--ck-watch) 35%, transparent); }
+.ck .td-day.is-pick .td-dow { color: var(--ck-fg); font-weight: var(--ck-w-bold); }
+.ck #t-workout.dp-on .td-body > :not(.td-path):not(#t-dp) { display: none; }
+.ck .dp-pan { display: grid; gap: var(--ck-s2); margin: var(--ck-s2) 0 0; }
+.ck .dp-head { display: flex; justify-content: space-between; align-items: center; gap: var(--ck-s2); }
+.ck .dp-day { font-size: var(--ck-t3, 17px); color: var(--ck-fg); }
+.ck .dp-back { min-height: 44px; }
+.ck .dp-sess { display: grid; gap: var(--ck-s2); }
+.ck .dp-sess + .dp-sess { padding-top: var(--ck-s2); border-top: 1px solid var(--ck-line); }
+.ck .dp-sess .td-sess-row { grid-template-columns: 40px minmax(0, 1fr) auto; }
+.ck .dp-st { justify-self: end; }
+.ck .dp-done { margin: 0; color: var(--ck-fg); }
+/* Today's date and forecast pinned under the tab bar (ready.js oneTop, alpha day_top; the athlete, Nov 20, 2026, "Pinned under the tabs") */
+.ck .td-daybar.td-daytop { position: sticky; top: var(--cx-bar-h); z-index: var(--ck-z-2); margin: 0; padding: var(--ck-s2) var(--ck-s1); background: var(--ck-bg); }

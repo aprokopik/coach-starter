@@ -170,6 +170,14 @@
   {
    "id": "no_train_today",
    "status": "alpha"
+  },
+  {
+   "id": "day_pick",
+   "status": "alpha"
+  },
+  {
+   "id": "day_top",
+   "status": "alpha"
   }
  ]
 }

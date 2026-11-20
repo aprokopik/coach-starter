@@ -23,6 +23,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `charts.js` | Built: the chart library, `window.CKC` |
 | `app.js` | Tabs, drawing helpers, Today, Week, Fitness and Health; hands helpers on as `window.CX.app` |
 | `ready.js` | Today's Readiness card beyond the coach's call: the survey's early read and feel meter (alpha `survey_read`), the one readiness level, day strip, confidence bars and the key session move offer (alpha `one_readiness`), today's forecast on the day strip (alpha `day_weather`, coach rows kind `weather` from `data/weather.json`); registers `CX.renderEarly` |
+| `daypick.js` | Tap a day on Today's This week path (alpha `day_pick`): the gold ring moves to the day and the plan card shows it (`#t-dp`); registers `CX.renderDayPick`, which app.js `renderPath` calls |
 | `season.js` | Season tab and the Week race-week card; registers `CX.renderRaces` and `CX.renderRaceWeek` |
 | `fresh.js` | The refresh status icon in the header (next scheduled update; a tap points to pull in chat) |
 | `metrics.js` | Fitness tab: locked and waiting tiles, the unlock panel, Add a metric and "Want to track something else?" (rows `cat_*` from `coach/metric_catalog.json`; hooked from app.js `groupFitness`) |
@@ -39,7 +40,7 @@ How to change the dashboard safely. What each tab shows is in `coach/DASHBOARD.m
 | `review.js` | Next week card on Today on the plan check day (alpha `week_review`): next week's path, Looks good / Change a day / Busy week, the store document `week_review` and the update line |
 | `tasks.js` | When your coach checks in, on the Check-ins tab: one row per check-in with a time and an on/off switch, Add a check-in, the store document `checkin_task` |
 
-Load order: openlog.js (first, so it times everything after it), store.js (the one door to the store, 6.105.0), calc.js, cockpit.js, charts.js, app.js, ready.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, earned.js, body.js, pillars.js, checkins.js, block.js, change.js, review.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
+Load order: openlog.js (first, so it times everything after it), store.js (the one door to the store, 6.105.0), calc.js, cockpit.js, charts.js, app.js, ready.js, daypick.js, plan.js, ask.js, fresh.js, metrics.js, season.js, forms.js, lifts.js, records.js, earned.js, body.js, pillars.js, checkins.js, block.js, change.js, review.js. `coach.json` (the `coach` dataset) and `season.html` (the shared Race Season page) sit in the same folder but are not page files. `src/` holds the readable sources of the built files and `harness/` the local render harness; neither is ever packed.
 
 A new feature goes in its own `<feature>.js`, loaded after `app.js`, registering its renderer on `window.CX` and its `dash.calc` definitions at top level. Never grow `app.js` (about 171 KB). When a file nears the cap, split it along a `// ----------` page seam the way `season.js` was split.
 

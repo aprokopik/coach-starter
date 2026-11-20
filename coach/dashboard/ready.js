@@ -89,6 +89,12 @@
         if (w.text) wx.append(m(w.text, 'text'), ' · '); wx.append(m(N(w.high_f), 'high_f'), '° / ', m(N(w.low_f), 'low_f'), '°');
         wx.setAttribute('role', 'group'); wx.setAttribute('aria-label', `${w.town ? w.town + ' today' : 'Today'}: ${w.text ? w.text + ', ' : ''}high ${N(w.high_f)}, low ${N(w.low_f)} degrees Fahrenheit`); }
       $('t-day-d').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', ...(w ? {} : { year: 'numeric' }) }); } // with the forecast beside it the year leaves, so the strip stays on one line
+    // today's date and forecast pinned under the tab bar at the top of Today, not on the Readiness card (alpha day_top; the athlete,
+    // Nov 20, 2026: "today's date and weather stick at the top instead of being attached to the readiness card", picked
+    // "Pinned under the tabs"); it docks like the Fitness range row
+    { const day = $('t-day'), top = alpha('day_top'), pg = $('today');
+      if (top && day.parentNode !== pg) pg.insertBefore(day, $('t-deck')); else if (!top && day.parentNode === pg) $('t-hero').prepend(day);
+      day.classList.toggle('td-daytop', top); }
     const t = kind('today')[0], f = window.CX.feelToday, conf = t && t.date === TODAY ? String(t.confidence || '').toLowerCase() : '';
     const sv = kind('feel_day').some((d) => d.date === TODAY) || !!(f && f.saved_at), wt = (rowsOk('night') || []).some((r) => r.date === TODAY && r.value !== null && r.value !== undefined);
     const chip = (id, text, s, say) => { const e = $(id); e.textContent = text; e.dataset.s = s; e.setAttribute('aria-label', say); };
