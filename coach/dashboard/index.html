@@ -245,7 +245,8 @@
             <label class="td-chg-min" id="t-chg-minl"><input type="checkbox" id="t-chg-min"><span>Do the Min size today <span class="ck-sub" id="t-chg-minv"></span></span></label>
             <label class="td-chg-l" for="t-chg-note">Anything the coach should know? <span class="ck-sub">Optional</span></label>
             <input class="ck-input" id="t-chg-note" type="text" maxlength="200" autocomplete="off" enterkeyhint="send">
-            <div class="td-chg-act"><button class="ck-btn ck-btn--primary" type="button" id="t-chg-save" disabled>Send to the coach</button><button class="ck-btn ck-btn--quiet" type="button" id="t-chg-undo" hidden>Undo</button></div>
+            <div class="td-chg-act"><button class="ck-btn ck-btn--primary" type="button" id="t-chg-save" aria-describedby="t-chg-hint" disabled>Send to the coach</button><button class="ck-btn ck-btn--quiet" type="button" id="t-chg-undo" hidden>Undo</button></div>
+            <p class="ck-sub td-chg-hint" id="t-chg-hint"></p>
           </div>
           <p class="td-chg-st" id="t-chg-st" role="status" hidden></p>
           <!-- Help me pick (Phase 6; at the bottom of the card since 6.39.0, the athlete, Nov 14, 2026): closed by default. With today's

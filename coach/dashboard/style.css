@@ -380,6 +380,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-chg-act { display: flex; flex-wrap: wrap; gap: var(--ck-s2); }
 .ck .td-chg-st { margin: 0; padding: 0 2px var(--ck-s2); font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .td-chg-st[hidden] { display: none; }
+.ck .td-chg-hint { margin: 0; font-size: var(--ck-t2); }
+.ck .td-chg-hint[hidden] { display: none; }
 /* Last night gauge (Phase 6, option A; inside the call tile since round 2): the arc drawn at 1 unit = 1 px, the figure in the arc's bowl, then the word and its
    sentence; colours are tokens (status fill, page ink), never typed in the script */
 .ck .td-gauge { display: grid; justify-items: center; gap: var(--ck-s2); text-align: center; }

@@ -716,8 +716,9 @@
     for (let i = 0; i < 7; i++) {
       const d = isoN(m0 + i), rs = dayRows().filter((r) => r.date === d);
       const offDay = d === TODAY && !!state.off; // Stressed: today reads as rest (ready.js)
-      const key = offDay ? null : rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null));
-      const done = wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
+      const key = offDay ? null : rs.find((r) => truthy(r.key) || N(r.pillar) !== null);
+      const restKey = !!key && key.type === 'rest';
+      const done = (restKey && d < TODAY) || wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
       const planned = !offDay && rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
       const sg = el('span', 'td-nw-sg'); sg.setAttribute('aria-hidden', 'true'); // a symbol per session, as on Next week (the athlete, Nov 16)
       if (alpha('day_sessions')) for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
@@ -725,7 +726,7 @@
       nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
       li.append(nd, el('span', 'td-dow', DOW[i]), sg, el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (n > 1 ? `, ${n} sessions` : '') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
       ol.append(li);
-      if (key || (offDay && rs.some((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null)))) { keys++; if (done) keysDone++; } // a session taken off today still counts: it moves, it is not lost
+      if (key || (offDay && rs.some((r) => truthy(r.key) || N(r.pillar) !== null))) { keys++; if (done) keysDone++; } // a session taken off today still counts: it moves, it is not lost
     }
     $('t-path-n').textContent = keys ? `${keysDone} of ${keys} key done` : '';
     if (window.CX.renderDayPick) window.CX.renderDayPick(); // daypick.js: tap a day to see its workout (alpha day_pick)

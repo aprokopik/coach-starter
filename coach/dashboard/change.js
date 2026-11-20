@@ -32,9 +32,15 @@
     for (const [k, w] of REASONS) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'qc-chip' + (pick === k ? ' sel' : ''); b.textContent = w;
       b.setAttribute('aria-pressed', String(pick === k));
-      b.addEventListener('click', () => { pick = pick === k ? '' : k; paintChips(); paintMin(); $('t-chg-save').disabled = !pick; const f = $('t-chg-r').children[REASONS.findIndex(([v]) => v === k)]; if (f) f.focus(); });
+      b.addEventListener('click', () => { pick = pick === k ? '' : k; paintChips(); paintMin(); gate(); const f = $('t-chg-r').children[REASONS.findIndex(([v]) => v === k)]; if (f) f.focus(); });
       box.append(b);
     }
+  }
+  // Send: a reason, a note, or both; the hint says what it needs (6.159.1)
+  function gate() {
+    const ok = !!(pick || $('t-chg-note').value.trim()), h = $('t-chg-hint');
+    $('t-chg-save').disabled = !ok;
+    if (h) { h.textContent = ok ? '' : 'Pick a reason, or write a note.'; h.hidden = ok; }
   }
   // the line under the disclosure: the coach's replan when it is newer than the tap, else the tap and when the replan lands
   function paintStatus() {
@@ -65,7 +71,7 @@
     const { TODAY } = A(), s = $('t-chg-save'), st = $('t-chg-st');
     const doc = cleared
       ? { date: TODAY, reason: saved ? saved.reason : 'other', note: '', use_min: false, cleared: true, saved_at: new Date().toISOString() }
-      : { date: TODAY, reason: pick, note: $('t-chg-note').value.trim().slice(0, 200), use_min: !$('t-chg-minl').hidden && $('t-chg-min').checked, saved_at: new Date().toISOString() };
+      : { date: TODAY, reason: pick || 'other', note: $('t-chg-note').value.trim().slice(0, 200), use_min: !$('t-chg-minl').hidden && $('t-chg-min').checked, saved_at: new Date().toISOString() };
     s.disabled = true;
     try {
       await db.doc('day_change/' + TODAY).set(doc);
@@ -77,7 +83,7 @@
     } catch (e) {
       st.hidden = false; st.textContent = 'Not saved. Try again, or tell the coach in chat.';
     }
-    s.disabled = !pick;
+    gate();
   }
 
   // A key session moved from the Readiness card (ready.js moveOffer): the same document, reason swap_order, with the two dates
@@ -99,11 +105,11 @@
       if (saved && saved.move && CX.redrawPlan) CX.redrawPlan(); // the Readiness card shows the move instead of the offer
       if (saved && !saved.cleared) { pick = REASONS.some(([v]) => v === saved.reason) ? saved.reason : ''; $('t-chg-note').value = saved.note || ''; $('t-chg-min').checked = !!saved.use_min; }
       else $('t-chg-min').checked = true; // Plan B is the usual answer to a changed day; untick to keep the size
-      paintChips();
-      $('t-chg-save').disabled = !pick;
+      paintChips(); gate();
+      $('t-chg-note').addEventListener('input', gate);
       $('t-chg-save').addEventListener('click', () => send(false));
       $('t-chg-undo').addEventListener('click', () => send(true));
-      $('t-chg-note').addEventListener('keydown', (e) => { if (e.key === 'Enter' && pick) { e.preventDefault(); send(false); } });
+      $('t-chg-note').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('t-chg-save').disabled) { e.preventDefault(); send(false); } });
       $('t-chg-btn').hidden = false;
     }
     if (!db) return;

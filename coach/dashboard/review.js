@@ -1,10 +1,6 @@
-// review.js: change a pencilled week by tap (alpha week_review, 6.117.0). Two places, one builder:
-// - Today, "Next week" (#t-nw; the athlete's pick, option 1 of five, Nov 16, 2026): from the plan check day (week row check_day)
-//   through Sunday (the athlete, Nov 20: plan ready by then), next Mon to Sun as the This week path with Looks good, Change a day and Busy week.
-// - Week tab, any pencilled week (#w-nw; the athlete, Nov 16: "always go into a future week on the weekly and look at the penciled in
-//   to move things around"): Change a day and Busy week under the week note; the day list above is the picture.
-// Both save week_review/<that Monday> (one document a week, shared); coach/tools/week_review.py and RUNBOOK "Next week review"
-// move the rows, and the line under the controls then reads "Updated <time>: <note>" from the coach row kind week_review.
+// review.js: change a pencilled week by tap (alpha week_review, 6.117.0; CHANGELOG has the picks). One builder, two places:
+// Today "Next week" (#t-nw, from the week row check_day to Sunday: path, Looks good, Change a day, Busy week) and the Week tab's
+// pencilled weeks (#w-nw). Both save week_review/<Monday>; week_review.py and RUNBOOK "Next week review" move the rows.
 (() => {
   const CX = window.CX;
   const A = () => CX.app;
@@ -28,7 +24,8 @@
   }
   const live = (wk) => (saved[wk] && !saved[wk].cleared ? saved[wk] : null);
   function dayRows(d) { return A().kind('day').filter((r) => r.date === d); }
-  function keyOf(rs) { const { truthy, N } = A(); return rs.find((r) => r.type !== 'rest' && (truthy(r.key) || N(r.pillar) !== null)); }
+  // a rest day can be key (6.159.1)
+  function keyOf(rs) { const { truthy, N } = A(); return rs.find((r) => truthy(r.key) || N(r.pillar) !== null); }
   const dowOf = (d) => DOW[(A().P(d).getUTCDay() + 6) % 7];
   function btn(cls, txt, fn) { const b = A().el('button', cls, txt); b.type = 'button'; b.addEventListener('click', fn); return b; }
 
@@ -86,11 +83,17 @@
       f2.append(what); panel.append(f2);
     }
     const nid = m.root.id + '-note', lb = el('label', 'td-chg-l', 'Anything the coach should know? '); lb.htmlFor = nid; lb.append(el('span', 'ck-sub', 'Optional'));
-    const inp = el('input', 'ck-input'); inp.id = nid; inp.type = 'text'; inp.maxLength = 200; inp.autocomplete = 'off'; inp.value = m.note || ''; inp.addEventListener('input', () => { m.note = inp.value; });
+    const inp = el('input', 'ck-input'); inp.id = nid; inp.type = 'text'; inp.maxLength = 200; inp.autocomplete = 'off'; inp.value = m.note || '';
+    // Send: a day answer, a note, or both; the hint says what it needs (6.159.1)
     const act = el('div', 'td-chg-act'), send = btn('ck-btn ck-btn--primary', 'Send to the coach', () => sendIt(m, 'change'));
-    send.disabled = m.busy || !Object.keys(m.picks).length;
+    const hint = el('p', 'ck-sub td-chg-hint'); hint.id = nid + '-hint';
+    const gate = () => { const day = Object.keys(m.picks).length, note = String(m.note || '').trim();
+      send.disabled = m.busy || !(day || note);
+      hint.textContent = m.busy || day || note ? '' : 'Pick a day, or write a note.'; hint.hidden = !hint.textContent; };
+    inp.addEventListener('input', () => { m.note = inp.value; gate(); });
+    send.setAttribute('aria-describedby', hint.id); gate();
     act.append(send, btn('ck-btn ck-btn--quiet', 'Cancel', () => { m.open = false; m.cur = null; paint(m); }));
-    panel.append(lb, inp, act); box.append(panel);
+    panel.append(lb, inp, act, hint); box.append(panel);
   }
 
   function statusLine(m) {
@@ -100,8 +103,10 @@
       st.append(row.answer === 'good' && !s ? 'Looks good. ' : `Updated ${clock(row.done_at)}: `, mark(el('span', null, row.done_note || 'the week is updated.'), 'coach', 'done_note', 'kind=week_review&week=' + m.wk));
     } else if (s) {
       const days = (s.days || []).map((x) => `${dowOf(x.date)} ${word(WHAT, x.what).toLowerCase()}`).join(', ');
+      const next = CX.nextUpdate ? CX.nextUpdate() : 'the next update';
       st.append(s.answer === 'good' ? `Looks good, saved ${clock(s.saved_at)}. Sunday firms up the week as it is.`
-        : `${word(ANSWERS, s.answer)}${days ? ': ' + days : ''}, sent ${clock(s.saved_at)}. The coach moves the pencilled days by ${CX.nextUpdate ? CX.nextUpdate() : 'the next update'}.`);
+        : s.answer === 'change' && !days ? `Note sent ${clock(s.saved_at)}: “${s.note}”. The coach answers by ${next}.`
+        : `${word(ANSWERS, s.answer)}${days ? ': ' + days : ''}, sent ${clock(s.saved_at)}. The coach moves the pencilled days by ${next}.`);
     }
     if (m.err) { st.replaceChildren('Not saved. Try again, or tell the coach in chat.'); }
     return st.childNodes.length ? st : null;
