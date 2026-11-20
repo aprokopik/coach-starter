@@ -7,7 +7,14 @@ One home: coach/athlete/checkins.json, the athlete's own file (a kit update neve
                             "prompt", "status" ok|new, "saved_at", "source"}]}
 `time` is what the athlete wants; `task_time` is the time the scheduled task really has. They differ from a dashboard tap
 until a coach run moves the task (RUNBOOK "Check-in settings") and closes it with `done`. `status` new: asked for on the
-dashboard ("Add new") or at onboarding, no scheduled task yet.
+dashboard ("Add new") or at onboarding, no scheduled task yet. `ran` is the last day the check-in's own run got as far as
+its gate, which it can only do with the repository attached; `quiet` reads it (6.160.0, a tester's evening check-in ran
+for days with no repository and nobody was told).
+
+A check-in with `via` "refresh" has no scheduled task of its own: the daytime refresh, which already runs through the day
+with the repository attached, delivers it at the run nearest its time (`due`, then `sent`; 6.160.0, the athlete, Nov 20, 2026:
+adding a check-in on the dashboard takes no extra taps). A scheduled task the coach creates itself stores no repository,
+so this is the only way a dashboard tap can become a working check-in without the person opening the tasks page.
 
 The dashboard's Check-ins card (coach/dashboard/tasks.js) saves one store document per check-in,
 checkin_task/<id> {id, on, time, saved_at} and, for a new one, {id, kind, name, what, days, new: true}.
@@ -16,6 +23,10 @@ Off takes effect at once: every check-in task runs `gate <id>` right after the i
 Usage (from the repo root):
   python3 coach/tools/checkin_tasks.py ingest <store-list.json>   copy checkin_task store documents (newer saved_at wins)
   python3 coach/tools/checkin_tasks.py gate <id>                  exit 0 when this check-in is on (or unknown), 1 when off
+  python3 coach/tools/checkin_tasks.py quiet                      print each check-in that has stopped running with the coach's files; exit 1 when none
+  python3 coach/tools/checkin_tasks.py due                        print each check-in the daytime refresh has to deliver in this run; exit 1 when none
+  python3 coach/tools/checkin_tasks.py sent <id>                  that check-in was delivered today
+  python3 coach/tools/checkin_tasks.py carry <id>                 hand a check-in that has its own task to the daytime refresh (then delete its task)
   python3 coach/tools/checkin_tasks.py pending                    print each task whose schedule must change, as JSON lines; exit 1 when none
   python3 coach/tools/checkin_tasks.py done <id>                  the scheduled task now has this check-in's time
   python3 coach/tools/checkin_tasks.py set <id> [--on|--off] [--time HH:MM] [--every 1|2|3|4]     (a change told in chat; --every: the refresh)
@@ -26,7 +37,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 PATH = "coach/athlete/checkins.json"
 DATA_PATHS = "coach/ops/data_paths.json"
@@ -236,7 +247,7 @@ def ingest(docs, path=PATH):
             t["every_h"] = d["every_h"]
         t.update(saved_at=at, source="dashboard")
         n += 1
-    if n:
+    if _carry(tasks) or n:
         write(tasks, path)
     return n
 
@@ -247,10 +258,138 @@ def gate(tid, path=PATH):
     return t is None or bool(t.get("on"))
 
 
+PROFILE = "coach/athlete/profile.json"
+LATE_H = 3  # a check-in this many hours past its time is skipped for the day rather than sent at an odd hour
+
+
+def _carrier(tasks):
+    """The daytime refresh, when it is on and has its scheduled task: the one run that can deliver other check-ins."""
+    return next((t for t in tasks if t["id"] == "refresh" and t.get("on") and t.get("status") == "ok"
+                 and t.get("until") and not t.get("removed")), None)
+
+
+def _fits(t, c):
+    a, b, x = c["time"], c["until"], t["time"]
+    return a <= x <= b if a <= b else (x >= a or x <= b)
+
+
+def _carry(tasks, force=""):
+    """Lay the carried state over the list. A new check-in whose time falls inside the refresh window needs no task;
+    one that no longer fits (the refresh turned off, or its time moved outside the window) goes back to needing its own."""
+    c, changed = _carrier(tasks), False
+    for t in tasks:
+        if t["kind"] in ("morning", "refresh") or t.get("removed"):
+            continue
+        ok = bool(c) and _fits(t, c)
+        if ok and (t.get("status") == "new" or t["id"] == force or t.get("via") == "refresh"):
+            new = {"via": "refresh", "status": "ok", "task_time": t["time"]}
+            if any(t.get(k) != v for k, v in new.items()):
+                t.update(new)
+                changed = True
+        elif not ok and t.get("via") == "refresh":
+            t.pop("via")
+            t.update(status="new", task_time="")
+            changed = True
+    return changed
+
+
+def carry(tid, path=PATH):
+    """Hand a check-in that had its own scheduled task to the daytime refresh. False when the refresh cannot take it."""
+    tasks = read(path)
+    if not any(t["id"] == tid for t in tasks):
+        raise KeyError(tid)
+    _carry(tasks, force=tid)
+    write(tasks, path)
+    return next(t for t in tasks if t["id"] == tid).get("via") == "refresh"
+
+
+def _zone(profile=PROFILE):
+    try:
+        from zoneinfo import ZoneInfo
+        with open(profile) as fh:
+            return ZoneInfo(json.load(fh)["timezone"])
+    except Exception:
+        return timezone.utc
+
+
+def due(path=PATH, now=None, zone=None):
+    """Carried check-ins to deliver in this refresh run: the run nearest the check-in's time, once a day."""
+    tasks = read(path)
+    c = _carrier(tasks)
+    if not c:
+        return []
+    local = (now or datetime.now(timezone.utc)).astimezone(zone or _zone())
+    day, dow, out = local.strftime("%Y-%m-%d"), DAYS[1:][local.weekday()], []
+    for t in tasks:
+        if t.get("via") != "refresh" or not t.get("on") or t.get("removed") or t.get("sent") == day:
+            continue
+        if t.get("days", "daily") not in ("daily", dow):
+            continue
+        h, m = map(int, t["time"].split(":"))
+        at = local.replace(hour=h, minute=m, second=0, microsecond=0)
+        if at - timedelta(minutes=30 * every(c)) <= local <= at + timedelta(hours=LATE_H):
+            out.append({"id": t["id"], "kind": t["kind"], "name": t["name"], "what": t.get("what", ""), "clock": clock(t["time"]),
+                        "prompt": t.get("prompt") or f"coach/athlete/TASK-PROMPT-{t['id']}.md"})
+    return out
+
+
+def sent(tid, path=PATH, now=None, zone=None):
+    tasks = read(path)
+    t = next((t for t in tasks if t["id"] == tid), None)
+    if t is None:
+        raise KeyError(tid)
+    t["sent"] = (now or datetime.now(timezone.utc)).astimezone(zone or _zone()).strftime("%Y-%m-%d")
+    write(tasks, path)
+
+
+def stamp(tid, path=PATH, now=None):
+    """Note that this check-in's run reached the repository today. Writes at most once a day, so a run every hour or
+    two adds one small commit a day."""
+    tasks = read(path)
+    t = next((t for t in tasks if t["id"] == tid), None)
+    day = _now(now)[:10]
+    if t is None or t.get("ran") == day:
+        return False
+    t["ran"] = day
+    write(tasks, path)
+    return True
+
+
+QUIET_DAYS = {"daily": 2, "weekly": 8}  # days without a run before the morning check-in says so
+
+
+def quiet(path=PATH, now=None):
+    """Check-ins that are on, have a scheduled task, and have not reached the repository for too long. The morning
+    check-in asks; it never lists itself. A check-in never seen yet is listed once at the first ask (`first`), then
+    counted from that day (`since`)."""
+    tasks, out, changed = read(path), [], False
+    today = datetime.strptime(_now(now)[:10], "%Y-%m-%d")
+    for t in tasks:
+        if t["id"] == "morning" or not t.get("on") or t.get("status") != "ok" or t.get("removed") or t.get("via"):
+            continue  # a carried check-in has no task of its own: it is as alive as the refresh that carries it
+        if not t.get("ran") and not t.get("since"):
+            # never seen, first ask: it may have been made by the coach itself before 6.160.0, with no repository.
+            # Say so once, today, rather than after days of silence (the athlete, Nov 20, 2026: "walk her through it").
+            t["since"] = _now(now)[:10]
+            changed = True
+            out.append({"id": t["id"], "name": t["name"], "last": "", "days": 0, "first": True})
+            continue
+        last = t.get("ran") or t["since"]
+        gap = (today - datetime.strptime(last, "%Y-%m-%d")).days
+        if gap >= QUIET_DAYS["daily" if t.get("days", "daily") == "daily" else "weekly"]:
+            out.append({"id": t["id"], "name": t["name"], "last": t.get("ran", ""), "days": gap})
+    if changed:
+        write(tasks, path)
+    return out
+
+
 def pending(path=PATH):
     """What a coach run has to do to the scheduled tasks: create, move, or delete."""
-    out = []
-    for t in read(path):
+    out, tasks = [], read(path)
+    kept = [t for t in tasks if not (t.get("removed") and (t.get("via") == "refresh" or t.get("status") == "new"))]  # no task to delete
+    if _carry(kept) or len(kept) != len(tasks):
+        write(kept, path)
+    for t in kept:
         if t.get("removed"):
             if t.get("status") != "gone":
                 out.append({**t, "do": "delete"})
@@ -373,7 +512,8 @@ def rows(path=PATH):
                     "on": bool(t.get("on")), "time": t["time"], "time_text": clock(t["time"]), "task_time": t.get("task_time", ""),
                     "days": t.get("days", "daily"), "status": t.get("status", "ok"), "saved_at": t.get("saved_at", ""), "order": i,
                     "until": t.get("until", ""), "task_until": t.get("task_until", ""), "window_text": window_text(t),
-                    "every_h": every(t) if t.get("until") else 0, "task_every_h": t.get("task_every_h", 0)})
+                    "every_h": every(t) if t.get("until") else 0, "task_every_h": t.get("task_every_h", 0),
+                    "via": t.get("via", "")})
     return out
 
 
@@ -388,8 +528,29 @@ def main(argv):
         return 0
     if cmd == "gate":
         on = gate(rest[0])
+        if on:
+            stamp(rest[0])
         print("on" if on else "off: stay silent, this check-in is turned off on the dashboard")
         return 0 if on else 1
+    if cmd == "due":
+        d = due()
+        for t in d:
+            print(json.dumps(t))
+        return 0 if d else 1
+    if cmd == "sent":
+        sent(rest[0])
+        print(f"checkin_task {rest[0]}: sent")
+        return 0
+    if cmd == "carry":
+        ok = carry(rest[0])
+        print(f"checkin_task {rest[0]}: " + ("the daytime refresh delivers it now; delete its own scheduled task" if ok else
+                                             "not carried (the daytime refresh is off or its hours do not cover this time)"))
+        return 0 if ok else 1
+    if cmd == "quiet":
+        q = quiet()
+        for t in q:
+            print(json.dumps(t))
+        return 0 if q else 1
     if cmd == "pending":
         p = pending()
         for t in p:
