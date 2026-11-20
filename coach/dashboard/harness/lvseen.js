@@ -25,6 +25,6 @@ async function check(b, f, ids, name) {
     const ids = await learn(b, f);
     if (!ids.length) console.log(f.split('/').pop(), 'learned: no wins in the last 7 days on this data');
     await check(b, f, ids, 'learned');
-    await check(b, f, NOV13, 'nov13');
+    await check(b, f, [...ids, ...NOV13], 'nov13'); // 6.161.0: today's wins seen too, so only the Nov 13 rule is under test once new wins exist
   }
   await b.close(); })();

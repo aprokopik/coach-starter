@@ -255,6 +255,12 @@
   // marker has one scale only (a coach guide, a Health marker), which then reads a plain LV
   const stageOf = (m) => { try { return stageInfo(m.key); } catch (e) { return null; } };
   const SKILL_ICON = (k) => (/^swim/.test(k) ? 'swim' : /^(bike|ftp|wkg|p1|p5|p20|p60|t20k|t40k|t90k|t100k|vo2bike)$/.test(k) ? 'bike' : /^(run|5k|mile|10k|half|marathon|aerobic|durability)$/.test(k) || /^(trail|climb)/.test(k) ? 'run' : k === 'sleepreg' ? 'sleep' : k === 'rhr' || k === 'vo2' || k === 'le8' ? 'hr' : k === 'strength' || k === 'lifts' ? 'strength' : k === 'sauna' ? 'sauna' : k === 'consistency' ? 'streak' : 'badge');
+  // a skill's home on Fitness (the athlete, Nov 20, 2026: tap a Skills row to open its tile and chart): its own tile, or the tile whose switch holds it
+  function skillHome(m) {
+    const tile = (k) => k === 'run' || k === 'bike' || kind('fit_kpi').some((x) => x.key === k);
+    if (tile(m.key)) return { k: m.key };
+    const p = kind('marker').find((x) => String(x.pair || '').split(',').includes(m.key)); return p && tile(p.key) ? { k: p.key, s: m.key } : null; // a tile you switched off is not a skill (the athlete, Nov 20: "I turned those off because i didnt want to see them")
+  }
   function skillTag(cls, text) { const t = el('span', 'td-sk-tag ' + cls, text); return t; }
   function progressItem(m, prev, last) {
     const a = levelOf(m, prev.value), b = levelOf(m, last.value); if (!b) return null; const vf = valFmt(m), df = deltaFmt(m); const better = Number(m.better) || 1;
@@ -290,13 +296,16 @@
     const nx = el('span', 'td-sk-next'); nx.append(b.next ? `${df(Math.max(b.toNext, 0))} to ${lvTxt(b.n + 1)}` : 'Top level');
     r3.append(what, nx); item.append(r3);
     { const was = el('p', 'ck-sub td-sk-was'); was.append(`Was ${vf(prev.value)}${a ? ` (${a.band.label})` : ''} on ${fDay(P(prev.date))}, now ${vf(last.value)}.`); item.append(was); } // visible: where the 7 days began
+    const h = alpha('skills_tap') && skillHome(m); if (h && window.CX.openTile) { item.classList.add('is-tap'); item.tabIndex = 0; item.setAttribute('role', 'button'); item.setAttribute('aria-label', `${m.label}: open its chart on Fitness`); r1.append(icon('chevron', 'ck-chev'));
+      const go = () => { state.fitSport[h.k] = h.s || h.k; window.CX.openTile(h.k); show('trends', true); const t = $('f-' + h.k); if (t && document.activeElement !== t) t.scrollIntoView({ block: 'start' }); };
+      item.addEventListener('click', go); item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
     item.dataset.mag = String((improved ? 1000 : 0) + (dLv ? 100 * Math.abs(dLv) : Math.abs(dp || 0))); // gains first, the biggest move first within each
     return item;
   }
   // the skills to read: every laddered marker plus the page-calculated run pace at 150 and bike power at 130
   function skillSeries() {
     const out = [];
-    for (const m of kind('marker').filter((x) => x.tiers && x.chart && x.section !== 'calc' && !x.quiet)) out.push({ m, rows: seriesFor(m) }); // quiet: the same series climbs another marker's ladder (Health vo2 and Fitness aerobic)
+    for (const m of kind('marker').filter((x) => x.tiers && x.chart && x.section !== 'calc' && !x.quiet && (x.section !== 'fitness' || skillHome(x)))) out.push({ m, rows: seriesFor(m) }); // quiet: the same series climbs another marker's ladder (Health vo2 and Fitness aerobic)
     const fit = rowsOk('fitness');
     if (fit) for (const k of ['run', 'bike']) {
       const bc = blockContext(k, fit.filter((r) => r.marker === k && N(r.avg28) !== null).sort((a, b) => (a.date < b.date ? -1 : 1)).map((r) => ({ date: r.date, value: N(r.avg28) }))); if (!bc || !tiersOf(bc.cm).length) continue;
@@ -340,7 +349,8 @@
       }
     }
     for (const [tile, st] of stateOf) { // stage ups (the athlete, Nov 14, 2026): a stage reached in the last 7 days and still in use
-      const au = st.auto; if (st.manual || !au.promoted || dayN(au.promoted) <= TN - 7 || au.cur < 2 || au.graceEnd) continue; if (au.scale && au.scale.first_seen && dayN(au.scale.first_seen) > dayN(au.promoted)) continue; // a scale that arrived after the reading: unlocked quietly, no gold screen (6.124.0) const m = kind('marker').find((x) => x.key === tile); if (!m) continue;
+      const au = st.auto; if (st.manual || !au.promoted || dayN(au.promoted) <= TN - 7 || au.cur < 2 || au.graceEnd) continue; if (au.scale && au.scale.first_seen && dayN(au.scale.first_seen) > dayN(au.promoted)) continue; // a scale that arrived after the reading: unlocked quietly, no gold screen (6.124.0)
+      const m = kind('marker').find((x) => x.key === tile); if (!m) continue;
       out.push({ id: `${tile}|stage-${au.cur}|${au.promoted}`, key: tile, label: m.label, stage: au.cur, scale: au.scale.label, date: au.promoted, goal: null });
     }
     // one entry per skill: its highest new LV (a jump of two shows once, as the higher LV), goals after levels

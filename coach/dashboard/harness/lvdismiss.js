@@ -10,7 +10,8 @@ const { chromium } = require('playwright');
     if (mode === 'throwing') await p.evaluate(() => { window.__throwStore = true; }); // 6.105.0: the store is frozen, as live; the stand-in throws on request
     const H = await p.evaluate(() => document.documentElement.scrollHeight); await p.setViewportSize({ width: 390, height: H }); await p.waitForTimeout(1500);
     const top = await p.evaluate(() => Math.round(document.querySelector('.td-lvx-card').getBoundingClientRect().top));
-    await p.locator('.td-lvx-ok').tap({ timeout: 4000 }); await p.waitForTimeout(400);
+    // 6.161.0: one screen per win, so press Thanks, coach on each (Nov 20 data has 5 wins at once; one press opened the next)
+    for (let i = 0; i < 12; i++) { if (await p.evaluate(() => document.getElementById('t-lvup').hidden)) break; await p.locator('.td-lvx-ok').tap({ timeout: 4000 }); await p.waitForTimeout(400); }
     const closed = await p.evaluate(() => document.getElementById('t-lvup').hidden);
     await p.locator('#tab-week').tap({ timeout: 4000 }); await p.waitForTimeout(400);
     const week = await p.evaluate(() => !document.getElementById('week').hidden); console.log(mode, JSON.stringify({ top, closed, week, errs })); if (!closed || !week || errs.length) process.exitCode = 1;

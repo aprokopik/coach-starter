@@ -180,9 +180,9 @@
         for (const p of ps) {
           const r = { week: mon(d), date: d, kind: 'plan', order: p.order || 0, pillar: val(p.pillar), type: p.type, title: p.title, minutes: val(p.minutes), upper_minutes: val(p.upper_minutes), fallback_minutes: val(p.fallback_minutes), alt_type: p.alt_type || '', intensity: p.intensity || '', key: p.key === true || p.key === 'true', why: p.why || '', detail: p.detail || '', status: 'none', done_disc: '', done_minutes: null, done_text: '', done_ids: '', rpe: null, vs_plan: '', pain: null, flags: '' };
           if (p.type === 'rest') r.status = 'rest';
-          else if (p.type === 'test') r.status = 'gate';
+          else if (p.type === 'test' && !(p.alt_type && ss.some((s) => !used.has(s.id) && s.disc === p.alt_type))) r.status = 'gate'; // a test is done by a ride or run of its alt_type that day (6.159.4)
           else {
-            const want = p.type === 'race' ? 'run' : p.type;
+            const want = p.type === 'race' ? 'run' : p.type === 'test' ? p.alt_type : p.type;
             let m = ss.filter((s) => !used.has(s.id) && s.disc === want); let how = 'done';
             if (!m.length && p.alt_type) { m = ss.filter((s) => !used.has(s.id) && s.disc === p.alt_type); how = 'fallback'; }
             if (m.length) { m.forEach((s) => used.add(s.id)); r.status = how; r.matched = m; }

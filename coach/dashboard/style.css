@@ -282,6 +282,7 @@
 .ck .td-sk { display: grid; gap: 6px; padding-top: var(--ck-s3); border-top: 1px solid var(--ck-line); font-size: var(--ck-t2); line-height: var(--ck-l2); }
 .ck .td-sk:first-child { border-top: 0; padding-top: 0; }
 .ck .td-sk-r1 { display: flex; align-items: center; gap: 10px; }
+.ck .td-sk.is-tap { cursor: pointer; } .ck .td-sk.is-tap .ck-chev { margin-left: auto; flex: none; transform: rotate(-90deg); }
 .ck .td-sk-ic { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--ck-line); display: grid; place-items: center; color: var(--ck-accent); }
 .ck .td-sk-ic .ck-i { width: var(--ck-i-lg); height: var(--ck-i-lg); }
 .ck .td-sk-nm { flex: 1; min-width: 0; display: grid; }

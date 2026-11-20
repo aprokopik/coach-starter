@@ -178,6 +178,10 @@
   {
    "id": "day_top",
    "status": "alpha"
+  },
+  {
+   "id": "skills_tap",
+   "status": "alpha"
   }
  ]
 }

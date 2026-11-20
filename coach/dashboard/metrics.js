@@ -245,6 +245,7 @@
   // store doc seen/levelups {ids, saved_at}; page state only, nothing in the morning run reads it. The union of the store's ids
   // and this device's cx-lvseen counts, so a "Nice" on one phone never shows the same ribbon again on another.
   let lvShared = [];
+  CX.openTile = (k) => { ui.view = 'score'; ui.node = null; ui.open = null; CX.state.fit = k; focusNext = '#f-' + k; scrollNext = true; }; // a Skills row tap (app.js skillHome)
   CX.lvSeenShared = () => lvShared;
   CX.saveLvSeen = (ids) => { lvShared = [...new Set([...lvShared, ...ids])].slice(-200);
     if (db) { try { Promise.resolve(db.doc('seen/levelups').set({ ids: lvShared, saved_at: new Date().toISOString() })).catch(() => { /* kept on this device */ }); } catch (e) { /* kept on this device */ } } };

@@ -1509,13 +1509,17 @@ def build(today, rows_so_far):
         if key == "ftp":
             if rs and wt:
                 r = rs[-1]
-                w = [v for dd, v in wt if abs((_d(dd) - _d(r["date"])).days) <= 3]
-                wsub = "FTP over that week's average weight"
-                if not w and wt:  # no weigh-in that week: nearest within 35 days, said plainly
-                    dd, v = min(wt, key=lambda x: abs((_d(x[0]) - _d(r["date"])).days))
-                    if abs((_d(dd) - _d(r["date"])).days) <= 35:
-                        w = [v]; wsub = f"FTP over the nearest weigh-in ({_d(dd).strftime('%b %-d')}, {v * 2.20462:.0f} lb)"
-                wkg = _f(r.get("value")) / _mean(w) if w else None
+
+                def test_kg(date):  # one weight rule for the tile and every chart point (6.159.4: the Skills card read 2.39 beside the tile's 2.37)
+                    w = [v for dd, v in wt if abs((_d(dd) - _d(date)).days) <= 3]
+                    if w:
+                        return _mean(w), "FTP over that week's average weight"
+                    dd, v = min(wt, key=lambda x: abs((_d(x[0]) - _d(date)).days))  # no weigh-in that week: nearest within 35 days, said plainly
+                    if abs((_d(dd) - _d(date)).days) <= 35:
+                        return v, f"FTP over the nearest weigh-in ({_d(dd).strftime('%b %-d')}, {v * 2.20462:.0f} lb)"
+                    return None, "FTP over that week's average weight"
+                kg, wsub = test_kg(r["date"])
+                wkg = _f(r.get("value")) / kg if kg else None
                 fm = next((x for x in out if x.get("kind") == "marker" and x["key"] == "ftp"), None)
                 if fm is not None and wkg:  # W/kg rides on the FTP tile (the athlete, Nov 1); its own row keeps the chart and bands
                     fm["sub"] = f"{wkg:.2f} W/kg · " + fm["sub"]
@@ -1523,10 +1527,9 @@ def build(today, rows_so_far):
                        wsub + (" · rests on the July ramp FTP" if r.get("date", "") < "2026-11-01" else ""), "", "Watts per kilogram decides climbing and is the fairest way to compare bike fitness over time while weight changes.",
                        "FTP ÷ 7-day average weight around the test. Calculated.", "Calculated", "line")
                 for x in rs:
-                    if wt and _f(x.get("value")):
-                        dd, v = min(wt, key=lambda q: abs((_d(q[0]) - _d(x["date"])).days))
-                        if abs((_d(dd) - _d(x["date"])).days) <= 35:
-                            pt("wkg", x["date"], round(_f(x.get("value")) / v, 2), f"{x.get('text') or x.get('value')} W over {v * 2.20462:.0f} lb")
+                    v = test_kg(x["date"])[0] if _f(x.get("value")) else None
+                    if v:
+                        pt("wkg", x["date"], round(_f(x.get("value")) / v, 2), f"{x.get('text') or str(x.get('value')) + ' W'} over {v * 2.20462:.0f} lb")
             else:
                 marker("fitness", 6, "wkg", "Power to weight", "—", "W/kg", f"After the FTP test{' ' + _d(nxt).strftime('%b %-d') if nxt else ''}", "",
                        "Watts per kilogram decides climbing and is the fairest way to compare bike fitness over time while weight changes.", "FTP ÷ 7-day average weight around the test. Calculated.", "", "")
@@ -1646,6 +1649,9 @@ def build(today, rows_so_far):
             else:
                 out[-1]["sub"] += " · setting your baseline: a level appears after four weeks of rides"
             pairs.append(bk)
+        wk_ = next((x for x in out if x.get("kind") == "marker" and x["key"] == "wkg"), None)
+        if wk_ is not None and any(x.get("kind") == "mpt" and x["key"] == "wkg" for x in out):  # W/kg on the FTP switch (the athlete, Nov 20, 2026, card: "W/kg switch + tap through")
+            wk_.update(section="pair", sport_label="W/kg", seg=0.5); pairs.insert(0, "wkg")
         if pairs:
             mftp.update(pair=",".join(pairs), seg_legend="Effort", sport_label="FTP", seg=0)
     # Bike time tile: best 40K inside an outdoor ride, with 20K, 90K, the metric century and the century behind a Distance switch (the bike's 5K tile)
