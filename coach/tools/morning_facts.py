@@ -888,7 +888,9 @@ def section_week_ahead(today, data, prof):
     rows = [r for r in data.get("week", []) if r.get("kind") == "day" and nxt <= d(r["date"]) <= nxt + timedelta(days=6)]
     meta = next((r for r in data.get("week", []) if r.get("kind") == "week" and r.get("week_start") == iso(nxt)), None)
     keys = [f"{DOW[d(r['date']).weekday()]} {r.get('title', '')}" for r in sorted(rows, key=lambda r: (r["date"], r.get("order", 0))) if r.get("key")]
+    gap = today.weekday() < 6 and not rows  # Sunday pencils next week, so Mon to Sat it must exist before the check day (the athlete, Nov 20, 2026)
     return {"plan_check_day": day, "plan_check_today": DOW[today.weekday()] == day, "next_week": iso(nxt),
+            "next_week_missing": gap,
             "next_week_status": (meta or {}).get("status") or ("set" if rows else "not written"), "next_week_keys": keys,
             "rule": "on the plan check day the check-in lists next week's key sessions and asks one question: any schedule or preference changes? The answer edits the pencilled rows the same day and Sunday writes the week around it",
             "provenance": "Calculated from week.json and profile.json plan_check_day"}

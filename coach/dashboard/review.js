@@ -1,6 +1,6 @@
 // review.js: change a pencilled week by tap (alpha week_review, 6.117.0). Two places, one builder:
-// - Today, "Next week" (#t-nw; the athlete's pick, option 1 of five, Nov 16, 2026): from the plan check day (row kind plan_check)
-//   through Sunday (the athlete, Nov 16: "only populate in today tab on a friday/sat/sunday"), next Mon to Sun as the This week path with Looks good, Change a day and Busy week.
+// - Today, "Next week" (#t-nw; the athlete's pick, option 1 of five, Nov 16, 2026): from the plan check day (week row check_day)
+//   through Sunday (the athlete, Nov 20: plan ready by then), next Mon to Sun as the This week path with Looks good, Change a day and Busy week.
 // - Week tab, any pencilled week (#w-nw; the athlete, Nov 16: "always go into a future week on the weekly and look at the penciled in
 //   to move things around"): Change a day and Busy week under the week note; the day list above is the picture.
 // Both save week_review/<that Monday> (one document a week, shared); coach/tools/week_review.py and RUNBOOK "Next week review"
@@ -145,12 +145,13 @@
     if (!alpha('week_review') || !(await store())) { card.hidden = true; return; }
     const { TODAY, dayN, monday, isoN, P, fDay, kind, el, mark } = A(), wk = isoN(dayN(monday(TODAY)) + 7);
     await load(wk);
-    const pc = kind('plan_check')[0], di = DOW.indexOf(pc ? String(pc.day || 'Fri').slice(0, 3) : 'Fri'), ti = (P(TODAY).getUTCDay() + 6) % 7;
-    if (!(FORCE || ti >= di)) { card.hidden = true; return; }
+    const meta = kind('week').find((r) => r.week_start === wk), di = DOW.indexOf((meta && meta.check_day) || 'Fri'), ti = (P(TODAY).getUTCDay() + 6) % 7;
+    const has = kind('day').some((r) => r.date >= wk && r.date <= isoN(dayN(wk) + 6));
+    if (!(FORCE || (ti >= di && has))) { card.hidden = true; return; }
     shell(card);
     if (!today) today = mount(card, { path: true, good: true, onSent: (w) => { if (week && week.wk === w) week.paint(); } });
     today.set(wk);
-    const meta = kind('week').find((r) => r.week_start === wk), pen = !!meta && String(meta.status || '') === 'pencilled';
+    const pen = !!meta && String(meta.status || '') === 'pencilled';
     $('t-nw-dates').textContent = `${fDay(P(wk))} to ${fDay(P(isoN(dayN(wk) + 6)))}`;
     const tag = $('t-nw-tag'); tag.replaceChildren();
     if (pen) tag.append(mark(el('span', 'td-nw-pen', 'Pencilled'), 'coach', 'status', 'kind=week&week_start=' + wk), ` · firms up ${fDay(P(isoN(dayN(wk) - 1)))}`);
