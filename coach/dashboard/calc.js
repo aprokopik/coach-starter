@@ -35,6 +35,8 @@
       elev: c((x) => x * 0.3048), elevU: l('ft', 'm'), wt: c((x) => x * 0.45359237), wtU: l('lb', 'kg'), speed: c((x) => x * 1.609344),
       speedU: l('mph', 'km/h'), swimU: l('/100 yd', '/100 m'), yd: c((x) => x * 0.9144), ydU: l('yd', 'm') };
   })();
+  // a night is in once its sleep syncs; before that the day's row holds only the evening before (the athlete, Nov 20, 2026)
+  const lastNight = (rows) => (rows.filter((r) => r.sleep_h !== '' && r.sleep_h != null).pop() || rows[rows.length - 1]).date;
   window.CX = Object.assign(window.CX || {}, { N, dayN, isoN, monday, round, fixed, fmt, U });
 
   dash.calc('night', {
@@ -47,7 +49,7 @@
       const round = (x, k) => (x === null ? null : Math.round(x * 10 ** k) / 10 ** k);
       const rows = recovery.filter((r) => r.date).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (!rows.length) return [];
-      const lastDay = day(rows[rows.length - 1].date);
+      const lastDay = day(lastNight(rows));
       const defs = [
         ['sleep_h', 'Sleep', 'h', 1, 1, 0], ['sleep_score', 'Sleep score', '', 0, 1, 0], ['hrv_overnight_ms', 'HRV', 'ms', 0, 1, 0],
         ['resting_hr', 'Resting HR', 'bpm', 0, -1, 0], ['body_battery_high', 'Body Battery', '', 0, 1, 0],
@@ -241,7 +243,7 @@
       const rows = recovery.filter((r) => r.date).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (!rows.length) return [];
       const keys = [['sleep_h', 1], ['sleep_score', 1], ['hrv_overnight_ms', 1], ['resting_hr', -1]];
-      const lastDay = dayN(rows[rows.length - 1].date), out = [];
+      const lastDay = dayN(lastNight(rows)), out = [];
       for (let k = 6; k >= 0; k--) {
         const t = lastDay - k, cur = rows.find((r) => dayN(r.date) === t), zs = [];
         for (const [m, better] of keys) {

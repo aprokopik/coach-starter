@@ -19,6 +19,11 @@ it skipped and the first daytime refresh (9:41 AM) does it. A record from an ear
 next 7:45 run does those steps anyway.
 
 Walks and sauna count too: any new row in data/activities.csv is something Today can show.
+
+A night that syncs late counts too (6.157.1; the athlete, Nov 20, 2026: "i still dont see an updated watch sync"): the 9:41 AM
+pull brought last night's sleep, but with no new activity the refresh stopped and the dashboard kept the night before
+until the next morning. `check` also reports the newest night with sleep in data/summary.csv when the dashboard has not
+shown it yet, and `mark` records it.
 """
 import argparse
 import csv
@@ -29,6 +34,7 @@ from datetime import datetime, timezone
 
 REL = "coach/refresh.json"
 ACTS = "data/activities.csv"
+SUMMARY = "data/summary.csv"
 KEEP = 60
 
 
@@ -56,9 +62,26 @@ def new_ids(root="."):
     return [i for i in ids[-KEEP:] if i not in seen]
 
 
+def newest_night(root="."):
+    """The newest date in data/summary.csv whose sleep has synced (a row with no sleep is not a night yet)."""
+    p = os.path.join(root, SUMMARY)
+    if not os.path.exists(p):
+        return None
+    with open(p, newline="") as fh:
+        dates = [r["date"] for r in csv.DictReader(fh) if r.get("date") and (r.get("sleep_h") or "").strip()]
+    return max(dates) if dates else None
+
+
+def new_night(root="."):
+    n = newest_night(root)
+    seen = load(root).get("published_night")
+    return n if n and (not seen or n > seen) else None
+
+
 def mark(root=".", by="", now=None):
     rec = load(root)
     rec["published_ids"] = activity_ids(root)[-KEEP:]
+    rec["published_night"] = newest_night(root)
     rec["published_at_utc"] = (now or datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
     rec["by"] = by
     rec.setdefault("note", "Daytime refresh record (coach/tools/refresh_check.py): activity ids the dashboard already shows. "
@@ -156,9 +179,10 @@ def main(argv, root="."):
         print(("still missed: " + ",".join(left)) if left else "caught up")
         return 0
     if a.cmd == "check":
-        ids = new_ids(root)
-        print(("new: " + " ".join(ids)) if ids else "nothing new")
-        return 0 if ids else 1
+        ids, night = new_ids(root), new_night(root)
+        out = ids + (["night " + night] if night else [])
+        print(("new: " + " ".join(out)) if out else "nothing new")
+        return 0 if out else 1
     mark(root, a.by)
     print("ok")
     return 0
