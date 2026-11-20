@@ -2257,6 +2257,8 @@
     const k = state.fit; const tone = SPORT_TONE[k];
     if (k === 'run' || k === 'bike') {
       const allRows = k === 'run' ? run : bike; const rows = inSpan(allRows);
+      // a dashed bridge over a gap in the 28-day line, so it reads as one line (the athlete, Nov 19, 2026, option F)
+      const okI = rows.flatMap((r, j) => N(r.avg28) !== null ? [j] : []), gapI = new Set(); okI.forEach((j, n) => { if (okI[n + 1] > j + 1) gapI.add(j).add(okI[n + 1]); });
       if (!rows.length) { CKC().clear(box); box.replaceChildren(el('p', 'ck-note', allRows.length ? `No qualifying ${k === 'run' ? 'runs' : 'rides'} in ${spanName()}. Pick a longer range above.` : 'No sessions qualify yet.')); lg.replaceChildren(); note.textContent = ''; return; }
       const vals = rows.flatMap((r) => [N(r.value), N(r.avg28)]).filter((v) => v !== null);
       const bc = blockContext(k, allRows.filter((r) => N(r.avg28) !== null).map((r) => ({ date: r.date, value: N(r.avg28) }))); const cm = bc ? bc.cm : null; const ts = cm ? tiersOf(cm) : [];
@@ -2273,11 +2275,11 @@
       let lo = d3.min([...vals, ...inc]), hi = d3.max([...vals, ...inc]); const pad = (hi - lo) * 0.12 || 0.5; lo -= pad; hi += pad; if (k === 'bike' && lo < 0) lo = 0;
       if (closeR) { [lo, hi] = stretch(closeR, vals); if (k === 'bike' && lo < 0) lo = 0; }
       const ticks = closeR ? (() => { const step = k === 'run' ? (hi - lo > 4 ? 1 : hi - lo > 2 ? 0.5 : 0.25) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : d3.ticks(lo, hi, 4);
-      lineChart(box, rows, {
+      lineChart(box, rows.map((r, j) => ({ ...r, gap: gapI.has(j) ? N(r.avg28) : null })), {
         key: 'fit-' + k, h: 190, narrow: pts2.length ? { h: 280 } : undefined, today: true, main: 1, head: 0, fmt: k === 'run' ? mss : f0, unit: k === 'run' ? 'min' + U.paceU() : 'W', endUnit: k === 'run' ? U.paceU() : 'W',
         words: k === 'run' ? ['slower', 'faster'] : undefined, title: k === 'run' ? `Run pace at ${ANC().run} bpm, 28-day average` : `Bike power at ${ANC().bike} bpm, 28-day average`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
         blocks: blockDraw.map((b) => ({ ...b, goal: undefined })), sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
-        series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }],
+        series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }, ...(gapI.size ? [{ key: 'gap', label: k === 'run' ? 'No runs' : 'No rides', tone: SPORT_TONE[k], connect: true, dashed: true, width: 2, end: false }] : [])],
         // the tip leads with the figure the dot is drawn at, and bike watts carry one decimal, so two dots at different heights never
         // read the same (the athlete, Nov 19, 2026: Nov 18 sat under Nov 13 yet both said 104 W; they were 103.6 and 104.0)
         tipLines: (r) => k === 'run'

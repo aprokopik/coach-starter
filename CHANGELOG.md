@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.156.0 (2026-11-20)
+- Dashboard, Feature: none (a change to the live run and bike charts): the 28-day line on Bike power at 130 bpm and Run pace at 150 bpm now crosses a gap with a dashed bridge instead of stopping (the kit maker, Nov 19, 2026: "Why does my bike power at 130 only go back to October", then "the line drops but then picks back up later"; they picked option F, the dashed bridge, from renders of their real chart). Observed: on 1Y the bike line stopped at Aug 4 and began again on Oct 8, so on 3M it looked like the history started in October. Cause: no Zwift rides from Aug 5 to Sep 26, and the lone Sep 27 ride has no 28-day average (it needs 2 rides), so the line broke there. Nothing was missing: power exists only from Jul 3, 2026. Now the two ends of any gap are joined by a dashed line in the same colour; the solid line, its end label and the summary are unchanged. Guard: `coach/tests/test_fit_gap_bridge.py`.
+
 ## 6.155.0 (2026-11-19)
 - Dashboard, Feature: no_train_today (alpha), a Can’t train choice on Today changed? (the kit maker, Nov 19, 2026: home late, skipping the easy ride; "Let's get that implemented"). Before, a skipped day had to go in as Something else with a typed note.
 
