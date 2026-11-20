@@ -9,6 +9,11 @@ branched public line." coach/ops/alpha.json is the one home for each gated featu
     python3 coach/tools/alpha.py on <id>              exit 0 when the feature is on for this install (a Python gate)
     python3 coach/tools/alpha.py list                  one line per feature: stage, days in it, name
     python3 coach/tools/alpha.py board-export          JSON for the board's features rows (code_ring = stage, version)
+    python3 coach/tools/alpha.py board-drift <features>
+                                                       what the board's features rows lack against this list (an ArtifactData
+                                                       list saved as one JSON file or an out_dir folder): {"set": [...] rows
+                                                       to add, "update": [...] rows whose code_ring, ring or version are
+                                                       behind}; exit 1 when anything drifted, 0 when the board matches
     python3 coach/tools/alpha.py ingest <features.json> [<feedback.json>]
                                                        the athlete's board taps into alpha.json: a `request` {stage, at} newer
                                                        than the row's `stage_at` moves the stage here (checked: no public
@@ -117,6 +122,44 @@ def board_export():
              "since": r.get("since", ""), "stage_at": r.get("stage_at", ""), "name": r.get("name", r["id"]),
              "epic": r.get("epic", ""), "depends_on": r.get("depends_on", [])}
             for r in load().get("rows", []) if r.get("id")]
+
+
+def _docs(path):
+    """An ArtifactData read saved to disk: one JSON file (list, dict of id to doc, or {"documents": [...]}) or an
+    out_dir folder of <doc_id>.json files."""
+    p = Path(path)
+    if p.is_dir():
+        out = []
+        for f in sorted(p.glob("*.json")):
+            d = json.loads(f.read_text())
+            out.append(dict(d, id=d.get("id", f.stem)))
+        return out
+    data = json.loads(p.read_text())
+    if isinstance(data, dict) and isinstance(data.get("documents"), list):
+        data = data["documents"]
+    if isinstance(data, dict):
+        data = [dict(v, id=v.get("id", k)) for k, v in data.items()]
+    return [dict(d.get("data", d), id=d.get("id")) if isinstance(d.get("data"), dict) else d for d in data]
+
+
+def board_drift(features):
+    """Board features rows missing or behind this list (the athlete, Nov 20, 2026: "i dont see some of the feature we just
+    worked through on the Alpha board"). Six Alpha features merged Nov 18 to 20 never reached the board: only the 7:45
+    run added new rows, and it skipped that step on Nov 19 and was refused on Nov 20. Every daytime refresh and every
+    thread closeout now runs this, so a missed run is caught within 2 hours."""
+    have = {d.get("id"): d for d in features}
+    add, upd = [], []
+    for r in board_export():
+        b = have.get(r["id"])
+        if b is None:
+            add.append(r)
+        elif any(str(b.get(k, "")) != str(r[k]) for k in ("code_ring", "version")) or _stage(b.get("ring")) != r["ring"]:
+            upd.append({k: r[k] for k in ("id", "code_ring", "ring", "version", "stage_at")})
+    return {"set": add, "update": upd}
+
+
+def _stage(v):
+    return "beta" if v in ("released", "live") else (v if v in RANK else "alpha")
 
 
 def board_meta(data=None):
@@ -326,6 +369,10 @@ def main(argv):
         print(mark_released(argv[1]))
     elif c == "kit-file":
         print(json.dumps(kit_file(), indent=1))
+    elif c == "board-drift":
+        d = board_drift(_docs(argv[1]))
+        print(json.dumps(d, indent=1, ensure_ascii=False))
+        return 1 if d["set"] or d["update"] else 0
     elif c == "board-meta":
         print(json.dumps(board_meta(), indent=1))
     elif c == "backlog-export":

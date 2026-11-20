@@ -4,8 +4,10 @@ we should have them be confirmed, closed and archived, or open item before closi
 
 Owner only. The Release Board (ArtifactData) holds the rows; this tool only reads saved copies and prints.
 
-    python3 coach/tools/pieces.py closeout --thread "<title>" --backlog backlog.json [--pages coach/ops/pages.json]
-        exit 1 and list what is open when the thread still owns an open board row or an undecided page
+    python3 coach/tools/pieces.py closeout --thread "<title>" --backlog backlog.json --features <features>
+                                           [--pages coach/ops/pages.json]
+        exit 1 and list what is open when the thread still owns an open board row or an undecided page, or when a
+        feature in coach/ops/alpha.json has no board row or a stale one (alpha.py board-drift; Nov 20, 2026)
     python3 coach/tools/pieces.py notes notes.json --backlog backlog.json
         print the board rows (JSON) to add for notes the athlete left that nobody answered and no row holds yet
     python3 coach/tools/pieces.py board-notes <feedback> --backlog <backlog> [--epics <epics>]
@@ -139,6 +141,7 @@ def main(argv=None):
     c.add_argument("--thread", required=True)
     c.add_argument("--backlog", required=True)
     c.add_argument("--pages", default=PAGES)
+    c.add_argument("--features", help="the board's features list, saved (alpha.py board-drift)")
     n = sub.add_parser("notes")
     n.add_argument("notes")
     n.add_argument("--backlog", required=True)
@@ -156,7 +159,18 @@ def main(argv=None):
             print(f"open row: {r.get('title')} ({r.get('state')})")
         for p in left:
             print(f"page not decided: {p.get('title')} {p.get('url')} (confirm, archive or keep as an open row)")
-        if rows or left:
+        drift = {"set": [], "update": []}
+        if a.features:
+            sys.path.insert(0, HERE)
+            import alpha
+            drift = alpha.board_drift(alpha._docs(a.features))
+            for r in drift["set"]:
+                print(f"feature missing on the board: {r['name']} ({r['id']}, {r['ring']}); add it from alpha.py board-drift")
+            for r in drift["update"]:
+                print(f"feature behind on the board: {r['id']} (now {r['ring']}, {r['version']}); update it from alpha.py board-drift")
+        else:
+            print("features not checked: pass --features with the board's features list")
+        if rows or left or drift["set"] or drift["update"] or not a.features:
             return 1
         print("ok: nothing open")
         return 0
