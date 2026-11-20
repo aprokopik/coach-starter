@@ -193,7 +193,7 @@
    },
    "max_age_hours": 26,
    "alert": true,
-   "fallback": "the 7:45 run republishes every morning; a thread can follow TASK-PROMPT-refresh.md on demand",
+   "fallback": "the 7:45 run republishes every morning; a thread can follow TASK-PROMPT-refresh.md on demand; when the 7:45 run skips the store copy, the board or the publish after a blocked or failed call it records them (refresh_check.py missed) and the first daytime refresh does them (step 0a, 6.157.0)",
    "owner": "pipeline"
   },
   {
