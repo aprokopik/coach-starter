@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.159.3 (2026-11-20)
+- Dashboard fix: Bike power at 130 bpm leaves FTP and ramp tests out (calc.js fitness and its twin brief.py fitness_series). Observed: the Nov 20 Zwift FTP Test (avg 122 W at avg HR 137) scaled to 112 W at 130 bpm, 9 W above any real reading, and would have pulled the 28-day tile up and could name a false level up. Root cause: the marker scales a ride's average power by its average heart rate, which holds for steady rides; an all out test is mostly easy spinning plus a 20 min effort, and HR lags the efforts. Prevention: any ride named FTP Test or Ramp Test is skipped on both paths. Residual risk: races and hard group rides are still counted (Sep 27 road race reads 96 W); a variability filter would cover them but changes 13 past readings, so it is not in this fix. Guard: `coach/tests/test_hr_anchor.py`.
+
 ## 6.159.2 (2026-11-20)
 - Changes to the original athlete's own coaching only; nothing in the shared engine.
 

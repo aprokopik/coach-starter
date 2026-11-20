@@ -322,7 +322,7 @@
 
   dash.calc('fitness', {
     title: 'Fitness markers per session',
-    description: 'Run: flat runs (under 60 ft of climb per mile, 20+ min, 7–16 min/mi, average HR from 15 under to 25 over the run anchor), pace scaled to the run anchor A: pace × (HR − RHR) ÷ (A − RHR). Bike: Zwift rides of 30+ min (average HR from 20 under to 35 over the bike anchor), average power scaled to the bike anchor B: power × (B − RHR) ÷ (HR − RHR). The anchors are the athlete’s own easy heart rates (coach.json hr_anchor row, coach/tools/hr_anchor.py; 150 and 130 for the original athlete). RHR is the mean resting HR of the 15 days centred on the session. avg28 is the mean of the marker over the 28 days up to the session (2+ sessions). Estimated.',
+    description: 'Run: flat runs (under 60 ft climb per mile, 20+ min, 7–16 min/mi, HR 15 under to 25 over the run anchor), pace scaled to the run anchor A: pace × (HR − RHR) ÷ (A − RHR). Bike: Zwift rides of 30+ min, not tests, HR 20 under to 35 over the bike anchor, average power scaled to the bike anchor B: power × (B − RHR) ÷ (HR − RHR). The anchors are the athlete’s own easy heart rates (coach.json hr_anchor row, coach/tools/hr_anchor.py). RHR is the mean resting HR of the 15 days centred on the session. avg28 is the mean of the marker over the 28 days up to the session (2+ sessions). Estimated.',
     inputs: ['activities', 'recovery', 'coach'],
     fn: (activities, recovery, coach) => {
       CX.U.see(coach);
@@ -347,7 +347,7 @@
           out.push({ date: d, marker: 'run', value: rd(CX.U.pace(pace * (hr - R) / (A - R)), 3), anchor: A, raw: rd(CX.U.pace(pace), 3), hr, rhr: rd(R, 1), miles: rd(CX.U.dist(mi), 2), id: String(a.activity_id), name: String(a.name || '') });
         } else if (/virtual_ride/.test(t) || /zwift/i.test(String(a.name || ''))) {
           const p = val(a.avg_power_w), min = val(a.duration_min);
-          if (!p || !min || min < 30 || hr < bLo || hr > bHi) continue;
+          if (!p || !min || min < 30 || hr < bLo || hr > bHi || /(ftp|ramp) test/i.test(a.name)) continue;
           out.push({ date: d, marker: 'bike', value: rd(p * (B - R) / (hr - R), 1), anchor: B, raw: p, hr, rhr: rd(R, 1), minutes: Math.round(min), id: String(a.activity_id), name: String(a.name || '') });
         }
       }

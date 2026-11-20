@@ -9,6 +9,7 @@ Deterministic; the coach writes the brief itself into coach/block_briefs.json. R
                                          (due then asks the coach to answer it). Same shape as lifts.py accept / keep.
 Also imported by build_dashboard.py (rows for the Fitness tab's This block card) and morning_facts.py (facts.json block_brief).
 """
+import re
 import csv
 import json
 import os
@@ -88,6 +89,8 @@ def fitness_series(acts, summ):
         elif "virtual_ride" in t or "zwift" in (a.get("name") or "").lower():
             p, mins = _f(a.get("avg_power_w")), _f(a.get("duration_min"))
             if not p or not mins or mins < 30 or hr < blo or hr > bhi:
+                continue
+            if re.search(r"ftp test|ramp test", a.get("name") or "", re.I):  # same skip as calc.js fitness (6.159.3)
                 continue
             out.append({"date": d, "marker": "bike", "value": p * (B - R) / (hr - R)})
     out.sort(key=lambda r: r["date"])
