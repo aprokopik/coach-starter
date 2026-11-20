@@ -21,6 +21,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Start from the branch tip when the job starts, not the commit that queued it: a run that waited
+          # behind another (concurrency group) would otherwise redo its work and conflict with it (Nov 20, 2026).
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
@@ -41,5 +45,12 @@ jobs:
             echo "No changes"
           else
             git commit -q -m "Apple Health send $(date -u +%Y-%m-%dT%H:%MZ)"
-            git pull -q --rebase && git push -q
+            # Newer data wins a same-file conflict (each run rewrites whole files from the source);
+            # retry if another writer pushed in between.
+            for i in 1 2 3; do
+              git pull -q --rebase -X theirs && git push -q && exit 0
+              git rebase --abort 2>/dev/null || true
+              sleep $((i * 5))
+            done
+            exit 1
           fi
