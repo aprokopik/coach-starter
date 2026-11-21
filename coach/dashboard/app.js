@@ -162,6 +162,9 @@
   }
 
   // ---------- TODAY ----------
+  // where a session ranks on its day (the athlete, Nov 21, 2026): coach/tools/session_rank.py writes rank (0 leads), rank_why and rank_keep
+  // onto the day rows of a two session day (rule file coach/engine/session_rank.json); no rank keeps the plan's order
+  function byRank(rs) { const k = (r) => (N(r.rank) === null ? 99 : N(r.rank)); return rs.slice().sort((a, b) => k(a) - k(b) || (a.order || 0) - (b.order || 0)); }
   function nextRace() {
     const rs = kind('race').filter((r) => r.status !== 'done' && dayN(r.date) >= TN).sort((a, b) => (a.date < b.date ? -1 : 1));
     return rs[0] || null;
@@ -541,12 +544,15 @@
       if (missed) $('t-stale').dataset.s = 'act'; else delete $('t-stale').dataset.s; $('t-stale-w').textContent = missed ? 'Missed' : 'Out of date';
       if (stale) { const st = $('t-stale-t'); st.replaceChildren(); if (!missed) st.append(`This is ${fDow(P(t.date))}'s check-in. Today's arrives after the `, RUN_AT(), ' run.'); else st.append('No check-in today: the ', RUN_AT(), ` run has not landed by `, ruleSpan(clockAt(missedAt()), 'app.js missedAt: the first daytime refresh, 9:41 AM (data_paths daytime_refresh), or two hours after the check-in when there is none'), `. Ask the coach in a chat for today's call. This is ${fDow(P(t.date))}'s.`); $('t-stale-age').textContent = t.generated_at_utc ? `Check-in ${stamp(t.generated_at_utc)}.` : ''; }
       const box = $('t-planned'); box.replaceChildren();
-      const todays = dayRows().filter((r) => r.date === TODAY).sort((a, b) => (a.order || 0) - (b.order || 0));
+      const todays = byRank(dayRows().filter((r) => r.date === TODAY));
       const mvd = todays.find((r) => r.moved) || null; // a session moved in or out today: the card shows the plan row, not the morning's call
+      // two sessions today (the athlete, Nov 21, 2026: "Shouldn't the lift show up as the primary"): each keeps its own symbol and sizes after
+      // the check-in lands too, so the higher ranked one leads instead of both folding into the first session's card
+      const two = alpha('day_sessions') && todays.filter((r) => r.type !== 'rest').length > 1;
       // week-plan state (Phase 6 round 3, the athlete: the size control and Help me pick every day): before today's check-in the tile
       // shows the week plan for today; its first day row drives Fallback / Plan / Strong day and their size texts, its details
       // go in Help me pick, and yesterday's purpose, choice rule and question stay out. A rest day has no sizes.
-      const usePlan = (stale || !!mvd) && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
+      const usePlan = (stale || !!mvd || two) && todays.length > 0, pd = usePlan ? todays[0] : null, pdw = pd ? `kind=day&date=${pd.date}&order=${pd.order}` : null;
       const multi = usePlan && todays.length > 1 && alpha('day_sessions'), bnd = $('t-bounds'); if (bnd.parentNode !== $('t-presc-b')) { $('t-presc-b').append(bnd); $('t-presc-b').after($('t-presc-s'), $('t-more')); }
       const sized = !pd || pd.type !== 'rest', det = $('t-pdet'); det.replaceChildren(); det.hidden = !usePlan;
       box.hidden = !usePlan; $('t-presc-a').hidden = usePlan; $('t-presc-b').hidden = !sized || multi; $('t-presc-s').hidden = !sized; $('t-purpose').hidden = usePlan || !t.purpose; $('t-rule').hidden = usePlan || !t.choice_rule;
@@ -559,10 +565,22 @@
           if (!multi) box.append(h);
           else { // two or more: each session its own symbol and sizes, done whenever (the athlete, Nov 16)
             const ic = el('span', 'ck-sport td-sport td-sport-s'); ic.append(sportIcon(glyphOf(r)), el('span', 'ck-vh', String(r.type)));
-            const row = el('div', 'td-sess-row'); row.append(ic, h); box.append(row);
+            const row = el('div', 'td-sess-row'), tx = el('div', 'td-sess-tx');
+            const lead = !i && N(r.rank) === 0 && todays.length > 1;
+            if (lead) tx.append(mark(el('span', 'td-main', 'Main session'), 'coach', null, w, 'session_rank.py rank 0 (coach/engine/session_rank.json)'));
+            tx.append(h); row.append(ic, tx); box.append(row);
+            // less time (the athlete, Nov 21, 2026: "which one is more important if they have less time"): keep the lead whole, the next one goes to its Min
+            if (lead) {
+              const nx = todays[1], nw = `kind=day&date=${nx.date}&order=${nx.order}`, fm = N(nx.fallback_minutes);
+              const word = { bike: 'ride', run: 'run', swim: 'swim', strength: 'lift' }[String(glyphOf(nx))] || 'other session';
+              const lt = el('p', 'td-less'); lt.append(el('b', null, 'Short on time? '), 'Keep this one whole. ');
+              lt.append(fm ? mark(el('span', null, `Cut the ${word} to ${hmin(fm)}`), 'coach', null, nw, 'Min of the next session (fallback_minutes)') : `Cut the ${word} short`, truthy(nx.rank_keep) ? '.' : ', or skip it.');
+              box.append(lt);
+            }
             if (r.type !== 'rest') box.append(...(i ? [sizeBar(r, w, i), ...sessFoot(r, w)] : [bnd, $('t-presc-s'), $('t-more')]));
           }
           if (r.detail && (!multi || !i)) det.append(alpha('day_sessions') ? noteList(r, w) : plainEl(mark(el('p', 'ck-session-text', r.detail), 'coach', 'detail', w)));
+          if (multi && !i && N(r.rank) === 0 && r.rank_why) { const wd = el('span', 'ck-row-more td-notes'); wkKv(wd, 'Why first').append(mark(el('span', null, r.rank_why), 'coach', 'rank_why', w)); det.append(wd); }
         }
       }
       $('t-ask').hidden = !t.question || usePlan; // Coach asks only from today's check-in
@@ -729,7 +747,7 @@
       const done = (restKey && d < TODAY) || wv.some((r) => r.date === d && r.kind === 'plan' && ['done', 'fallback', 'swapped'].includes(r.status));
       const planned = !offDay && rs.some((r) => r.type !== 'rest'), n = rs.filter((r) => r.type !== 'rest').length;
       const sg = el('span', 'td-nw-sg'); sg.setAttribute('aria-hidden', 'true'); // a symbol per session, as on Next week (the athlete, Nov 16)
-      if (alpha('day_sessions')) for (const r of rs) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
+      if (alpha('day_sessions')) for (const r of byRank(rs)) if (r.type !== 'rest') sg.append(sportIcon(glyphOf(r)));
       const li = el('li', 'td-day' + (d === TODAY ? ' is-now' : '') + (done ? ' is-done' : '')), nd = el('span', 'td-node' + (key ? ' is-key' : '') + (done ? ' is-done' : '') + (!planned ? ' is-rest' : '') + (d === TODAY ? ' is-now' : ''));
       nd.append(el('b', null, key ? String(N(key.pillar) !== null ? N(key.pillar) : 'K') : done ? '✓' : planned ? '' : '·')); nd.setAttribute('aria-hidden', 'true');
       li.append(nd, el('span', 'td-dow', DOW[i]), sg, el('span', 'ck-vh', (key ? `, key session ${N(key.pillar) || ''}` : planned ? ', session' : ', rest') + (n > 1 ? `, ${n} sessions` : '') + (done ? ', done' : '') + (d === TODAY ? ', today' : '')));
@@ -786,6 +804,8 @@
     const dr = state.sizeRow, dw = dr ? `kind=day&date=${dr.date}&order=${dr.order}` : null;
     const sep = () => { if (line.childNodes.length) line.append(el('span', 'td-dot', ' · ')); };
     if (dr && dr.target_rpe !== undefined && dr.target_rpe !== null && dr.target_rpe !== '') { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, String(dr.target_rpe)), 'coach', 'target_rpe', dw), ' of 10'); sep(); line.append(g); }
+    const rir = dr && !(dr.target_rpe !== undefined && dr.target_rpe !== null && dr.target_rpe !== '') ? /(\d+(?:-\d+)?) reps? in reserve/i.exec(dr.detail || '') : null; // a lift leading the day (Nov 21): its reps in reserve, as sessFoot
+    if (rir) { const g = el('span', 'td-nw', 'Effort '); g.append(mark(el('span', null, rir[1]), 'coach', 'detail', dw, 'reps in reserve from the notes'), ' reps in reserve'); sep(); line.append(g); }
     if (dr && N(dr.hr_cap) !== null) { const g = el('span', 'td-nw', 'HR about '); g.append(mark(el('span', null, String(N(dr.hr_cap))), 'coach', 'hr_cap', dw)); sep(); line.append(g); }
     // the line under the title: key number, then what the coach says, or the day an older check-in is from
     const sub = $('t-sub'); sub.replaceChildren(); const rf = { nominal: 'minutes', upper: 'upper_minutes', fallback: 'fallback_minutes' }[state.rec || 'nominal'], rv = sp ? N(sp.row[rf]) : null;

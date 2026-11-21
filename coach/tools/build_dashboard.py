@@ -89,6 +89,9 @@ for r in read_json("coach/week.json", {"rows": []}).get("rows", []):
         if k == "week" and row.get("status") == "pencilled":
             row["check_day"] = _check_day  # the day the coach checks the week with the person (profile.json plan_check_day)
         rows.append(row)
+# two session days: which leads and what to trim when time is short (coach/engine/session_rank.json; Nov 21, 2026)
+import session_rank  # noqa: E402
+session_rank.annotate(rows, next((r for r in rows if r.get("kind") == "today"), None))
 
 def to5(v, scale):
     """Feel scores are 1-5 from Oct 18, 2026 (the athlete); older 1-10 answers are rescaled linearly for trends."""

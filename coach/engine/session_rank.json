@@ -1,0 +1,27 @@
+{
+ "about": "Which session leads on a day with two or more, and what to trim when time is short. One home for this rule: coach/tools/session_rank.py reads it, writes rank, rank_why and rank_keep onto week.json day rows in coach.json (build_dashboard.py), and prints the same call for the morning check-in. The Today card lists a day's sessions in that order. Works for any person and goal mix: floors and focus come from the person's profile.json, then the block, then the defaults here. No study tests 'which session to keep on a short day' directly; the steps are inferred from dose studies (sources by coach/research/LIBRARY.md id).",
+ "steps": [
+  {"id": "health", "text": "Health first: on a red or Stressed day the easiest session leads and nothing hard is kept.", "source": "RULES 3 pain ladder; IR-08; IR-09"},
+  {"id": "fixed", "text": "A race or test leads: its date is fixed.", "source": "KEY-SESSIONS.md"},
+  {"id": "key", "text": "A key session leads over anything that is not a race or test.", "source": "KEY-SESSIONS.md"},
+  {"id": "floor", "text": "Next, a session whose skip drops that kind below its weekly floor (or a lift inside a lift_rank key period).", "source": "TR-16 (cardio holds on 2 sessions a week with intensity kept); TR-17 (strength floor 2 a week); TR-36"},
+  {"id": "focus", "text": "Ties go to the person's focus divided by how many of that kind the week holds: the first sessions of a kind do the most work.", "source": "TR-19 (diminishing returns per set); TR-21 (diminishing returns per minute)"},
+  {"id": "order", "text": "Still tied: the plan's order.", "source": "TR-18, TR-28 (order on the day matters less than the gap)"}
+ ],
+ "trim": "Short on time: the lead stays whole; every other session goes to its Min (fallback_minutes). A session protected by a floor, a key or a lift_rank key period is shortened, never skipped; anything else may be skipped. Easy minutes go first, then extra sets.",
+ "trim_source": "TR-16, TR-07 (keep intensity, cut volume); TR-19 (first sets do most of the work); TR-36 (hold lifting volume in a deficit)",
+ "kinds": {
+  "strength": ["strength"],
+  "cardio": ["run", "bike", "swim", "brick", "test", "race", "walk", "hike"]
+ },
+ "floors": {
+  "cardio": {"per_week": 2, "profile_key": "cardio_minimum_per_week", "source": "TR-16"},
+  "strength": {"per_week": 2, "profile_key": "strength_minimum_per_week", "source": "TR-17"}
+ },
+ "focus_default": {"cardio": 1, "strength": 1, "other": 0.5},
+ "focus_profile_key": "session_focus",
+ "focus_block_key": "session_focus",
+ "lift_rank_key": {"text": "Inside a plan.json fuel period with lift_rank \"key\" (every deficit period), lifts count as a floor and their focus is multiplied by this factor.", "factor": 1.5, "source": "TR-36"},
+ "health_levels": {"readiness": ["RED"], "level": ["stressed"]},
+ "load_order": {"rest": 0, "easy": 1, "": 2, "long": 3, "quality": 4, "test": 5, "race": 6}
+}

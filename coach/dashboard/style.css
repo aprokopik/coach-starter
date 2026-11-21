@@ -1629,3 +1629,8 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .dp-done { margin: 0; color: var(--ck-fg); }
 /* Today's date and forecast pinned under the tab bar (ready.js oneTop, alpha day_top; the athlete, Nov 20, 2026, "Pinned under the tabs") */
 .ck .td-daybar.td-daytop { position: sticky; top: var(--cx-bar-h); z-index: var(--ck-z-2); margin: 0; padding: var(--ck-s2) var(--ck-s1); background: var(--ck-bg); }
+/* a two session day's lead (the athlete, Nov 21, 2026): the higher ranked session comes first with a small Main session label (app.js sessRank) */
+.ck .td-sess-tx { display: grid; gap: 2px; min-width: 0; }
+.ck .td-main { font-size: 12px; line-height: 16px; font-weight: var(--ck-w-bold); letter-spacing: .08em; text-transform: uppercase; color: var(--ck-good); }
+.ck .td-less { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
+.ck .td-less b { color: var(--ck-fg); }

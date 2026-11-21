@@ -1,6 +1,6 @@
 {
  "about": "Which files are the kit's own (replaced by setup/update.py) and which are the athlete's (never touched). Do not edit.",
- "version": "6.161.1",
+ "version": "6.162.0",
  "kit_files": [
   ".github/pull_request_template.md",
   ".github/workflows/backfill-garmin.yml",
@@ -103,6 +103,7 @@
   "coach/engine/SCREEN.md",
   "coach/engine/TEAM.md",
   "coach/engine/schemas.json",
+  "coach/engine/session_rank.json",
   "coach/exercises.json",
   "coach/metric_catalog.json",
   "coach/norms.json",
@@ -178,6 +179,7 @@
   "coach/tools/refresh_check.py",
   "coach/tools/ride_dist.py",
   "coach/tools/segments.py",
+  "coach/tools/session_rank.py",
   "coach/tools/setup_answers.py",
   "coach/tools/standing.py",
   "coach/tools/steps.py",
