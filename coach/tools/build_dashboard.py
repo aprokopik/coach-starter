@@ -309,7 +309,7 @@ rows.append({"kind": "feel_rule", **{k: _th.get(k) for k in ("feel_reference_day
              "stressed_low_nights", "primed_good_nights", "primed_night_min_sd", "primed_fresh_mornings", "key_move_max_days",
              "night_pattern_low_sd", "night_pattern_well_low_sd", "night_pattern_yellow_low_nights")},
              "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop"),
-             **{k: v for k, v in _th.items() if k.startswith("readiness_")}})
+             **{k: v for k, v in _th.items() if k.startswith("readiness_") and not k.endswith(("_days", "_nights"))}})
 # Readiness score (alpha readiness_score; RULES 5, the athlete, Nov 21, 2026): the watch side of the score for the newest night,
 # from raw values only (readiness.py); the page adds this morning's survey by the same weights from the feel_rule row
 if alpha.on("readiness_score"):
