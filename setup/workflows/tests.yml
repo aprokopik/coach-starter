@@ -71,6 +71,14 @@ jobs:
       - name: Unit and regression tests (once, under the live data guard)
         if: steps.scope.outputs.data_only != '1' || steps.prev.outputs.green != '1'
         run: python coach/tests/live_guard.py
+      # 6.165.0 (Nov 21, 2026): a pull request rebuilds coach.json and checks it against the size limits before the merge,
+      # not after. On Nov 21 the post merge rebuild of 6.164.0 came out 144 bytes over and failed on its own. Warnings
+      # (past 90%) show as annotations and keep the run green; only over 100% fails (coach/tools/size_budget.py).
+      - name: Fresh dashboard data fits the size limits
+        if: github.event_name == 'pull_request'
+        run: |
+          python coach/tools/build_dashboard.py > /dev/null
+          python coach/tools/size_budget.py
       # Today's athlete files (key sessions, shared race page, briefs, lift rotation). A failure means a data
       # file needs fixing, not the code, so it is reported here and never blocks a merge.
       - name: Live data checks

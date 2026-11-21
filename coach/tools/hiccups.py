@@ -21,6 +21,14 @@ Levels (option A):
                to send, and the run adds one dated line to coach/BACKLOG.md (system work) so a thread picks it up.
                Repeats at most once a week while it holds, or sooner when a new stall arrives.
 
+Since 6.165.0 (the athlete picked "Only when I must act", Nov 21, 2026, and switched off GitHub's own failure emails) this log
+also holds the two failures he must hear about, each once per spell, in the next 7:45 check-in:
+  main red   the Coach tests on main have failed for RED_MAIN_H hours or more with no green run since (the nightly
+             fixer works on it first; a red spell that clears sooner is never told)
+  pulls      PULL_FAILS or more Garmin pulls in a row failed (not at startup): data is not landing, often a Garmin
+             sign in that needs the athlete
+Everything else (a test failing on a work branch, one pull clash that the next pull retries, a size warning) is absorbed.
+
 The coach never contacts GitHub support itself. Runs come from the GitHub tool actions_list (method
 list_workflow_runs, perPage 50) saved as JSON; the tool's answer and the REST answer have the same shape.
 
@@ -57,6 +65,8 @@ TELL_COUNT, ESC_COUNT = 2, 4
 TELL_STALE_H, ESC_STALE_H = 12, 24
 ESC_OPEN_H = 24
 KEEP = 60
+RED_MAIN_H = 2
+PULL_FAILS = 2
 NO_MACHINE = ("startup_failure", "cancelled", "skipped")
 
 
@@ -124,6 +134,47 @@ def is_stuck(runs, now):
     newest_q = max(_t(r["created_at"]) for r in queued)
     ran = [_t(r["created_at"]) for r in runs if got_machine(r)]
     return not ran or max(ran) < newest_q
+
+
+def _finished(runs, pred):
+    return sorted((r for r in runs if pred(r) and r.get("status") == "completed"
+                   and r.get("conclusion") not in ("cancelled", "skipped")), key=lambda r: r["created_at"], reverse=True)
+
+
+def _main_tests(r):
+    return r.get("name") == "Coach tests" and r.get("event") == "push" and r.get("head_branch", "main") == "main"
+
+
+def _pulls(r):
+    return "garmin" in (r.get("name") or "").lower() and "pull" in (r.get("name") or "").lower()
+
+
+def _streak(rows, bad):
+    n = 0
+    for r in rows:
+        if not bad(r):
+            break
+        n += 1
+    return n
+
+
+def main_red(runs):
+    """{since_utc, count} while main's newest finished Coach tests runs failed, else None."""
+    rows = _finished(runs, _main_tests)
+    n = _streak(rows, lambda r: r.get("conclusion") == "failure")
+    return {"since_utc": rows[n - 1]["created_at"][:19] + "Z", "count": n} if n else None
+
+
+def pull_fails(runs):
+    """{since_utc, count} while the newest finished Garmin pulls failed (a startup failure is a GitHub stall, not this)."""
+    rows = _finished(runs, lambda r: _pulls(r) and r.get("conclusion") != "startup_failure")
+    n = _streak(rows, lambda r: r.get("conclusion") == "failure")
+    return {"since_utc": rows[n - 1]["created_at"][:19] + "Z", "count": n} if n else None
+
+
+def old_seen(runs, key):
+    """Clear a spell only when the runs show a finished run of that kind (an empty list proves nothing)."""
+    return bool(_finished(runs, _main_tests if key == "main_red" else _pulls))
 
 
 def cron_slots(root="."):
@@ -197,6 +248,16 @@ def scan(runs, root=".", now=None):
             log["timed"].append(row)
             changes.append(f"timed pull {row['state']} {row['slot_utc']}")
     log["timed"].sort(key=lambda t: t["slot_utc"])
+    for key, val in (("main_red", main_red(runs)), ("pull_fails", pull_fails(runs))):
+        old = log.get(key)
+        if val and not old:
+            log[key] = val
+            changes.append(f"{key} since {val['since_utc']}")
+        elif val and old:
+            old["count"] = val["count"]
+        elif old and not val and old_seen(runs, key):
+            log.pop(key)
+            changes.append(f"{key} cleared")
     log["last_scan_utc"] = _iso(now)
     save(root, log)
     return changes
@@ -244,6 +305,17 @@ def status(root=".", now=None, stale=None):
         reasons.append(f"runs stuck in GitHub's queue for {int(open_h)} hours")
     if stale >= TELL_STALE_H:
         reasons.append(f"a finished activity not on Today after {int(stale)} hours")
+    must, keys = [], []
+    red = log.get("main_red")
+    if red and (now - _t(red["since_utc"])).total_seconds() / 3600 >= RED_MAIN_H and not red.get("told_utc"):
+        keys.append("main_red")
+        must.append(f"Coach tests on main have failed since {red['since_utc'][:16].replace('T', ' ')} UTC "
+                    f"({red['count']} run{'s' if red['count'] != 1 else ''}); a fix is in hand, nothing for you yet")
+    pf = log.get("pull_fails")
+    if pf and pf["count"] >= PULL_FAILS and not pf.get("told_utc"):
+        keys.append("pull_fails")
+        must.append(f"{pf['count']} Garmin pulls in a row failed since {pf['since_utc'][:16].replace('T', ' ')} UTC; "
+                    f"if Garmin Connect asks you to sign in again, do that, otherwise the coach retries")
     told = _t(log.get("told_utc"))
     newest = max([_t(i["last_seen_utc"]) for i in recent], default=None)
     fresh = told is None or (newest and newest > told) or stale >= TELL_STALE_H
@@ -257,14 +329,21 @@ def status(root=".", now=None, stale=None):
         line = f"GitHub: still escalated ({why}); ticket draft {TICKET_LINK}." if fresh else ""
     elif level == 2 and fresh:
         line = f"GitHub hiccups: {why}. Nothing for you to do; the coach skips and retries (log: {LOG_LINK})."
-    return {"level": level, "recent": len(recent), "open_hours": round(open_h, 1), "stale_hours": stale, "line": line}
+    if must:
+        level = max(level, 2)
+        line = " ".join(x for x in ["System: " + "; ".join(must) + ".", line] if x and x != ".")
+    return {"level": level, "recent": len(recent), "open_hours": round(open_h, 1), "stale_hours": stale, "line": line,
+            "must_act": must, "must_keys": keys}
 
 
 def told(root=".", now=None, level=None):
     now = _now(now)
     log = load(root)
     log["told_utc"] = _iso(now)
-    if (level or status(root, now)["level"]) == 3:
+    st = status(root, now)
+    for key in st["must_keys"]:
+        log[key]["told_utc"] = _iso(now)
+    if (level or st["level"]) == 3:
         log["escalated_utc"] = _iso(now)
     save(root, log)
 
