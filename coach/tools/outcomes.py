@@ -65,7 +65,7 @@ def days_on_plan(start, end, data, frozen):
 
 
 def easy_kept(start, end, data, prof):
-    guard = prof.get("easy_hr_guardrail", {})
+    guard = mf._guard(prof)
     done = kept = 0
     broke = []
     for row in data["week"]:

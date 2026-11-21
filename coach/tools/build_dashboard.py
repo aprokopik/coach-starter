@@ -308,7 +308,17 @@ rows.append({"kind": "feel_rule", **{k: _th.get(k) for k in ("feel_reference_day
              "feel_fallback_at_or_below", "feel_strong_day_at_or_above", "feel_meter_min_mornings",
              "stressed_low_nights", "primed_good_nights", "primed_night_min_sd", "primed_fresh_mornings", "key_move_max_days",
              "night_pattern_low_sd", "night_pattern_well_low_sd", "night_pattern_yellow_low_nights")},
-             "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop")})
+             "pain_hurts": _pain.get("hurts"), "pain_stop": _pain.get("stop"),
+             **{k: v for k, v in _th.items() if k.startswith("readiness_")}})
+# Readiness score (alpha readiness_score; RULES 5, the athlete, Nov 21, 2026): the watch side of the score for the newest night,
+# from raw values only (readiness.py); the page adds this morning's survey by the same weights from the feel_rule row
+if alpha.on("readiness_score"):
+    import readiness  # noqa: E402
+    _sum = read_csv("data/summary.csv")
+    _night = next((r["date"] for r in reversed(_sum) if (r.get("sleep_h") or "").strip()), None)
+    if _night:
+        rows.append({"kind": "ready_inputs", "date": _night,
+                     **readiness.watch_inputs(_sum, read_csv("data/activities.csv"), _prof, _th, _night)})
 # Day forecast for the Today day strip (alpha day_weather; scripts/pull_weather.py writes data/weather.json when the
 # profile names a town). One row per day the file has; the page shows a day only when its row is there.
 for _w in (read_json("data/weather.json", {}) or {}).get("days", []):

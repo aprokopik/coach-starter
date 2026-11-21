@@ -1634,3 +1634,16 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-main { font-size: 12px; line-height: 16px; font-weight: var(--ck-w-bold); letter-spacing: .08em; text-transform: uppercase; color: var(--ck-good); }
 .ck .td-less { margin: 0; font-size: var(--ck-t2); line-height: var(--ck-l2); color: var(--ck-fg-2); }
 .ck .td-less b { color: var(--ck-fg); }
+/* Readiness score (alpha readiness_score, 6.164.0): the score in σ, a bell curve with the level bands and the inputs table */
+.ck .td-rs { border-top: 1px solid var(--ck-line); padding: var(--ck-s2) 0; }
+.ck .td-rs-sum { min-height: 44px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.ck .td-rs-sum::after { content: '›'; margin-left: auto; font-size: 20px; color: var(--ck-fg-2); transition: transform .15s; } .ck .td-rs[open] > .td-rs-sum::after { transform: rotate(90deg); }
+.ck .td-rs-v { font-variant-numeric: var(--ck-num); } .ck .td-rs-u { color: var(--ck-fg-2); }
+.ck .td-rs-bell { display: block; width: 100%; max-width: 360px; height: auto; margin: var(--ck-s2) auto; }
+.ck .td-rs-bact { fill: color-mix(in srgb, var(--ck-act) 70%, var(--ck-surface)); } .ck .td-rs-bwatch { fill: color-mix(in srgb, var(--ck-watch) 55%, var(--ck-surface)); }
+.ck .td-rs-bplain { fill: var(--ck-surface-2); stroke: var(--ck-edge); } .ck .td-rs-bgood { fill: color-mix(in srgb, var(--ck-good) 55%, var(--ck-surface)); }
+.ck .td-rs-now { stroke: var(--ck-fg); stroke-width: 2.5; } .ck .td-rs-tk { font-size: 11px; fill: var(--ck-fg-2); }
+.ck .td-rs-t { width: 100%; border-collapse: collapse; font-size: var(--ck-t2); font-variant-numeric: var(--ck-num); }
+.ck .td-rs-t th, .ck .td-rs-t td { padding: 6px 2px; border-bottom: 1px solid var(--ck-line); text-align: right; }
+.ck .td-rs-t th:first-child, .ck .td-rs-t td:first-child { text-align: left; } .ck .td-rs-t th { color: var(--ck-fg-2); font-weight: var(--ck-w-med); }
+.ck .td-rs-sumrow td { font-weight: var(--ck-w-bold); border-bottom: 0; }

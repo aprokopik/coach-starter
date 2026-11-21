@@ -54,6 +54,13 @@ def _band(prof):
     b = num((prof.get("easy_hr_guardrail") or {}).get("band"))
     return b if b is not None else 5
 
+
+def _guard(prof):
+    """The easy day heart rate target per discipline: profile hr_anchor, one home since Nov 21, 2026 (hr_anchor.from_profile
+    guard); profiles without hr_anchor fall back to easy_hr_guardrail."""
+    import hr_anchor  # noqa: E402
+    return dict(hr_anchor.from_profile(prof)["guard"])
+
 def read_csv(path):
     if not os.path.exists(path):
         return []
@@ -494,6 +501,29 @@ def section_readiness_level(th, pain, night_pattern, feel):
     return out
 
 
+def section_readiness_score(today, data, th, night, feel):
+    """RULES 5, Readiness score (the athlete, Nov 21, 2026; alpha readiness_score): one weighted score in standard deviations
+    from the survey and raw watch values only (HRV, resting HR, total sleep, yesterday's heart rate load), each against
+    the person's own history; coach/tools/readiness.py holds the arithmetic, schemas.json the weights and cutoffs."""
+    import readiness  # noqa: E402
+    nd = (night or {}).get("night")
+    watch = readiness.watch_inputs(data["summary"], data["acts"], data["profile"], th, nd) if nd else {}
+    is_last = bool(nd) and nd == iso(today)
+    inputs = dict(watch) if is_last else {}  # an old night is not today's watch read
+    if feel.get("today") and feel.get("today_feel_sd") is not None:
+        inputs["survey"] = feel["today_feel_sd"]
+    sc = readiness.score(inputs, th)
+    pain = (data["schemas"].get("feel") or {}).get("pain") or {}
+    lv, why = readiness.level(sc and sc["score"], th, feel.get("today"), pain)
+    survey = "survey" in inputs
+    watch_in = any(k in inputs for k in ("hrv", "rhr", "sleep", "load"))
+    return {"night": nd, "watch_night_is_today": is_last, "watch": watch, **(sc or {"score": None, "inputs": []}),
+            "level": lv, "size": LEVEL_SIZE.get(lv), "why": why,
+            "based_on": "both" if survey and watch_in else "survey" if survey else "watch" if watch_in else "none",
+            "cutoffs": {k: th[k] for k in ("readiness_primed_above", "readiness_ease_off_below", "readiness_stressed_below")},
+            "provenance": "Calculated from Reported feel and Measured watch values; weights and cutoffs are conventions (RULES 5)"}
+
+
 def to5(v, scale):
     if v is None:
         return None
@@ -716,7 +746,7 @@ def section_yesterday(today, data, prof, th):
         for a in acts:
             s = rpe_by_id.get(str(a["activity_id"]))
             a["reported"] = {"rpe": num(s.get("rpe")), "vs_plan": s.get("vs_plan"), "pain": num(s.get("pain")), "pain_site": s.get("pain_site"), "fuel": s.get("fuel")} if s else None
-            g = prof.get("easy_hr_guardrail", {}).get(a["discipline"])
+            g = _guard(prof).get(a["discipline"])
             a["guardrail"] = g
             a["above_guardrail"] = bool(g and a.get("avg_hr") and a["avg_hr"] > g + _band(prof))
         matched = []
@@ -1040,7 +1070,6 @@ def section_weight(today, data, prof, th):
 
 
 LEAN_DROP_FLAG_LB = 2.0  # CURRENT-STATE "Body composition" row (Oct 24, 2026)
-LEAN_WARN_LB = 1.0  # early warning, halfway to the guard (the athlete chose "Yes, warn at 1 lb", Nov 11, 2026)
 BASELINE_DAYS = 10       # weigh-ins in the days just before a deficit season starts
 
 
@@ -1057,6 +1086,17 @@ def deficit_seasons(plan):
 
 
 HUME_CONFIRM_DAYS = 7  # a Hume screenshot counts as confirmation for a week
+
+
+def _hume_month(rows, today, bmean):
+    """The monthly Hume read for the lean guard (Nov 21, 2026): the mean of the newest screenshot's day and up to two
+    days before it, within `HUME_MONTH_DAYS`, as a percent of the pre-deficit baseline."""
+    rec = sorted((dd, v) for dd, v in rows if today - timedelta(days=HUME_MONTH_DAYS) <= dd)
+    if not rec or not bmean:
+        return {"month_change_pct": None, "month_latest": None}
+    end = rec[-1][0]
+    last = [v for dd, v in rec if end - timedelta(days=2) <= dd]
+    return {"month_change_pct": r((statistics.fmean(last) - bmean) / bmean * 100, 1), "month_latest": iso(end)}
 
 
 def hume_lean_check(today, data, baseline):
@@ -1076,11 +1116,11 @@ def hume_lean_check(today, data, baseline):
     if bmean is None:
         return {"baseline_lb": None, "baseline_n": len(base), "latest": None, "change": None}
     if not recent:
-        return {"baseline_lb": bmean, "baseline_n": len(base), "latest": None, "change": None}
+        return {"baseline_lb": bmean, "baseline_n": len(base), "latest": None, "change": None, **_hume_month(rows, today, bmean)}
     last = sorted(recent)[-3:]
     m = statistics.fmean(v for _, v in last)
     return {"baseline_lb": bmean, "baseline_n": len(base), "latest": {"date": iso(last[-1][0]), "lb": last[-1][1]},
-            "recent_mean_lb": r(m, 1), "recent_n": len(last), "change": r(m - bmean, 1)}
+            "recent_mean_lb": r(m, 1), "recent_n": len(last), "change": r(m - bmean, 1), **_hume_month(rows, today, bmean)}
 
 
 def section_body_comp(today, data):
@@ -1195,7 +1235,7 @@ def section_calibration(today, data, prof, th):
         if not a or num(s.get("rpe")) is None or not (today - timedelta(days=28) <= d(s["date"]) < today):
             continue
         disc = discipline(a.get("type"))
-        g = prof.get("easy_hr_guardrail", {}).get(disc)
+        g = _guard(prof).get(disc)
         if not g:
             continue
         rpe = num(s.get("rpe"))
@@ -1208,6 +1248,25 @@ def section_calibration(today, data, prof, th):
     return {"pairs": pairs, "easy_sessions_rated": n, "easy_under_guardrail": agree,
             "guardrail_retire_candidate": n >= th["profile_fact_min_observations"] and agree == n,
             "note": "retire or move a guardrail when enough easy-rated sessions sit under it (RULES 5a)", "provenance": "Reported RPE vs Measured HR"}
+
+
+EASY_HR_MOVE_BPM = 3  # the calculated easy heart rate is offered at a block review when it differs this much (RULES 5a)
+EASY_HR_REVIEW_DAYS = 7  # offered in the last week of a block
+
+
+def section_easy_hr(today, prof, block):
+    """The easy heart rate in use (profile hr_anchor) against the calculated one (hr_anchor.calculated: 85% of threshold HR
+    from a test, swim = run minus 7, drift check). It moves only at a block review, with the athlete's yes."""
+    import hr_anchor  # noqa: E402
+    cur = hr_anchor.from_profile(prof, today)
+    calc = hr_anchor.calculated(prof, ROOT, today)
+    use = {k: cur[k] for k in ("run", "bike", "swim")}
+    diff = {k: calc[k] - use[k] for k in use if calc.get(k) is not None}
+    review = bool(block and block.get("days_left") is not None and block["days_left"] <= EASY_HR_REVIEW_DAYS)
+    move = {k: v for k, v in diff.items() if abs(v) >= EASY_HR_MOVE_BPM}
+    return {"in_use": use, "calculated": {k: calc.get(k) for k in use}, "basis": calc.get("basis"), "drift": calc.get("drift"),
+            "differs": move, "offer_at_review": review and bool(move),
+            "provenance": "profile.json hr_anchor vs coach/tools/hr_anchor.py calculated (RULES 5a)"}
 
 
 def section_predictions(today, data):
@@ -1403,29 +1462,68 @@ def registration_flags(f):
     return out
 
 
-def lean_flags(bc):
-    """Lean-mass guard flags: the 2 lb guard, or the 1 lb early warning before it.
+LIFT_DROP_PCT = 5.0       # lean guard, primary: a lift's estimated 1RM this far under its pre-deficit best (the athlete, Nov 21, 2026)
+LIFT_DROP_SESSIONS = 2    # ... on this many sessions in a row of that lift
+HUME_DROP_PCT = 2.0       # lean guard, secondary: Hume's own Lean Mass this far under its pre-deficit baseline
+HUME_MONTH_DAYS = 35      # a monthly Hume screenshot counts for this long
 
-    Calculated lean (weight x (1 - body fat %)) flags a possible drop; the action waits for Hume's own Lean Mass to
-    agree (the athlete, Nov 12, 2026). No Hume reading in the last week: ask for one screenshot. Hume within 1 lb of its own
-    baseline: say the dip is not confirmed and change nothing."""
+
+def e1rm(load, reps):
+    """Estimated one-rep max, Epley: load x (1 + reps / 30). Only for loaded sets of 1 to 15 reps."""
+    return load * (1 + reps / 30) if load and load > 0 and reps and 1 <= reps <= 15 else None
+
+
+def strength_guard(today, data):
+    """Lean mass guard, primary signal (CURRENT-STATE Body composition; the athlete, Nov 21, 2026, rules audit, library NU-28,
+    TR-36): in a deficit, strength holding is the sign muscle is holding; a home BIA scale's lean number moves with water
+    and glycogen. For each loaded lift in coach/strength_log.csv, each session's best estimated 1RM against the best before
+    the deficit season started (or, with no lift logged before it, the best of its first two sessions in it). Flags a lift
+    whose last `LIFT_DROP_SESSIONS` sessions are each `LIFT_DROP_PCT` or more under that baseline."""
+    seasons = [x for x in deficit_seasons(data["plan"]) if x[0] - timedelta(days=60) <= today <= x[1] + timedelta(days=28)]
+    if not seasons:
+        return {"in_season": False, "lifts": []}
+    s0 = seasons[0][0]
+    by = {}
+    for x in data.get("strength_log") or []:
+        ex, dd = x.get("exercise_id"), x.get("date")
+        v = e1rm(num(x.get("load_lb")), num(x.get("reps")))
+        if not ex or not dd or v is None or d(dd) > today:
+            continue
+        by.setdefault(ex, {})
+        by[ex][dd] = max(by[ex].get(dd, 0), v)
+    lifts = []
+    for ex, sess in sorted(by.items()):
+        days = sorted(sess)
+        pre = [sess[x] for x in days if d(x) < s0]
+        base_from = "before the deficit" if pre else "first two sessions in the deficit"
+        base = max(pre) if pre else (max(sess[x] for x in days[:2]) if len(days) >= 3 else None)
+        if base is None:
+            continue
+        after = [x for x in days if d(x) >= s0] if pre else days[2:]
+        last_days = after[-LIFT_DROP_SESSIONS:]
+        drops = [r((sess[x] - base) / base * 100, 1) for x in last_days]
+        lifts.append({"exercise_id": ex, "baseline_e1rm_lb": r(base, 1), "baseline_from": base_from, "last_sessions": last_days,
+                      "last_change_pct": drops, "flag": len(drops) >= LIFT_DROP_SESSIONS and all(x <= -LIFT_DROP_PCT for x in drops)})
+    return {"in_season": True, "season_start": iso(s0), "lifts": lifts,
+            "rule": f"estimated 1RM (Epley) {LIFT_DROP_PCT:g}% or more under the pre-deficit best on {LIFT_DROP_SESSIONS} sessions in a row",
+            "provenance": "Reported lift log; estimated 1RM Calculated (Epley); threshold Inferred"}
+
+
+def lean_flags(bc, sg=None):
+    """Lean mass guard (CURRENT-STATE Body composition; the athlete, Nov 21, 2026, rules audit, replacing the 1 and 2 lb BIA
+    lean rule of Oct 24 and Nov 11): strength leads, Hume's own Lean Mass confirms monthly, and the daily calculated lean
+    never flags (a deficit drains water and glycogen, which a BIA scale reads as lean)."""
     flags = []
-    lc = (bc.get("deficit_baseline") or {}).get("lean_change_now")
-    if lc is None or lc > -LEAN_WARN_LB:
-        return flags
-    level = "guard" if lc <= -LEAN_DROP_FLAG_LB else "warning"
-    hc = (bc.get("hume_lean") or {}).get("change")
     rule = "body composition (CURRENT-STATE)"
-    if hc is None:
-        flags.append({"rule": rule, "text": f"Possible lean mass drop: calculated 14-day mean is {lc:+.1f} lb vs the pre-deficit baseline ({level} level). Not confirmed yet: ask for one Hume app Lean Mass screenshot (day view) before changing anything."})
-    elif hc > -LEAN_WARN_LB:
-        flags.append({"rule": rule, "text": f"Calculated lean is {lc:+.1f} lb vs baseline, but Hume's own Lean Mass is {hc:+.1f} lb vs its baseline: not confirmed, no change to food or training."})
-    elif level == "guard" and hc <= -LEAN_DROP_FLAG_LB:
-        flags.append({"rule": rule, "text": f"Lean mass guard, confirmed by Hume ({hc:+.1f} lb; calculated {lc:+.1f} lb): check protein (~150 g) and that both lift sessions happen; if it holds another week, a week at maintenance."})
-    else:
-        flags.append({"rule": rule, "text": f"Early warning, confirmed by Hume ({hc:+.1f} lb; calculated {lc:+.1f} lb): protect muscle now, protein ~150 g and both lift sessions this week."})
+    down = [x for x in (sg or {}).get("lifts", []) if x["flag"]]
+    hl = bc.get("hume_lean") or {}
+    hpct = hl.get("month_change_pct")
+    if down:
+        names = ", ".join(f"{x['exercise_id'].replace('_', ' ')} ({x['last_change_pct'][-1]:+.0f}%)" for x in down)
+        flags.append({"rule": rule, "text": f"Lean mass guard: estimated 1RM down {LIFT_DROP_PCT:g}% or more on two sessions in a row for {names}. Check protein (~150 g), both lifts this week and sleep; if it holds another week, a week at maintenance."})
+    if hpct is not None and hpct <= -HUME_DROP_PCT:
+        flags.append({"rule": rule, "text": f"Lean mass guard: Hume's own Lean Mass is {hpct:+.1f}% vs its pre-deficit baseline on the monthly screen ({hl.get('month_latest')}). " + ("Strength is down too: a week at maintenance." if down else "Strength is holding, so likely water: protect protein and both lifts, and check again at the next monthly screen.")})
     return flags
-
 
 def build_flags(f, th):
     flags = []
@@ -1441,8 +1539,12 @@ def build_flags(f, th):
     NP = {"yellow": "Night pattern ({why}): Yellow, cut 20 to 40 percent (RULES 5 night pattern, 6).",
           "easier_size": "Night pattern ({why}): offer the easier size as the smart pick; the call can stay Green.",
           "room_to_push": "Night pattern ({why}): room to push on a key session if the athlete feels up for it; the strong-day bound is on offer if nothing else objects."}
-    if np_.get("suggest") in NP:
+    if np_.get("suggest") in NP and not f.get("readiness_score"):  # the score replaces the night pattern (RULES 5)
         flags.append({"rule": "5 night pattern", "text": NP[np_["suggest"]].format(why=np_.get("why"))})
+    eh = f.get("easy_hr") or {}
+    if eh.get("offer_at_review"):
+        moves = "; ".join(f"{k} {eh['in_use'][k]} to {eh['calculated'][k]}" for k in eh["differs"])
+        flags.append({"rule": "5a easy HR", "text": f"Block review: the calculated easy heart rate differs ({moves} bpm). Offer the change as a card; the HR tiles restart their history if it moves."})
     if fe.get("stress_at_or_above_4"):
         flags.append({"rule": "5a", "text": "Stress 4 or above: trim the optional layer and protect sleep."})
     if fe.get("energy_and_legs_at_or_above_4"):
@@ -1497,7 +1599,7 @@ def build_flags(f, th):
     flags += heartbeat_flags(f)
     flags += goal_flags(f)
     flags += steps_flags(f)
-    flags += lean_flags(bc)
+    flags += lean_flags(bc, f["weight"].get("strength_guard"))
     flags += sleep_week_flags(f)
     if wt.get("fuel_mode_today", {}).get("mode") in ("deficit", "recovery_deficit"):
         flags.append({"rule": "7 fuel", "text": f"Fuel mode today: {wt['fuel_mode_today']['mode']} ({wt['fuel_mode_today']['reason']}); tomorrow: {wt['fuel_mode_tomorrow']['mode']}."})
@@ -1597,6 +1699,13 @@ def build(today):
     f["sleep_week"] = section_sleep_week(today, data, prof)
     f["night_pattern"] = section_night_pattern(today, data, th, f["night"], f["feel"])
     f["readiness_level"] = section_readiness_level(th, (data["schemas"].get("feel") or {}).get("pain") or {}, f["night_pattern"], f["feel"])
+    import alpha  # noqa: E402  (feature stages, coach/ops/alpha.json)
+    if alpha.on("readiness_score"):
+        rs = section_readiness_score(today, data, th, f["night"], f["feel"])
+        f["readiness_score"] = rs
+        if rs["level"]:
+            f["readiness_level"] = {"level": rs["level"], "size": rs["size"], "why": rs["why"], "based_on": rs["based_on"],
+                                    "score": rs["score"], "from": "readiness_score", "provenance": rs["provenance"]}
     f["yesterday"] = section_yesterday(today, data, prof, th)
     f["load"] = section_load(today, data, th)
     f["week"] = section_week(today, data, prof)
@@ -1604,10 +1713,12 @@ def build(today):
     f["block_brief"] = section_block_brief(today)
     f["weight"] = section_weight(today, data, prof, th)
     f["weight"]["body_comp"] = section_body_comp(today, data)
+    f["weight"]["strength_guard"] = strength_guard(today, data)
     f["morning_food"] = section_morning_food(today, data, prof)
     f["week_ahead"] = section_week_ahead(today, data, prof)
     f["races"] = section_races(today, data)
     f["calibration"] = section_calibration(today, data, prof, th)
+    f["easy_hr"] = section_easy_hr(today, prof, f["block"])
     f["predictions"] = section_predictions(today, data)
     f["response"] = section_response(today, data, th)
     import outcomes  # noqa: E402  (imports this module; loaded late)

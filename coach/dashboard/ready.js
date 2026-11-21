@@ -102,6 +102,54 @@
     { const n = conf === 'high' ? 3 : conf === 'moderate' ? 2 : conf ? 1 : 0, bars = el('span', 'td-bars'); bars.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 3; i++) bars.append(el('i', i < n ? 'on' : null)); $('t-chip-c').prepend(bars); } // signal bars: high 3, moderate 2, low 1, none before the call
     chip('t-chip-s', 'Survey', sv ? 'in' : 'none', sv ? 'Survey in' : 'Survey not in yet'); chip('t-chip-w', 'Watch', wt ? 'in' : 'none', wt ? 'Watch night in' : 'Watch night not in yet');
   }
+  // Readiness score (alpha readiness_score; RULES 5, the athlete, Nov 21, 2026: raw watch values only, one weighted score, "clear
+  // for a user to identify what the weights of each area are", standard deviations on a bell curve). The watch side comes
+  // from the coach's ready_inputs row (readiness.py), the survey side from this morning's feel (feelCtx z); weights and
+  // cutoffs from the feel_rule row. Same arithmetic as readiness.py score and level.
+  const RS_IN = [['survey', 'Survey'], ['hrv', 'HRV, 7 day'], ['load', "Yesterday's load"], ['rhr', 'Resting HR, 7 day'], ['sleep', 'Total sleep, 3 nights']];
+  function scoreOf(r, f, z) {
+    const w = Object.fromEntries(RS_IN.map(([k]) => [k, N(r['readiness_weight_' + k])])), clip = N(r.readiness_clip_sd) || 3;
+    const wr = (kind('ready_inputs') || []).find((x) => x.date === TODAY), fz = f ? z(f) : null, v = {};
+    if (fz) v.survey = fz.v;
+    if (wr) for (const [k] of RS_IN) if (k !== 'survey' && N(wr[k]) !== null) v[k] = N(wr[k]);
+    const ks = Object.keys(v).filter((k) => w[k]), tw = ks.reduce((a, k) => a + w[k], 0);
+    if (!tw) return null;
+    const c = (x) => Math.max(-clip, Math.min(clip, x)), S = ks.reduce((a, k) => a + w[k] * c(v[k]), 0) / tw;
+    return { S: Math.round(S * 100) / 100, rows: RS_IN.map(([k, name]) => ({ k, name, w: w[k], z: k in v ? c(v[k]) : null, add: k in v ? w[k] / tw * c(v[k]) : null })), tw };
+  }
+  function scoreLevel(r, sc, f) {
+    const p = f ? N(f.pain) || 0 : 0, fb = N(r.feel_fallback_at_or_below), lowEL = !!f && ['energy', 'legs'].some((k) => N(f[k]) !== null && N(f[k]) <= fb);
+    if (f && p >= N(r.pain_stop)) return 'stressed';
+    if (!sc) return null;
+    let lv = sc.S > N(r.readiness_primed_above) ? 'primed' : sc.S < N(r.readiness_stressed_below) ? 'stressed' : sc.S < N(r.readiness_ease_off_below) ? 'ease_off' : 'ready';
+    if (f && (p >= N(r.pain_hurts) || lowEL) && (lv === 'primed' || lv === 'ready')) lv = 'ease_off';
+    else if (f && p > 0 && lv === 'primed') lv = 'ready';
+    return lv;
+  }
+  const sg = (x, d = 2) => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(d);
+  function renderScore(r, sc, lv) {
+    let box = $('t-rs'); if (!box) { box = el('details', 'td-rs'); box.id = 't-rs'; const mb = $('t-nm-btn'); mb.parentNode.insertBefore(box, mb); }
+    box.hidden = !sc; if (!sc) return;
+    const open = box.open; box.replaceChildren();
+    const sum = el('summary', 'td-rs-sum'); sum.append(el('span', 'td-nm-k', 'Readiness score'), ' ', el('b', 'td-rs-v', sg(sc.S) + 'σ'), el('span', 'td-rs-u', ' vs your normal'));
+    const v = sum.querySelector('.td-rs-v'); v.setAttribute('data-derived', 'readiness score'); v.setAttribute('data-rule', 'ready.js scoreOf: weighted mean of survey, HRV, load, resting HR and sleep in σ (feel_rule readiness_weight_*), RULES 5 Readiness score');
+    box.append(sum);
+    // the bell curve: bands at the level cutoffs, a line at today's score, the axis at ±3σ
+    const W = 300, H = 74, X = (x) => (Math.max(-3, Math.min(3, x)) + 3) / 6 * W, Y = (x) => H - 16 - 50 * Math.exp(-x * x / 2);
+    const cut = [-3, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), 3], cls = ['act', 'watch', 'plain', 'good'];
+    const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'td-rs-bell'); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `Bell curve: Stressed under ${sg(cut[1], 1)}σ, Ease off to ${sg(cut[2], 1)}σ, Ready to ${sg(cut[3], 1)}σ, Primed above. Today ${sg(sc.S)}σ, ${LEVEL[lv] ? LEVEL[lv][0] : ''}`);
+    for (let i = 0; i < 4; i++) { let d = `M${X(cut[i])},${H - 16}`; for (let x = cut[i]; x <= cut[i + 1] + 1e-9; x += 0.05) d += `L${X(x).toFixed(1)},${Y(x).toFixed(1)}`; d += `L${X(cut[i + 1])},${H - 16}Z`;
+      const pa = document.createElementNS(ns, 'path'); pa.setAttribute('d', d); pa.setAttribute('class', 'td-rs-b' + cls[i]); svg.append(pa); }
+    const ln = document.createElementNS(ns, 'line'), sx = X(sc.S); Object.entries({ x1: sx, x2: sx, y1: 2, y2: H - 16, class: 'td-rs-now' }).forEach(([a, b]) => ln.setAttribute(a, b)); svg.append(ln);
+    [['Stressed', -2.2, 'middle'], ['Ease off', cut[2] + 0.05, 'end'], ['Ready', 0.15, 'middle'], ['Primed', 1.8, 'middle']].forEach(([t, x, a]) => { const tx = document.createElementNS(ns, 'text'); tx.textContent = t; tx.setAttribute('x', X(x)); tx.setAttribute('y', H - 3); tx.setAttribute('text-anchor', a); tx.setAttribute('class', 'td-rs-tk'); svg.append(tx); });
+    box.append(svg);
+    const tb = el('table', 'td-rs-t'), hd = el('tr'); ['Input', 'Weight', 'Today', 'Adds'].forEach((h) => hd.append(el('th', null, h))); tb.append(hd);
+    sc.rows.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.name), el('td', null, Math.round(x.w * 100) + '%'), el('td', null, x.z === null ? 'not in' : sg(x.z) + 'σ'), el('td', null, x.add === null ? '' : sg(x.add))); tb.append(tr); });
+    const ft = el('tr', 'td-rs-sumrow'); ft.append(el('td', null, 'Score'), el('td', null, Math.round(sc.tw * 100) + '% in'), el('td'), el('td', null, sg(sc.S) + 'σ')); tb.append(ft);
+    box.append(tb, el('p', 'ck-note', 'Each input in σ from your own history. Adds = its weight times today, shared out over the inputs that are in. Pain, or energy or legs at 2, still cap the level.'));
+    box.open = open;
+  }
   function oneReady() {
     const hero = $('t-hero'); delete hero.dataset.lv; oneTop();
     const was = !!state.off; state.off = false;
@@ -114,7 +162,9 @@
     const watch = !!last && last.date === TODAY && lastV !== null, k = N(r.primed_good_nights), tail = nw.slice(-k).map((x) => N(x.value));
     const goodN = watch && tail.length >= k && tail.every((v) => v !== null && v >= N(r.primed_night_min_sd));
     let lowRun = 0; for (let i = nw.length - 1; i >= 0; i--) { const v = N(nw[i].value); if (v === null || v > N(r.night_pattern_low_sd)) break; lowRun++; }
+    const rsOn = alpha('readiness_score'), sc = rsOn ? scoreOf(r, sv ? f : null, z) : null;
     const table = () => {
+      if (rsOn) return scoreLevel(r, sc, sv ? f : null);
       if (!sv && !watch) return null;
       const p = sv ? N(f.pain) || 0 : 0, fb = N(r.feel_fallback_at_or_below), st = N(r.feel_strong_day_at_or_above), e = sv ? N(f.energy) : null, l = sv ? N(f.legs) : null;
       const fz = sv ? z(f) : null, feelLow = !!fz && fz.v <= -LOW_SD;
@@ -134,6 +184,7 @@
       const late = sv && !kind('feel_day').some((d) => d.date === TODAY) && t.generated_at_utc && f.saved_at > t.generated_at_utc, tb = late ? table() : null;
       lv = !tb ? coach : RANK.indexOf(coach) >= RANK.indexOf('ready') ? tb : RANK[Math.min(RANK.indexOf(tb), RANK.indexOf(coach))];
     }
+    if (rsOn) renderScore(r, sc, lv); else if ($('t-rs')) $('t-rs').hidden = true;
     if (!lv) { if (was) plan(); return; }
     const [w, s, mean] = LEVEL[lv], g = $('t-ready-g'), rd = $('t-ready'), rm = $('t-ready-m');
     hero.dataset.lv = lv; g.dataset.s = s; g.replaceChildren(icon(s, 'ck-g')); $('t-ready-sr').textContent = ST_NAME[s] + ': ';
