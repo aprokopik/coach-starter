@@ -149,3 +149,15 @@ class TestLiftRank(unittest.TestCase):
         self.assertEqual(key_check.brief_problems(rows, 2.0), [])
         old = [{"kind": "brief", "block_key": "a", "start": "2026-11-09", "end": "2026-12-20"}, {"kind": "brief_kpi", "block_key": "a", "key": "lifts", "count_target": 12}]
         self.assertEqual(key_check.brief_problems(old, 2.0), [])
+
+class TestTitleNotes(unittest.TestCase):
+    """Titles carry no scheduling notes from Nov 23, 2026 (the athlete, Nov 21: "this feels out of place")."""
+    def test_flags_notes(self):
+        for title in ("Long Life Lifts (any day that fits)", "Upper body lift (any time that day)", "Lift after the ride", "Lift, before or after the run"):
+            rows = WEEK + [dict(day("2026-11-24", typ="strength"), title=title)]
+            self.assertTrue(any("scheduling note" in x for x in key_check.problems([BLOCK], rows)), title)
+
+    def test_plain_titles_and_older_weeks_pass(self):
+        rows = WEEK + [dict(day("2026-11-24", typ="strength"), title="Long Life Lifts, upper body and core"),
+                       dict(day("2026-11-21", typ="strength"), title="Lift (any day that fits)")]
+        self.assertFalse([x for x in key_check.problems([BLOCK], rows) if "scheduling note" in x])

@@ -18,6 +18,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 RULE_FROM = date(2026, 11, 2)  # weeks before this keep what was tagged at the time
 # A lift gets its own row (6.36.0): on Nov 13, 2026 a lift lived only in a bike row's notes, so the plan never showed it
 LIFT_RULE_FROM = date(2026, 11, 16)
+# a title is what the person does, never a scheduling note (the athlete, Nov 21, 2026: "if it doesnt matter dont say", "this feels out of place")
+NOTE_RULE_FROM = date(2026, 11, 23)
+TITLE_NOTE = re.compile(r"any (?:day|time) that (?:fits|day)|\bafter the (?:ride|run|swim|lift)\b|\bbefore or after\b", re.I)
 LIFT_WORD = re.compile(r"\blifts?\b", re.I)
 # Every week holds its lift rows (the athlete, Nov 16, 2026: "you're not scheduling me for 2 lifts a week, but yet you're saying that
 # is critical"). The week of Nov 9 had none and Nov 16 one plus an either-or, because CURRENT-STATE kept lifts out of the rows.
@@ -101,6 +104,8 @@ def problems(plan_rows, week_rows, target=0):
         if (d(r["date"]) >= LIFT_RULE_FROM and r.get("type") != "strength" and not LIFT_WORD.search(r.get("title") or "")
                 and LIFT_WORD.search(r.get("detail") or "")):
             out.append(f"{where}: a lift is named only in the detail; give it its own strength row or name it in the title")
+        if d(r["date"]) >= NOTE_RULE_FROM and TITLE_NOTE.search(r.get("title") or ""):
+            out.append(f"{where}: drop the scheduling note from the title (order only when it matters goes in the detail)")
     exc = {r["week_start"]: r.get("lifts_exception") for r in week_rows if r.get("kind") == "week" and r.get("week_start")}
     fuel = [r for r in plan_rows if r.get("kind") == "fuel"]
     for r in fuel:  # a deficit period ranks lifts with the key sessions

@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.162.3 (2026-11-21)
+- Engine: session titles carry no scheduling notes (the kit maker, Nov 21, 2026, on Saturday's lift reading "(any time that day)": "this feels out of place"). Root cause: the Nov 16 lift rows rule asked for "any day that fits" in every lift title so the person knew it could move; the Today card and the "Today changed?" move already say that. RUNBOOK and CURRENT-STATE drop it, and `key_check.py` flags "any day that fits", "any time that day", "after the ride" and "before or after" in titles from Nov 23 (tests in test_key_check.py). Today's title is "Long Life Lifts, upper body and core"; the pencilled Nov 29 lift drops "after the ride or on its own".
+
 ## 6.162.2 (2026-11-21)
 - Engine: a session title names the order of a day's sessions only when the order matters (the kit maker, Nov 21, 2026, on Saturday's lift reading "after the ride" while it led the day: "it says after the ride for today, does that still make sense?", then "if it doesnt matter dont say"). Root cause: the coach wrote the doing order into lift titles by habit, though the same day order rule (CURRENT-STATE, TR-28) only fixes it when a key ride or run shares the day. RUNBOOK "Which session leads" now says so. Today's title fixed in coach/week.json.
 
