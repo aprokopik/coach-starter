@@ -22,7 +22,7 @@
   // as stored (stress 1 Calm to 5 Maxed, pain 0 None to 6 Stop).
   const scale = (k) => { const b = document.querySelector('#fm-form fieldset[data-key="' + k + '"]'); if (!b || !b.dataset.opts) return []; const v = b.dataset.opts.split('|'), l = (b.dataset.labels || b.dataset.opts).split('|'); return v.map((x, i) => [x, l[i]]); };
   const word = (k, n) => { const o = scale(k).find(([v]) => v === String(n)); return o ? o[1] : n; };
-  const SITES = ['inside ankle', 'behind knee', 'calf', 'hamstring', 'knee', 'hip', 'back', 'shoulder', 'other'];
+  const SITES = ['inside ankle', 'achilles', 'sole of foot', 'behind knee', 'calf', 'hamstring', 'knee', 'hip', 'back', 'shoulder', 'other'];
   const FEEL = [
     { k: 'sleep_q', q: 'Sleep', sub: 'How rested?' },
     { k: 'energy', q: 'Energy', sub: 'How much is in the tank?' },

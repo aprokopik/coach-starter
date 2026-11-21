@@ -523,6 +523,26 @@ Empty in a new coach. The monthly research scan fills it: each rule this coach a
 - Finding: Pooled incidence 4.9 respiratory infections per 1,000 athlete-days (about 1.8 per athlete per year); about 20% cost more than a day of training; mean symptom duration 7 days. The consensus does NOT use the "above/below the neck" rule; it grades severity by symptoms (asymptomatic, mild, moderate, severe). Red flags: fever, chills, chest pain or tightness, breathing difficulty, dizziness, palpitations at rest; dark brown or red urine after exercise. Return: symptom checklist, then a test session at 60 to 70% of normal intensity for 10 to 20 min, then build frequency, intensity and duration if no abnormal response. Severe illness: rest until systemic symptoms resolve. Companion part 2 covers non-infective illness (Br J Sports Med 56:1089-1103).
 - Certainty low · Fit high · New
 
+### IR-44 Bellenger, Siegel, Stanley and McGibbon 2023: AIS heart rate variability best practice guide
+- Australian Institute of Sport, Nov 2023. https://www.ais.gov.au/__data/assets/pdf_file/0013/1130260/HRV-BPG_FINAL.pdf · best practice guide (expert, evidence-informed) · SEC
+- Finding: Read HRV as the natural log of RMSSD, as a 7 day rolling average, against the athlete's own rolling 60 day normal (mean plus or minus the smallest worthwhile change, half the coefficient of variation). At least 3 readings in 7 days; nightly wearable readings are acceptable. Single days are noisy; interpret with how the athlete feels and the training done.
+- Certainty low (guideline) · Fit high · Applied
+
+### IR-45 Silbernagel et al. 2007: continued activity with a pain monitoring model in Achilles tendinopathy (RCT)
+- Am J Sports Med 35(6):897-906. https://doi.org/10.1177/0363546506298279 · randomized controlled trial (n=38) · SEC
+- Finding: Patients who kept running and jumping, guided by a pain monitoring model, recovered as well at 12 months as those who rested from them. The model: pain up to about 5 of 10 during activity is acceptable, pain after activity settles by the next morning, and morning pain and stiffness do not rise week to week. Supported by the JOSPT Achilles guideline (IR-39) and the later review of the model (Silbernagel and Crossley 2015, J Orthop Sports Phys Ther 45(11):876-886).
+- Certainty moderate · Fit high · Applied
+
+### IR-46 Morton, Fitz-Clarke and Banister 1990: modeling human performance in running (Banister TRIMP)
+- J Appl Physiol 69(3):1171-1177. https://doi.org/10.1152/jappl.1990.69.3.1171 · modelling study · SEC
+- Finding: Training impulse (TRIMP) = minutes x fractional heart rate reserve x 0.64 x e^(1.92 x fractional reserve) for men (1.67 and 0.86 for women) captures a session's load from time and average heart rate alone; fitness and fatigue follow from the daily series.
+- Certainty low (model) · Fit moderate · Applied
+
+### IR-47 Olstad et al. 2019: maximal heart rate in swimming vs running
+- Sports 7(11):235. https://doi.org/10.3390/sports7110235 · cross-sectional study · SEC
+- Finding: Maximal heart rate in front crawl swimming sat about 7 bpm below running maximum in the same people.
+- Certainty low · Fit moderate · Applied
+
 ## NU: Nutrition, fueling, hydration and body composition
 
 ### NU-01 Thomas et al. 2016: ACSM/AND/DC joint position on nutrition and athletic performance

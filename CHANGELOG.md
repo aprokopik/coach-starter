@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.163.0 (2026-11-21)
+- Engine, Feature: none (engine rules and evidence, not switchable): rules audit, part 1 of 2 (the kit maker, Nov 21, 2026, "do an audit of all the rules and ensure they are backed by the best research, and if not, propose how we can inject a research-based rule instead"; the athlete approved each proposal on its own card). Observed: of 50 graded rules, 32 were backed, 11 partly, 6 convention and 1 contradicted (the old sleep "normal"), and 15 rules had no row in the rule-to-evidence map, so the monthly scan never checked them; the deficit row still described the plan retired Nov 11. Root cause: the map grew only when a research thread added a rule; rules made in product threads never got a row, and nothing checked. Changes:
+
 ## 6.162.3 (2026-11-21)
 - Engine: session titles carry no scheduling notes (the kit maker, Nov 21, 2026, on Saturday's lift reading "(any time that day)": "this feels out of place"). Root cause: the Nov 16 lift rows rule asked for "any day that fits" in every lift title so the person knew it could move; the Today card and the "Today changed?" move already say that. RUNBOOK and CURRENT-STATE drop it, and `key_check.py` flags "any day that fits", "any time that day", "after the ride" and "before or after" in titles from Nov 23 (tests in test_key_check.py). Today's title is "Long Life Lifts, upper body and core"; the pencilled Nov 29 lift drops "after the ride or on its own".
 

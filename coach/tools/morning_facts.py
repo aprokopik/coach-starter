@@ -355,6 +355,52 @@ def night_zone(v):
     return "normal" if a < 1 else ("1 SD " if a < 2 else "2 SD ") + ("above" if v > 0 else "below")
 
 
+def section_sleep_week(today, data, prof):
+    """The weekly sleep goal (RULES 5 sleep; the athlete, Nov 21, 2026): the 7 night watch average against the profile
+    `sleep_goal` hours, and how many nights woke within `wake_within_h` of the week's usual (median) wake time.
+    A weekly goal, never a daily gate. Wake times come from the Garmin daily file (local sleep end)."""
+    goal = prof.get("sleep_goal") or {}
+    want, within = goal.get("weekly_avg_hours"), goal.get("wake_within_h")
+    if not want:
+        return {"goal": None}
+    by = {row["date"]: row for row in data["summary"]}
+
+    def week(end):
+        days = [end - timedelta(days=k) for k in range(7)]
+        hrs = [num(by.get(iso(x), {}).get("sleep_h")) for x in days]
+        hrs = [h for h in hrs if h is not None]
+        wakes = []
+        for x in days:
+            dto = ((read_json(f"data/daily/{iso(x)}.json", {}).get("responses") or {}).get("sleep") or {}).get("dailySleepDTO") or {}
+            v = dto.get("sleepEndTimestampLocal")
+            if isinstance(v, (int, float)):
+                t = datetime.fromtimestamp(v / 1000, tz=timezone.utc)
+                wakes.append(t.hour * 60 + t.minute)
+        avg = round(sum(hrs) / len(hrs), 2) if len(hrs) >= 4 else None
+        usual = sorted(wakes)[len(wakes) // 2] if wakes else None
+        near = sum(1 for w in wakes if abs(w - usual) <= within * 60) if wakes and within else None
+        return {"nights": len(hrs), "avg_hours": avg, "met": None if avg is None else avg >= want,
+                "wake_nights": len(wakes), "usual_wake": None if usual is None else f"{usual // 60}:{usual % 60:02d}",
+                "wake_within": near, "wake_met": None if near is None or len(wakes) < 4 else near >= len(wakes) - 1}
+    this, last = week(today), week(today - timedelta(days=7))
+    return {"goal": want, "wake_within_h": within, "this_week": this, "last_week": last,
+            "below_two_weeks": this["met"] is False and last["met"] is False,
+            "provenance": "Measured (watch; reads about 30 to 45 min high, IR-12)"}
+
+
+def sleep_week_flags(f):
+    """Sunday review line when the weekly goal is missed two weeks running (RULES 5 sleep). Never a daily gate."""
+    sw = f.get("sleep_week") or {}
+    if not sw.get("goal") or f["meta"]["weekday"] != "Sunday":
+        return []
+    out = []
+    if sw.get("below_two_weeks"):
+        out.append({"rule": "5 sleep goal", "text": f"Sleep under the {sw['goal']} h weekly goal two weeks running ({sw['last_week']['avg_hours']} h, then {sw['this_week']['avg_hours']} h on the watch): protect sleep opportunity this week; name the time trade (goal conflicts, RULES 1a)."})
+    if sw.get("this_week", {}).get("wake_met") is False:
+        out.append({"rule": "5 sleep goal", "text": f"Wake time strayed more than {sw['wake_within_h']:g} h from the usual {sw['this_week']['usual_wake']} on {sw['this_week']['wake_nights'] - sw['this_week']['wake_within']} nights this week: a steadier wake time is the second sleep goal."})
+    return out
+
+
 def section_night_pattern(today, data, th, night, feel):
     """RULES.md 5, night pattern (the athlete, Nov 15, 2026, "Add it as proposed"): the last 3 nights on the sigma scale and what
     they suggest for today. A suggestion for the coach's call, never the call; the feel, pain and injury rules outrank it."""
@@ -507,6 +553,31 @@ def section_feel(today, data, th):
             if s.strip():
                 sites.add(s.strip())
         cur -= timedelta(days=1)
+    # tendon pain (RULES 5a, pain monitoring model, library IR-45; the athlete, Nov 21, 2026): when every site in the streak is
+    # a tendon site, the counts give way to two checks: pain back to the usual level the next morning (this morning's
+    # pain no higher than the morning before) and the weekly trend not rising (last 7 mornings vs the 7 before)
+    sch_feel = (data.get("schemas") or {}).get("feel") or {}
+    tendon = set(sch_feel.get("tendon_sites") or [])
+    tm = None
+    if streak and sites and tendon and sites <= tendon:
+        def pain_on(x):
+            row = by.get(iso(x))
+            return None if not row else row.get("pain")
+        now, before = pain_on(streak_end), pain_on(streak_end - timedelta(days=1))
+        wk = [pain_on(streak_end - timedelta(days=k)) for k in range(7)]
+        prev = [pain_on(streak_end - timedelta(days=k)) for k in range(7, 14)]
+        wk, prev = [v for v in wk if v is not None], [v for v in prev if v is not None]
+        wk_mean = sum(wk) / len(wk) if wk else None
+        prev_mean = sum(prev) / len(prev) if prev else None
+        settled = before is None or (now is not None and now <= before)
+        # the weekly check starts once the pain has lasted a week: before that the prior week is pain free, so any new
+        # episode would read as rising and the next-morning check is the one that applies
+        rising = streak >= 7 and wk_mean is not None and prev_mean is not None and wk_mean > prev_mean
+        improving = wk_mean is not None and prev_mean is not None and wk_mean < prev_mean
+        stop = (now or 0) >= (sch_feel.get("pain") or {}).get("stop", 6)
+        tm = {"sites": sorted(sites), "settled_next_morning": settled, "week_rising": rising,
+              "week_mean": None if wk_mean is None else round(wk_mean, 1), "prior_week_mean": None if prev_mean is None else round(prev_mean, 1),
+              "improving": improving, "within_model": settled and not rising and not stop}
     # mornings in a row, ending today, with energy and legs both at the strong-day mark (RULES 5, one readiness: Primed without a watch)
     fresh = 0
     cur = today
@@ -551,6 +622,7 @@ def section_feel(today, data, th):
         "fresh_mornings_in_a_row": fresh,
         "stress_at_or_above_4": bool(t and (t.get("stress") or 0) >= th["stress_trim_at_or_above"]),
         "pain_streak_mornings": streak, "pain_streak_sites": sorted(sites), "pain_streak_ends": iso(streak_end) if streak else None,
+        "tendon_pain": tm,
         "provenance": "Reported",
     }
 
@@ -1376,7 +1448,16 @@ def build_flags(f, th):
     if fe.get("energy_and_legs_at_or_above_4"):
         flags.append({"rule": "5a / 13 push", "text": "Energy and legs both 4 or above: the strong-day bound is allowed if nothing else objects."})
     s = fe.get("pain_streak_mornings") or 0
-    if s >= th["pain_persistent_mornings_physio"]:
+    tm = fe.get("tendon_pain")
+    where = ', '.join(fe.get('pain_streak_sites') or []) or 'a site'
+    if tm and (s >= th["pain_persistent_mornings_physio"] or (s >= 7 and not tm["improving"])):
+        flags.append({"rule": "5a tendon pain", "text": f"Tendon pain at {where} on {s} mornings in a row{'' if tm['improving'] else ', not improving over the week'}: recommend a physio or sports medicine look; keep loading within the pain model meanwhile."})
+    elif tm and tm["within_model"]:
+        flags.append({"rule": "5a tendon pain", "text": f"Tendon pain at {where} ({s} mornings): settled by this morning and the weekly trend is not rising, so train as planned. Pain up to hurts during is fine; stop always stops; check again tomorrow morning."})
+    elif tm:
+        why = "worse this morning than yesterday" if not tm["settled_next_morning"] else "the weekly trend is rising" if tm["week_rising"] else "pain at stop"
+        flags.append({"rule": "5a tendon pain", "text": f"Tendon pain at {where}: {why}. Drop a step today (shorter, flatter or slower) and keep the calf and tendon loading."})
+    elif s >= th["pain_persistent_mornings_physio"]:
         flags.append({"rule": "5a persistent twinge", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: recommend a physio or sports medicine look; hold load, no new stressor, load test before running."})
     elif s >= th["pain_persistent_mornings_flag"]:
         flags.append({"rule": "5a persistent twinge", "text": f"Pain above none at {', '.join(fe['pain_streak_sites']) or 'a site'} on {s} mornings in a row: hold load at or below current, no new stressor, load test before running."})
@@ -1417,6 +1498,7 @@ def build_flags(f, th):
     flags += goal_flags(f)
     flags += steps_flags(f)
     flags += lean_flags(bc)
+    flags += sleep_week_flags(f)
     if wt.get("fuel_mode_today", {}).get("mode") in ("deficit", "recovery_deficit"):
         flags.append({"rule": "7 fuel", "text": f"Fuel mode today: {wt['fuel_mode_today']['mode']} ({wt['fuel_mode_today']['reason']}); tomorrow: {wt['fuel_mode_tomorrow']['mode']}."})
     mfood = f.get("morning_food") or {}
@@ -1512,6 +1594,7 @@ def build(today):
     f["night"] = section_night(today, data, th)
     mark_partial(f["night"], f["freshness"])
     f["feel"] = section_feel(today, data, th)
+    f["sleep_week"] = section_sleep_week(today, data, prof)
     f["night_pattern"] = section_night_pattern(today, data, th, f["night"], f["feel"])
     f["readiness_level"] = section_readiness_level(th, (data["schemas"].get("feel") or {}).get("pain") or {}, f["night_pattern"], f["feel"])
     f["yesterday"] = section_yesterday(today, data, prof, th)

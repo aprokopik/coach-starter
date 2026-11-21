@@ -10,6 +10,8 @@
    "stress": {"1": "calm", "2": "low", "3": "some", "4": "high", "5": "maxed"}
   },
   "pain": {"none": 0, "twinge": 1, "hurts": 3, "stop": 6},
+  "tendon_sites": ["achilles", "knee", "hamstring", "sole of foot"],
+  "tendon_sites_note": "Pain at these sites follows the pain monitoring model (RULES 5a, library IR-45; the athlete, Nov 21, 2026). Other sites keep the persistent pain counts.",
   "pain_scale_note": "Stored on a 0 to 10 scale so older numeric answers stay comparable; only the four words are asked.",
   "effort_cr10": {"very easy": 2, "easy": 3, "steady": 4, "hard": 6, "very hard": 8},
   "vs_plan": ["-", "=", "+"],
