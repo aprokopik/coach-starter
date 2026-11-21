@@ -133,8 +133,6 @@
     return { ticks: x.ticks(d3.utcMonth.every(step)), fmt: step === 12 ? fYY : span > 300 ? (d) => (d.getUTCMonth() === 0 || step >= 3 ? fY(d) : fMon(d)) : fMon };
   }
 
-  // Close up and Nearby levels cut the chart to a few bands, so older values far from today leave the plot at its edge (the athlete, Nov 12, 2026: "lines went off graph in the run one").
-  // Say so under the chart instead of leaving a line that seems to run off: one plain sentence, only when something is cut.
   // Close up and Nearby levels zoom on the bands around the latest value, but never cut a value off (the athlete, Nov 14, 2026, the run
   // chart): the range stretches to every value in the chosen time span, with a little air, and the bands fill what is left.
   const stretch = (r, vals) => { if (!r) return r; const v = vals.filter((x) => x !== null && x !== undefined && Number.isFinite(x)); if (!v.length) return r;
@@ -2484,7 +2482,7 @@
     const latest = rows[rows.length - 1].value;
     const beyond = (v, e) => (better === 1 ? v >= e : v <= e);
     const edges = []; // the edge you cross to enter each sub-tier from the worse side
-    for (const t of subs) { const e = better === 1 ? t.lo : t.hi; if (e !== null && e !== undefined) edges.push({ v: e, label: t.full || t.label }); }
+    for (const t of subs) { const e = better === 1 ? t.lo : t.hi; if (e !== null && e !== undefined) edges.push({ v: e, label: t.full || t.label, say: t.step > 1 ? `step ${t.step} of ${t.of} in ${t.parent}` : t.parent || t.label }); }
     edges.sort((a, b) => (better === 1 ? a.v - b.v : b.v - a.v));
     const reached = edges.map((e) => { const first = rows.find((r) => beyond(r.value, e.v)); return first ? { ...e, date: first.date, held: beyond(latest, e.v) } : null; }).filter(Boolean);
     const next = edges.find((e) => !beyond(latest, e.v)) || null;
@@ -2563,7 +2561,7 @@
     } else if (levelText) kvRow(dl2, 'Level', md(levelText + rankExtra, 'level'));
     if (mi) {
       const wk = ['consistency', 'strength', 'sauna'].includes(m.key); const nv = wk ? (v) => `${f1(v)} ${m.key === 'consistency' ? 'days' : 'sessions'}/week` : vf, nd = wk ? (v) => `${f1(v)} per week` : df;
-      kvRow(dl, 'Next', mi.next ? md(`${nv(mi.next.v)} for ${mi.next.label}, ${latest !== null && nv(mi.next.v) === nv(latest) ? 'almost there' : nd(mi.dist) + ' away'}${wk ? ' (4-week average)' : ''}`, 'milestone') : 'Top of the scale reached');
+      kvRow(dl, 'Next', mi.next ? md(`${nv(mi.next.v)} for ${mi.next.say}, ${latest !== null && nv(mi.next.v) === nv(latest) ? 'almost there' : nd(mi.dist) + ' away'}${wk ? ' (4-week average)' : ''}`, 'milestone') : 'Top of the scale reached');
     }
     if (goal) {
       const st = goal.status === 'proposed' ? ' · proposed, waiting for your OK' : goal.status === 'provisional' ? ' · provisional until it starts' : '';

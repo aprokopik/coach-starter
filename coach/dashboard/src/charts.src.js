@@ -403,10 +403,11 @@
     });
     var right = spk ? (ends.length ? m.max(ends.map(function (e) { return e.text; }), ENDL) + 8 : 6) : Math.max(8, m.max(ends.map(function (e) { return e.text; }), ENDL) + 10);
     if (W - left - right < 80) { ends = ends.filter(function (e) { return e.head; }); right = Math.max(8, m.max(ends.map(function (e) { return e.text; }), ENDL) + 10); }
-    // narrow level chart: the band labels leave the plot for a right column as wide as the longest word (at most 30%);
+    // narrow level chart: the band labels leave the plot for a right column as wide as the longest name on one line (at most 30%,
+    // so names fit one line and the one you are on can sit beside its band; Nov 20, 2026);
     // the end label moves into the plot beside its dot, so no end gutter is kept
     var colW = 0, colL = [];
-    if (lvl) { ends = ends.filter(function (e) { return e.head; }); colW = Math.round(Math.min(W * 0.3, Math.max(64, m.max([].concat.apply([], s.tbands.map(function (t) { return String(t.label).split(' '); })), TH) + 12))); right = colW + 4; c.xMax = W - colW; }
+    if (lvl) { ends = ends.filter(function (e) { return e.head; }); colW = Math.round(Math.min(W * 0.3, Math.max(64, m.max(s.tbands.map(function (t) { return String(t.label).replace(/\s*\(.*\)$/, ''); }), TH) + 22))); right = colW + 4; c.xMax = W - colW; }
     var xd = s.xDomain ? s.xDomain.map(P) : d3.extent(pts, function (p) { return p.d; });
     if (+xd[0] === +xd[1]) xd = [new Date(+xd[0] - 864e5 * 3), new Date(+xd[1] + 864e5 * 3)];
     // a clipped plot keeps its last dot whole: the time scale ends 6 px inside the clip edge
@@ -569,14 +570,28 @@
       var wrap = function (txt) { var ln = [], cur = ''; txt.split(' ').forEach(function (wd) { var t2 = cur ? cur + ' ' + wd : wd; if (cur && m(t2, TH) > cW) { ln.push(cur); cur = wd; } else cur = t2; }); ln.push(cur); return ln; };
       var lay = function (list) {
         var bx = list.map(function (o) { var h = 12 * o.ln.length + 1; return { o: o, h: h, y: o.l.y0 + o.l.h / 2 - h / 2 }; }), i;
-        if (bx.reduce(function (a, b) { return a + b.h + 2; }, -2) > cHi - cLo) return null;
-        for (i = 0; i < bx.length; i++) bx[i].y = Math.max(bx[i].y, i ? bx[i - 1].y + bx[i - 1].h + 2 : cLo);
-        for (i = bx.length - 1; i >= 0; i--) bx[i].y = Math.min(bx[i].y, i < bx.length - 1 ? bx[i + 1].y - bx[i].h - 2 : cHi - bx[i].h);
+        var sum = function (a, z) { for (var t = 0, j = a; j < z; j++) t += bx[j].h + 2; return t; };
+        if (sum(0, bx.length) - 2 > cHi - cLo) return null;
+        var pack = function (a, z, lo, hi) {
+          for (i = a; i < z; i++) bx[i].y = Math.max(bx[i].y, i > a ? bx[i - 1].y + bx[i - 1].h + 2 : lo);
+          for (i = z - 1; i >= a; i--) bx[i].y = Math.min(bx[i].y, i < z - 1 ? bx[i + 1].y - bx[i].h - 2 : hi - bx[i].h);
+        };
+        // the level you are on keeps its name beside its own band and the others make room around it (the athlete, Nov 20, 2026:
+        // "This doent look like top 20%": crowded wrapped names below pushed Top 20% up a band and left Top half beside the dot)
+        var k = -1; bx.forEach(function (b, j) { if (b.o.l.tb.now) k = j; });
+        if (k < 0) pack(0, bx.length, cLo, cHi);
+        else {
+          var kb = bx[k], kl = kb.o.l, want = kb.y; kb.y = Math.max(cLo + sum(0, k), Math.min(cHi - sum(k + 1, bx.length) - kb.h, kb.y));
+          // no room to sit beside its own band: the name farthest away on the crowded side is left out first (its bar stays)
+          if (kb.y + kb.h < kl.y0 + 1 || kb.y > kl.y0 + kl.h - 1) return { off: kb.y > want ? 0 : bx.length - 1 };
+          pack(0, k, cLo, kb.y - 2); pack(k + 1, bx.length, kb.y + kb.h + 2, cHi);
+        }
         return bx;
       };
       var all = colL.map(function (l) { return { l: l, ln: wrap(String(l.tb.label)) }; }), boxes = lay(all);
-      if (!boxes) { all = colL.map(function (l) { return { l: l, ln: wrap(String(l.tb.label).replace(/\s*\(.*\)$/, '')) }; }); boxes = lay(all); }
-      while (!boxes && all.length > 1) { var sm = all.filter(function (o) { return !o.l.tb.now; }).sort(function (a, b) { return a.l.h - b.l.h; })[0] || all[0]; all.splice(all.indexOf(sm), 1); boxes = lay(all); }
+      if (!boxes || boxes.off !== undefined) { all = colL.map(function (l) { return { l: l, ln: wrap(String(l.tb.label).replace(/\s*\(.*\)$/, '')) }; }); boxes = lay(all); }
+      while ((!boxes || boxes.off !== undefined) && all.length > 1) { var sm = boxes ? all[boxes.off] : all.filter(function (o) { return !o.l.tb.now; }).sort(function (a, b) { return a.l.h - b.l.h; })[0] || all[0]; all.splice(all.indexOf(sm), 1); boxes = lay(all); }
+      if (boxes && boxes.off !== undefined) boxes = null;
       (boxes || []).forEach(function (b) {
         var l = b.o.l, mid = b.y + b.h / 2, tx0 = cx0 + 10;
         if (b.y + b.h < l.y0 + 1 || b.y > l.y0 + l.h - 1) mk(g, 'path', { d: 'M' + (cx0 + 3) + ',' + (l.y0 + l.h / 2) + 'H' + (cx0 + 6) + 'V' + mid + 'H' + (cx0 + 8), stroke: l.col, 'stroke-width': 1, fill: 'none' });
