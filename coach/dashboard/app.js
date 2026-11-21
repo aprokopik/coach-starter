@@ -543,6 +543,8 @@
       const missed = stale && now.getHours() * 60 + now.getMinutes() >= missedAt();
       if (missed) $('t-stale').dataset.s = 'act'; else delete $('t-stale').dataset.s; $('t-stale-w').textContent = missed ? 'Missed' : 'Out of date';
       if (stale) { const st = $('t-stale-t'); st.replaceChildren(); if (!missed) st.append(`This is ${fDow(P(t.date))}'s check-in. Today's arrives after the `, RUN_AT(), ' run.'); else st.append('No check-in today: the ', RUN_AT(), ` run has not landed by `, ruleSpan(clockAt(missedAt()), 'app.js missedAt: the first daytime refresh, 9:41 AM (data_paths daytime_refresh), or two hours after the check-in when there is none'), `. Ask the coach in a chat for today's call. This is ${fDow(P(t.date))}'s.`); $('t-stale-age').textContent = t.generated_at_utc ? `Check-in ${stamp(t.generated_at_utc)}.` : ''; }
+      // 6.162.1: put the size control, size line and More info home before clearing, or a redraw finds them detached (null)
+      { const pb = $('t-presc-b'), bd = $('t-bounds'); if (bd && bd.parentNode !== pb) { pb.append(bd); pb.after($('t-presc-s'), $('t-more')); } }
       const box = $('t-planned'); box.replaceChildren();
       const todays = byRank(dayRows().filter((r) => r.date === TODAY));
       const mvd = todays.find((r) => r.moved) || null; // a session moved in or out today: the card shows the plan row, not the morning's call
