@@ -1644,12 +1644,12 @@ html.td-lvx-on, html.td-lvx-on body { overflow: hidden; }
 .ck .td-rs-bplain { fill: var(--ck-surface-2); stroke: var(--ck-edge); } .ck .td-rs-bgood { fill: color-mix(in srgb, var(--ck-good) 55%, var(--ck-surface)); }
 .ck .td-rs-now { stroke: var(--ck-fg); stroke-width: 2.5; } .ck .td-rs-tk { font-size: 11px; fill: var(--ck-fg-2); }
 .ck .td-rs-scale { flex: 1 0 100%; margin: 4px 0 18px; }
-.ck .td-rs-bellrow { padding: 0 24px 0 0; } .ck .td-rs-scale .td-nm-bar, .ck .td-rs-bellbox { flex: 1 1 0; min-width: 0; } .ck .td-rs-bellbox > svg { display: block; width: 100%; height: auto; max-width: none; margin: 0; } .ck .td-rs-ghost { visibility: hidden; }
+.ck .td-rs-bellrow { padding: 0; } .ck .td-rs-scale .td-nm-bar, .ck .td-rs-bellbox { flex: 1 1 0; min-width: 0; } .ck .td-rs-bellbox > svg { display: block; width: 100%; height: auto; max-width: none; margin: 0; }
 .ck .td-nm-bar > .td-rs-sact { background: color-mix(in srgb, var(--ck-act) 30%, var(--ck-surface-2)); } .ck .td-nm-bar > .td-rs-sact.on { background: color-mix(in srgb, var(--ck-act) 70%, var(--ck-surface)); }
 .ck .td-nm-bar > .td-rs-swatch { background: color-mix(in srgb, var(--ck-watch) 25%, var(--ck-surface-2)); } .ck .td-nm-bar > .td-rs-swatch.on { background: color-mix(in srgb, var(--ck-watch) 55%, var(--ck-surface)); }
 .ck .td-nm-bar > .td-rs-splain { background: var(--ck-surface-2); } .ck .td-nm-bar > .td-rs-splain.on { background: var(--ck-surface-3); box-shadow: inset 0 0 0 1px var(--ck-edge); }
 .ck .td-nm-bar > .td-rs-sgood { background: color-mix(in srgb, var(--ck-good) 25%, var(--ck-surface-2)); } .ck .td-nm-bar > .td-rs-sgood.on { background: color-mix(in srgb, var(--ck-good) 55%, var(--ck-surface)); }
-.ck .td-rs-sum { position: relative; padding-right: 24px; } .ck .td-rs-sum::after { position: absolute; right: 0; top: 8px; }
+.ck .td-rs-sum { position: relative; } .ck .td-rs-u { padding-right: 24px; } .ck .td-rs-sum::after { position: absolute; right: 0; top: 8px; }
 .ck .td-rs-days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 6px; margin: var(--ck-s2) 0; font-size: var(--ck-t2); }
 .ck .td-rs-dk { font-weight: var(--ck-w-med); grid-column: 1 / -1; } .ck .td-rs-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .ck .td-rs-dw { color: var(--ck-fg-2); font-variant-numeric: var(--ck-num); white-space: nowrap; }

@@ -146,7 +146,7 @@
       ['act', 'watch', 'plain', 'good'].forEach((c, i) => { const g = el('i', 'td-nm-seg td-rs-s' + c + (sc.S >= cuts[i] && (sc.S < cuts[i + 1] || i === 3) ? ' on' : '')); g.style.left = at(cuts[i]) + '%'; g.style.width = (at(cuts[i + 1]) - at(cuts[i])) + '%'; bar.append(g); });
       const mk = (c, u, t) => { const i = el('i', c); i.style.left = at(u) + '%'; if (t) i.textContent = t; return i; };
       bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', sc.S)); for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) bar.append(mk('td-nm-tk', u, t));
-      const scl = el('span', 'td-nm-scale td-rs-scale'); scl.setAttribute('aria-hidden', 'true'); scl.append(el('span', 'td-nm-end', 'low'), bar, el('span', 'td-nm-end', 'high')); sum.append(scl); }
+      const scl = el('span', 'td-nm-scale td-rs-scale'); scl.setAttribute('aria-hidden', 'true'); scl.append(bar); sum.append(scl); } // full width, no low and high words (the athlete, Nov 22, 2026)
     box.append(sum);
     // the bell curve: bands at the level cutoffs, a line at today's score, the axis at ±3σ
     const W = 300, H = 74, X = (x) => (Math.max(-TR, Math.min(TR, x)) + TR) / (2 * TR) * W, Y = (x) => H - 16 - 50 * Math.exp(-x * x / 2);
@@ -158,7 +158,7 @@
     const ln = document.createElementNS(ns, 'line'), sx = X(sc.S); Object.entries({ x1: sx, x2: sx, y1: 2, y2: H - 16, class: 'td-rs-now' }).forEach(([a, b]) => ln.setAttribute(a, b)); svg.append(ln);
     [['Stressed', -1.75, 'middle'], ['Ease off', cut[2] + 0.05, 'end'], ['Ready', 0.15, 'middle'], ['Primed', 1.5, 'middle']].forEach(([t, x, a]) => { const tx = document.createElementNS(ns, 'text'); tx.textContent = t; tx.setAttribute('x', X(x)); tx.setAttribute('y', H - 3); tx.setAttribute('text-anchor', a); tx.setAttribute('class', 'td-rs-tk'); svg.append(tx); });
     const bw = el('span', 'td-nm-scale td-rs-bellrow'), bb = el('span', 'td-rs-bellbox'); bb.append(svg);
-    bw.append(el('span', 'td-nm-end td-rs-ghost', 'low'), bb, el('span', 'td-nm-end td-rs-ghost', 'high')); box.append(bw);
+    bw.append(bb); box.append(bw);
     // the last 3 days as the score read them: two days before from the coach (ready_day rows), today from this card
     const days = (kind('ready_day') || []).filter((d) => d.date < TODAY && dayN(d.date) >= TN - 2).sort((a, b) => (a.date < b.date ? -1 : 1)).map((d) => ({ ...d, mk: 1 }));
     days.push({ date: TODAY, score: sc.S, level: lv });
@@ -287,6 +287,9 @@
   window.CX.planDays = () => moved(kind('day'), () => true);
   window.CX.movedWeek = (wv) => moved(wv, (x) => x.kind === 'plan');
   window.CX.redrawPlan = () => { renderToday(); if (state.page === 'week') renderWeek(); }; // change.js, after a move or its Undo
-  window.CX.renderEarly = () => { surveyRead(); oneReady(); basedOn(); }; // ask.js and forms.js, after a morning save
+  // the map's survey cards read this morning's answers; they arrive from the store after the page drew (the athlete, Nov 22, 2026:
+  // "Survey was completed" beside four Not answered cards), so a new answer redraws the map before the score reads it
+  let mapFeel = window.CX.feelToday; // what app.js renderToday drew the map with (feelToday is unset until ask.js reads the store)
+  window.CX.renderEarly = () => { const f = window.CX.feelToday; if (f !== mapFeel && alpha('readiness_score')) window.CX.app.renderNight(); mapFeel = f; surveyRead(); oneReady(); basedOn(); }; // ask.js and forms.js, after a morning save
   if (kind('today').length) renderToday(); // a first draw that ran before this file loaded
 })();

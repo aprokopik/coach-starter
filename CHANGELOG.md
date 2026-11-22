@@ -2,6 +2,10 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.169.2 (2026-11-22)
+- Dashboard, Fix: the Readiness map shows this morning's survey when it is saved or read after the page drew (the kit maker, Nov 22, 2026: "Survey was completed" beside four Not answered cards). The score already used the answers; the map was drawn once before the store read arrived, so ready.js renderEarly now redraws it when the answers change (renderNight shared through CX.app).
+- Dashboard: the Readiness bar and bell use the card's full width and drop the low and high words (the kit maker, Nov 22, 2026: "extend the bar and normal graph. Drop the low and high and use the full width of the phone"); the band edges still line up.
+
 ## 6.169.1 (2026-11-22)
 - Dashboard, Fix: the Readiness bar and bell share one σ scale (the kit maker, Nov 21, 2026: "These axis and sigma spacing should align"). The bell now spans the same ±2.5σ as the bar and sits in the same row width (invisible low and high ends), so the dot and the line meet; the bar's segments take the bell's level colours. The bell row reserves the same 24 px on the right as the summary's chevron, so each coloured band edge sits straight under the bar's (the kit maker, Nov 22, 2026: "The colored sections dont align if if drew strait vertical lines").
 
