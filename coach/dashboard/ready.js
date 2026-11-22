@@ -96,7 +96,7 @@
       if (top && day.parentNode !== pg) pg.insertBefore(day, $('t-deck')); else if (!top && day.parentNode === pg) $('t-hero').prepend(day);
       day.classList.toggle('td-daytop', top); }
     const t = kind('today')[0], f = window.CX.feelToday, conf = t && t.date === TODAY ? String(t.confidence || '').toLowerCase() : '';
-    const sv = kind('feel_day').some((d) => d.date === TODAY) || !!(f && f.saved_at), wt = (rowsOk('night') || []).some((r) => r.date === TODAY && r.value !== null && r.value !== undefined);
+    const sv = kind('feel_day').some((d) => d.date === TODAY) || !!(f && f.saved_at), wt = alpha('readiness_score') ? (kind('ready_inputs') || []).some((r) => r.date === TODAY) : (rowsOk('night') || []).some((r) => r.date === TODAY && r.value !== null && r.value !== undefined); // the score's watch side when it is on
     const chip = (id, text, s, say) => { const e = $(id); e.textContent = text; e.dataset.s = s; e.setAttribute('aria-label', say); };
     chip('t-chip-c', conf ? 'Confidence' : 'Early read', conf === 'high' ? 'good' : conf === 'moderate' ? 'watch' : 'none', conf ? 'Confidence ' + conf : 'Early read, the coach has not confirmed it yet');
     { const n = conf === 'high' ? 3 : conf === 'moderate' ? 2 : conf ? 1 : 0, bars = el('span', 'td-bars'); bars.setAttribute('aria-hidden', 'true'); for (let i = 0; i < 3; i++) bars.append(el('i', i < n ? 'on' : null)); $('t-chip-c').prepend(bars); } // signal bars: high 3, moderate 2, low 1, none before the call
@@ -127,12 +127,25 @@
     return lv;
   }
   const sg = (x, d = 2) => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(d);
+  // One Readiness section (the athlete, Nov 21, 2026, option C): the score, its bell, the last 3 days as the score read them and the
+  // map of its inputs (built by app.js renderNight into #n-scroll, moved here). Last night's recovery row and its gauge step
+  // aside while this is on, since the level, the coach size and the key session moves all come from this score.
   function renderScore(r, sc, lv) {
     let box = $('t-rs'); if (!box) { box = el('details', 'td-rs'); box.id = 't-rs'; const mb = $('t-nm-btn'); mb.parentNode.insertBefore(box, mb); }
+    document.documentElement.dataset.rs = '1';
+    const keep = [$('n-scroll'), $('n-foot')].filter(Boolean);
     box.hidden = !sc; if (!sc) return;
     const open = box.open; box.replaceChildren();
-    const sum = el('summary', 'td-rs-sum'); sum.append(el('span', 'td-nm-k', 'Readiness score'), ' ', el('b', 'td-rs-v', sg(sc.S) + 'σ'), el('span', 'td-rs-u', ' vs your normal'));
+    const sum = el('summary', 'td-rs-sum'); sum.append(el('span', 'td-nm-k', 'Readiness'), ' ', el('b', 'td-rs-v', sg(sc.S) + 'σ'), el('span', 'td-rs-u', ' vs your normal'));
     const v = sum.querySelector('.td-rs-v'); v.setAttribute('data-derived', 'readiness score'); v.setAttribute('data-rule', 'ready.js scoreOf: weighted mean of survey, HRV, load, resting HR and sleep in σ (feel_rule readiness_weight_*), RULES 5 Readiness score');
+    // the bar in the collapsed row (the athlete, Nov 21, 2026: "i still want a bar in the collapsed view"): the same low to high
+    // scale as the night meter, its segments at the level cutoffs, the live one filled, the dot at today's score
+    { const TR = 2.5, at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, cuts = [-TR, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), TR];
+      const bar = el('span', 'td-nm-bar'); bar.dataset.s = LEVEL[lv] ? LEVEL[lv][1] : 'plain';
+      ['b3', 'b2', 'b1', 'b1'].forEach((c, i) => { const g = el('i', 'td-nm-seg td-nm-' + c + (sc.S >= cuts[i] && (sc.S < cuts[i + 1] || i === 3) ? ' on' : '')); g.style.left = at(cuts[i]) + '%'; g.style.width = (at(cuts[i + 1]) - at(cuts[i])) + '%'; bar.append(g); });
+      const mk = (c, u, t) => { const i = el('i', c); i.style.left = at(u) + '%'; if (t) i.textContent = t; return i; };
+      bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', sc.S)); for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) bar.append(mk('td-nm-tk', u, t));
+      const scl = el('span', 'td-nm-scale td-rs-scale'); scl.setAttribute('aria-hidden', 'true'); scl.append(el('span', 'td-nm-end', 'low'), bar, el('span', 'td-nm-end', 'high')); sum.append(scl); }
     box.append(sum);
     // the bell curve: bands at the level cutoffs, a line at today's score, the axis at ±3σ
     const W = 300, H = 74, X = (x) => (Math.max(-3, Math.min(3, x)) + 3) / 6 * W, Y = (x) => H - 16 - 50 * Math.exp(-x * x / 2);
@@ -144,10 +157,16 @@
     const ln = document.createElementNS(ns, 'line'), sx = X(sc.S); Object.entries({ x1: sx, x2: sx, y1: 2, y2: H - 16, class: 'td-rs-now' }).forEach(([a, b]) => ln.setAttribute(a, b)); svg.append(ln);
     [['Stressed', -2.2, 'middle'], ['Ease off', cut[2] + 0.05, 'end'], ['Ready', 0.15, 'middle'], ['Primed', 1.8, 'middle']].forEach(([t, x, a]) => { const tx = document.createElementNS(ns, 'text'); tx.textContent = t; tx.setAttribute('x', X(x)); tx.setAttribute('y', H - 3); tx.setAttribute('text-anchor', a); tx.setAttribute('class', 'td-rs-tk'); svg.append(tx); });
     box.append(svg);
-    const tb = el('table', 'td-rs-t'), hd = el('tr'); ['Input', 'Weight', 'Today', 'Adds'].forEach((h) => hd.append(el('th', null, h))); tb.append(hd);
-    sc.rows.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.name), el('td', null, Math.round(x.w * 100) + '%'), el('td', null, x.z === null ? 'not in' : sg(x.z) + 'σ'), el('td', null, x.add === null ? '' : sg(x.add))); tb.append(tr); });
-    const ft = el('tr', 'td-rs-sumrow'); ft.append(el('td', null, 'Score'), el('td', null, Math.round(sc.tw * 100) + '% in'), el('td'), el('td', null, sg(sc.S) + 'σ')); tb.append(ft);
-    box.append(tb, el('p', 'ck-note', 'Each input in σ from your own history. Adds = its weight times today, shared out over the inputs that are in. Pain, or energy or legs at 2, still cap the level.'));
+    // the last 3 days as the score read them: two days before from the coach (ready_day rows), today from this card
+    const days = (kind('ready_day') || []).filter((d) => d.date < TODAY && dayN(d.date) >= TN - 2).sort((a, b) => (a.date < b.date ? -1 : 1)).map((d) => ({ ...d, mk: 1 }));
+    days.push({ date: TODAY, score: sc.S, level: lv });
+    const row = el('div', 'td-rs-days'); row.append(el('span', 'td-rs-dk', 'Last 3 days'));
+    for (const d of days) { const c = el('div', 'td-rs-day'), L0 = LEVEL[d.level];
+      const wd = d.date === TODAY ? 'Today' : new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+      const sv = el('span', null, N(d.score) === null ? '—' : sg(N(d.score))); if (d.mk) { sv.setAttribute('data-source', 'coach'); sv.setAttribute('data-field', 'score'); sv.setAttribute('data-where', 'kind=ready_day;date=' + d.date); }
+      const hd = el('span', 'td-rs-dw', wd + ' '); hd.append(sv);
+      c.append(hd, L0 ? (L0[1] === 'plain' ? neutralChip(L0[0]) : badge(L0[1], L0[0])) : neutralChip('No read')); row.append(c); }
+    box.append(row, ...keep);
     box.open = open;
   }
   function oneReady() {
@@ -184,7 +203,7 @@
       const late = sv && !kind('feel_day').some((d) => d.date === TODAY) && t.generated_at_utc && f.saved_at > t.generated_at_utc, tb = late ? table() : null;
       lv = !tb ? coach : RANK.indexOf(coach) >= RANK.indexOf('ready') ? tb : RANK[Math.min(RANK.indexOf(tb), RANK.indexOf(coach))];
     }
-    if (rsOn) renderScore(r, sc, lv); else if ($('t-rs')) $('t-rs').hidden = true;
+    if (rsOn) renderScore(r, sc, lv); else if ($('t-rs')) { $('t-rs').hidden = true; delete document.documentElement.dataset.rs; const na = $('n-all'); if (na && $('n-scroll') && $('n-scroll').parentNode !== na) na.append($('n-scroll'), $('n-foot')); }
     if (!lv) { if (was) plan(); return; }
     const [w, s, mean] = LEVEL[lv], g = $('t-ready-g'), rd = $('t-ready'), rm = $('t-ready-m');
     hero.dataset.lv = lv; g.dataset.s = s; g.replaceChildren(icon(s, 'ck-g')); $('t-ready-sr').textContent = ST_NAME[s] + ': ';

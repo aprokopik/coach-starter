@@ -317,8 +317,18 @@ if alpha.on("readiness_score"):
     _sum = read_csv("data/summary.csv")
     _night = next((r["date"] for r in reversed(_sum) if (r.get("sleep_h") or "").strip()), None)
     if _night:
-        rows.append({"kind": "ready_inputs", "date": _night,
-                     **readiness.watch_inputs(_sum, read_csv("data/activities.csv"), _prof, _th, _night)})
+        _acts = read_csv("data/activities.csv")
+        rows.append({"kind": "ready_inputs", "date": _night, **readiness.watch_inputs(_sum, _acts, _prof, _th, _night),
+                     **readiness.watch_values(_sum, _acts, _prof, _th, _night)})
+        # the last 3 days as the score read them (one Readiness section, the athlete, Nov 21, 2026): the two days before tonight
+        # with their own survey and watch, by the coach's arithmetic (morning_facts.section_readiness_score)
+        import morning_facts as _mf  # noqa: E402
+        from datetime import date as _date, timedelta as _td
+        _data = _mf.load_all()
+        for _k in (2, 1):
+            _dd = _date.fromisoformat(_night) - _td(days=_k)
+            _rs = _mf.section_readiness_score(_dd, _data, _th, {"night": _dd.isoformat()}, _mf.section_feel(_dd, _data, _th))
+            rows.append({"kind": "ready_day", "date": _dd.isoformat(), "score": _rs.get("score"), "level": _rs.get("level")})
 # Day forecast for the Today day strip (alpha day_weather; scripts/pull_weather.py writes data/weather.json when the
 # profile names a town). One row per day the file has; the page shows a day only when its row is there.
 for _w in (read_json("data/weather.json", {}) or {}).get("days", []):

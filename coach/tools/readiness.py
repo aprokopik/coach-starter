@@ -68,6 +68,23 @@ def _z(cur, base, floor=None):
     return (cur - statistics.fmean(base)) / sd
 
 
+def watch_values(summary, acts, prof, th, night):
+    """The plain numbers behind watch_inputs for the night dated `night`, so the page shows what the score used: HRV and
+    resting HR as the mean of the last readiness_hrv_avg_days nights, total sleep over readiness_sleep_avg_nights, and
+    yesterday's heart rate load (TRIMP). Each None when the night has none."""
+    nd = date.fromisoformat(night)
+    by = {r["date"]: r for r in summary}
+    col = lambda c, n: [v for v in (_num((by.get((nd - timedelta(days=k)).isoformat()) or {}).get(c)) for k in range(n)) if v]
+    avg = int(th["readiness_hrv_avg_days"])
+    h, r, s = col("hrv_overnight_ms", avg), col("resting_hr", avg), col("sleep_h", int(th["readiness_sleep_avg_nights"]))
+    hrm = prof.get("hr_max") or {}
+    rest = {x["date"]: _num(x.get("resting_hr")) for x in summary}
+    tr = trimp_by_day(acts, rest, _num(hrm.get("run")) or _num(hrm.get("default")) or 190.0, prof.get("sex"))
+    y = (nd - timedelta(days=1)).isoformat()
+    return {"hrv_ms": round(statistics.fmean(h)) if h else None, "rhr_bpm": round(statistics.fmean(r)) if r else None,
+            "sleep_h": round(statistics.fmean(s), 1) if s else None, "load_trimp": round(tr.get(y, 0.0)) if tr else None}
+
+
 def watch_inputs(summary, acts, prof, th, night):
     """The watch side of the score for the night dated `night` (ISO date): hrv, rhr, sleep and load z scores, each None
     when there is not enough history. `summary` is data/summary.csv as dict rows."""

@@ -903,7 +903,7 @@
     box.replaceChildren();
     const by = Object.fromEntries(d.data.map((r) => [r.metric, r]));
     const s = by.sleep_h;
-    if (!vitals().some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
+    if (!alpha('readiness_score') && !vitals().some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
     cardState(sect, null);
     $('n-date').textContent = s && TN - dayN(s.date) < 1 ? `Morning of ${fWd(P(s.date))}` : '';
     // stale: the newest night is older than this morning
@@ -942,7 +942,9 @@
       // a map (the athlete, Nov 21, 2026, picked option G2 of 7 then 4): Survey a column on the left, Watch on the right, each card's
       // area is its share of the score; inside, the value and a dot on your usual range (middle line = your normal, right = better)
       box.classList.add('td-map');
-      const L = { energy: 'Energy', legs: 'Legs', sleep_q: 'Rested', stress: 'Stress', hrv: 'HRV', load: 'Load', rhr: 'Rest HR', sleep: 'Sleep' }, M = { hrv: 'hrv_overnight_ms', rhr: 'resting_hr', sleep: 'sleep_h' };
+      // the watch cards show the numbers the score used (ready_inputs: 7 day HRV and resting HR, 3 nights of sleep, yesterday's
+      // load), so a card never reads low on a day the score reads it as normal (one Readiness section, the athlete, Nov 21, 2026)
+      const L = { energy: 'Energy', legs: 'Legs', sleep_q: 'Rested', stress: 'Stress', hrv: 'HRV, 7 day', load: 'Load, yesterday', rhr: 'Rest HR, 7 day', sleep: 'Sleep, 3 nights' }, M = { hrv: ['hrv_ms', 'ms'], rhr: ['rhr_bpm', 'bpm'], sleep: ['sleep_h', 'h'], load: ['load_trimp', ''] };
       const ws = ['hrv', 'load', 'rhr', 'sleep'].sort((a, b) => pct(b) - pct(a)), S = pct('survey'), Wt = ws.reduce((a, k) => a + pct(k), 0) || 1;
       // row lines in % of the map's height: four equal survey answers on the left; the two heaviest watch inputs stacked on
       // the right, then the last two side by side, each band as tall as its share of the watch weight
@@ -958,15 +960,16 @@
         if (z !== null) { const d = el('b', 'td-map-dot'); d.style.left = Math.max(4, Math.min(96, 50 + z * 25)) + '%'; tk.append(d); } t.append(tk); };
       for (const r of sv.filter((x) => x.metric !== 'pain')) { tile({ ...r, label: L[r.metric] }, r.metric, 'coach', `kind=feel_day;date=${r.date};field=${r.metric}`); put(r.metric, S / 4, 'readiness_weight_survey'); }
       for (const k of ws) {
-        if (k === 'load') { if (ri.date === TODAY && ri.load != null) { tile({ metric: 'load', label: L.load, unit: 'σ', better: 1, value: ri.load, mean: 0, sd: 1, n: 60, z: ri.load }, 'load', 'coach', 'kind=ready_inputs;field=load'); put(k, pct(k), 'readiness_weight_' + k); } continue; }
-        const r = by[M[k]]; if (r) { tile({ ...r, label: L[k] }, M[k], 'night', 'metric=' + M[k]); put(k, pct(k), 'readiness_weight_' + k); }
+        const [vk, u] = M[k]; if (ri.date !== TODAY || ri[k] == null || ri[vk] == null) continue;
+        tile({ metric: k, label: L[k], unit: u, better: 1, value: ri[vk], mean: 0, sd: 1, n: 60, z: ri[k] }, k, 'coach', 'kind=ready_inputs;field=' + vk); put(k, pct(k), 'readiness_weight_' + k);
       }
-      const pn = sv.find((x) => x.metric === 'pain'); if (pn) { tile({ ...pn, label: 'Pain · caps the level' }, 'pain', 'coach', `kind=feel_day;date=${pn.date};field=pain`); const t = box.lastElementChild; t.classList.add('td-map-cap'); t.style.gridArea = `${lines.length} / 1 / ${lines.length + 1} / 4`; }
+      if (!ws.some((k) => $('n-' + k))) { const tr = el('tr', 'td-map-wait'); tr.dataset.m = 'unknown'; const c = el('td', null, ri.date && ri.date < TODAY ? 'Watch: waiting for last night. It arrives with the next Garmin pull.' : 'Watch: no night synced yet.'); tr.append(c); tr.style.gridArea = `1 / 2 / ${lines.length} / 4`; box.append(tr); }
+      const pn = sv.find((x) => x.metric === 'pain'); if (pn) { tile({ ...pn, label: 'Pain · caps the level' }, 'pain', 'coach', `kind=feel_day;date=${pn.date};field=pain`); const t = box.lastElementChild; t.classList.add('td-map-cap'); const pv = N(pn.value); t.dataset.m = pv === null ? 'unknown' : pv >= N(th.pain_stop) ? 'act' : pv >= N(th.pain_hurts) ? 'watch' : 'ok'; t.style.gridArea = `${lines.length} / 1 / ${lines.length + 1} / 4`; }
     } else for (const m of vitals()) { const r = by[m]; if (r) tile(r, m, 'night', 'metric=' + m); }
     const foot = $('n-foot'); foot.replaceChildren();
     if (s) { const r1 = el('span', null, 'a normal night-to-night swing'), r2 = el('span', null, '28 days'), r3 = el('span', null, '30–45 min'); r1.setAttribute('data-rule', 'calc.js night: usual range = average ± 1 SD'); r2.setAttribute('data-rule', 'calc.js night: 28-day window'); r3.setAttribute('data-rule', 'app.js renderNight: Garmin sleep note');
       foot.append('Bar: your average, give or take ', r1, ', over the ', r2, ' before (', mark(el('span', null, String(s.n)), 'night', 'n', 'metric=sleep_h'), ' nights); the dot is last night. It informs the call; it never decides it alone. Garmin reads sleep about ', r3, ' high.'); }
-    if (alpha('readiness_score')) foot.replaceChildren("Box size is each input's share of today's readiness score. The dot is today on your usual range: the line is your normal, right of it is better. Usual is the 28 nights or mornings before. Garmin reads sleep about 30 to 45 min high.");
+    if (alpha('readiness_score')) foot.replaceChildren("Box size is each input's share of the score. The dot is where it sits against your normal (the line); right is better.");
     renderCall(by);
   }
   // the meter's track, for last night and the survey's feel
@@ -1068,14 +1071,16 @@
   }
   // The deck's Watch notice: the six vitals under the rule above (no new rule).
   function renderCall(by) {
-    const rows = by ? vitals().map((m) => by[m]).filter(Boolean) : [];
+    const ri = kind('ready_inputs')[0], RL = { hrv: ['HRV, 7 day', 'hrv_ms', 'ms'], rhr: ['Resting HR, 7 day', 'rhr_bpm', 'bpm'], sleep: ['Sleep, 3 nights', 'sleep_h', 'h'] };
+    const rows = alpha('readiness_score') ? (ri && ri.date === TODAY ? Object.entries(RL).filter(([k]) => ri[k] != null).map(([k, [label, vk, unit]]) => ({ metric: k, label, unit, value: ri[vk], z: ri[k], n: 60, better: 1 })) : [])
+      : by ? vitals().map((m) => by[m]).filter(Boolean) : [];
     const sts = rows.map((r) => ({ r, v: vState(r) }));
     const watch = sts.filter((x) => x.v.s === 'watch');
     const note = $('t-watchnote'), t = $('t-watchnote-t'); t.replaceChildren(); note.hidden = !watch.length; placeWatch();
     if (watch.length) {
-      watch.forEach((x, i) => { if (i) t.append(i === watch.length - 1 ? ' and ' : ', '); const b = el('b', null, x.r.label + ' '); b.append(mark(el('span', null, String(x.r.value)), 'night', 'value', 'metric=' + x.r.metric), x.r.unit ? ' ' + x.r.unit : ''); t.append(b); });
-      const r1 = el('span', null, '28-day'), r2 = el('span', null, 'well outside'); r1.setAttribute('data-rule', 'calc.js night: 28-day window'); r2.setAttribute('data-rule', 'app.js zText: Watch from 1.5 SD on the worse side');
-      t.append(watch.length === 1 ? ' is' : ' are', ' ', r2, ' your ', r1, ' normal, on the worse side. On its own it does not change the plan. Open Last night above to see every reading.');
+      watch.forEach((x, i) => { if (i) t.append(i === watch.length - 1 ? ' and ' : ', '); const b = el('b', null, x.r.label + ' '); b.append((alpha('readiness_score') ? mark(el('span', null, String(x.r.value)), 'coach', RL[x.r.metric][1], 'kind=ready_inputs') : mark(el('span', null, String(x.r.value)), 'night', 'value', 'metric=' + x.r.metric)), x.r.unit ? ' ' + x.r.unit : ''); t.append(b); });
+      const r1 = el('span', null, alpha('readiness_score') ? 'own' : '28-day'), r2 = el('span', null, 'well outside'); r1.setAttribute('data-rule', 'calc.js night: 28-day window'); r2.setAttribute('data-rule', 'app.js zText: Watch from 1.5 SD on the worse side');
+      t.append(watch.length === 1 ? ' is' : ' are', ' ', r2, ' your ', r1, ' normal, on the worse side.', alpha('readiness_score') ? ' Open Readiness above to see every input.' : ' On its own it does not change the plan. Open Last night above to see every reading.');
     }
   }
   // The deck's Watch slot (Phase 3 order: call, session, Watch, race) holds the vitals notice and, when it shows, the pain
