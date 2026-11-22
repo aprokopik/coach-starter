@@ -140,23 +140,25 @@
     const v = sum.querySelector('.td-rs-v'); v.setAttribute('data-derived', 'readiness score'); v.setAttribute('data-rule', 'ready.js scoreOf: weighted mean of survey, HRV, load, resting HR and sleep in σ (feel_rule readiness_weight_*), RULES 5 Readiness score');
     // the bar in the collapsed row (the athlete, Nov 21, 2026: "i still want a bar in the collapsed view"): the same low to high
     // scale as the night meter, its segments at the level cutoffs, the live one filled, the dot at today's score
-    { const TR = 2.5, at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, cuts = [-TR, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), TR];
+    const TR = 2.5; // one σ scale for the bar and the bell (the athlete, Nov 21, 2026: "These axis and sigma spacing should align")
+    { const at = (u) => Math.max(0, Math.min(1, (u + TR) / (2 * TR))) * 100, cuts = [-TR, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), TR];
       const bar = el('span', 'td-nm-bar'); bar.dataset.s = LEVEL[lv] ? LEVEL[lv][1] : 'plain';
-      ['b3', 'b2', 'b1', 'b1'].forEach((c, i) => { const g = el('i', 'td-nm-seg td-nm-' + c + (sc.S >= cuts[i] && (sc.S < cuts[i + 1] || i === 3) ? ' on' : '')); g.style.left = at(cuts[i]) + '%'; g.style.width = (at(cuts[i + 1]) - at(cuts[i])) + '%'; bar.append(g); });
+      ['act', 'watch', 'plain', 'good'].forEach((c, i) => { const g = el('i', 'td-nm-seg td-rs-s' + c + (sc.S >= cuts[i] && (sc.S < cuts[i + 1] || i === 3) ? ' on' : '')); g.style.left = at(cuts[i]) + '%'; g.style.width = (at(cuts[i + 1]) - at(cuts[i])) + '%'; bar.append(g); });
       const mk = (c, u, t) => { const i = el('i', c); i.style.left = at(u) + '%'; if (t) i.textContent = t; return i; };
       bar.append(mk('td-nm-mid', 0), mk('td-nm-pt', sc.S)); for (const [u, t] of [[-2, '2σ'], [-1, '1σ'], [0, 'normal'], [1, '1σ'], [2, '2σ']]) bar.append(mk('td-nm-tk', u, t));
       const scl = el('span', 'td-nm-scale td-rs-scale'); scl.setAttribute('aria-hidden', 'true'); scl.append(el('span', 'td-nm-end', 'low'), bar, el('span', 'td-nm-end', 'high')); sum.append(scl); }
     box.append(sum);
     // the bell curve: bands at the level cutoffs, a line at today's score, the axis at ±3σ
-    const W = 300, H = 74, X = (x) => (Math.max(-3, Math.min(3, x)) + 3) / 6 * W, Y = (x) => H - 16 - 50 * Math.exp(-x * x / 2);
-    const cut = [-3, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), 3], cls = ['act', 'watch', 'plain', 'good'];
+    const W = 300, H = 74, X = (x) => (Math.max(-TR, Math.min(TR, x)) + TR) / (2 * TR) * W, Y = (x) => H - 16 - 50 * Math.exp(-x * x / 2);
+    const cut = [-TR, N(r.readiness_stressed_below), N(r.readiness_ease_off_below), N(r.readiness_primed_above), TR], cls = ['act', 'watch', 'plain', 'good'];
     const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'td-rs-bell'); svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', `Bell curve: Stressed under ${sg(cut[1], 1)}σ, Ease off to ${sg(cut[2], 1)}σ, Ready to ${sg(cut[3], 1)}σ, Primed above. Today ${sg(sc.S)}σ, ${LEVEL[lv] ? LEVEL[lv][0] : ''}`);
     for (let i = 0; i < 4; i++) { let d = `M${X(cut[i])},${H - 16}`; for (let x = cut[i]; x <= cut[i + 1] + 1e-9; x += 0.05) d += `L${X(x).toFixed(1)},${Y(x).toFixed(1)}`; d += `L${X(cut[i + 1])},${H - 16}Z`;
       const pa = document.createElementNS(ns, 'path'); pa.setAttribute('d', d); pa.setAttribute('class', 'td-rs-b' + cls[i]); svg.append(pa); }
     const ln = document.createElementNS(ns, 'line'), sx = X(sc.S); Object.entries({ x1: sx, x2: sx, y1: 2, y2: H - 16, class: 'td-rs-now' }).forEach(([a, b]) => ln.setAttribute(a, b)); svg.append(ln);
-    [['Stressed', -2.2, 'middle'], ['Ease off', cut[2] + 0.05, 'end'], ['Ready', 0.15, 'middle'], ['Primed', 1.8, 'middle']].forEach(([t, x, a]) => { const tx = document.createElementNS(ns, 'text'); tx.textContent = t; tx.setAttribute('x', X(x)); tx.setAttribute('y', H - 3); tx.setAttribute('text-anchor', a); tx.setAttribute('class', 'td-rs-tk'); svg.append(tx); });
-    box.append(svg);
+    [['Stressed', -1.75, 'middle'], ['Ease off', cut[2] + 0.05, 'end'], ['Ready', 0.15, 'middle'], ['Primed', 1.5, 'middle']].forEach(([t, x, a]) => { const tx = document.createElementNS(ns, 'text'); tx.textContent = t; tx.setAttribute('x', X(x)); tx.setAttribute('y', H - 3); tx.setAttribute('text-anchor', a); tx.setAttribute('class', 'td-rs-tk'); svg.append(tx); });
+    const bw = el('span', 'td-nm-scale td-rs-bellrow'), bb = el('span', 'td-rs-bellbox'); bb.append(svg);
+    bw.append(el('span', 'td-nm-end td-rs-ghost', 'low'), bb, el('span', 'td-nm-end td-rs-ghost', 'high')); box.append(bw);
     // the last 3 days as the score read them: two days before from the coach (ready_day rows), today from this card
     const days = (kind('ready_day') || []).filter((d) => d.date < TODAY && dayN(d.date) >= TN - 2).sort((a, b) => (a.date < b.date ? -1 : 1)).map((d) => ({ ...d, mk: 1 }));
     days.push({ date: TODAY, score: sc.S, level: lv });
