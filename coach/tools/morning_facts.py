@@ -329,9 +329,17 @@ def section_night(today, data, th):
     out["hrv_status"] = cur.get("hrv_status") or None
     out["hrv_weekly_ms"] = num(cur.get("hrv_weekly_ms"))
     out["overlap_note"] = "HRV, sleep score and Body Battery overlap; they are one signal read three ways, not three confirmations."
+    import alpha  # noqa: E402
+    if alpha.on("readiness_score"):  # raw watch values only (the athlete, Nov 21, 2026: "remove the Garmin black box scores")
+        for k in VENDOR_SCORES:
+            out["metrics"].pop(k, None)
+        out["hrv_status"] = None
+        out["overlap_note"] = "Raw watch values only (sleep hours, HRV, resting HR); vendor scores are left out (RULES 5, readiness score)."
     return out
 
 
+# vendor scores the readiness score leaves out everywhere it is on (alpha readiness_score)
+VENDOR_SCORES = ("sleep_score", "body_battery_high", "body_battery_charged", "stress_avg_prev_day")
 NIGHT_GAUGE = (("sleep_h", 1), ("sleep_score", 1), ("hrv_overnight_ms", 1), ("resting_hr", -1))
 
 

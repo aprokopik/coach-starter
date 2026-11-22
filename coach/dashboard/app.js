@@ -847,7 +847,10 @@
     const w = (Math.abs(r.z) >= 2 ? 'Well ' : '') + (z.pos === 'above' ? 'high' : 'low');
     return { z, s: z.warn ? 'watch' : 'plain', word: w.charAt(0).toUpperCase() + w.slice(1) };
   }
-  const VITALS = ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr', 'body_battery_high', 'stress_avg'];
+  // raw watch values only while alpha readiness_score is on (the athlete, Nov 21, 2026: "remove the Garmin black box scores")
+  const RAW = ['sleep_h', 'hrv_overnight_ms', 'resting_hr'];
+  const VITALS0 = ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr', 'body_battery_high', 'stress_avg'];
+  const vitals = () => (alpha('readiness_score') ? RAW : VITALS0);
   const vFmt = (r) => (v) => (Math.abs(N(r.mean) || 0) >= 20 ? f0(v) : f1(v));
   // Last night: one table (Cockpit ck-vtab). Under 640 px each row is a tile (2 across); from 640 a table with a sticky
   // first column, an edge fade and a visible scrollbar when it is wider than its frame. The Watch notice reads the same rows
@@ -869,15 +872,27 @@
   }
   // A new athlete (no gauge figure yet: under 14 nights, or nothing synced) gets the same closed row as everyone else, saying
   // what the coach is waiting for; the vitals open from it. Only an error or a load shows the section open (the athlete, Nov 14, 2026).
-  const LEARN = ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr'];
+  const learnKeys = () => (alpha('readiness_score') ? RAW : ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr']);
   function nightLearn() {
     const mb = $('t-nm-btn'), rows = rowsOk('night') || [], by = Object.fromEntries(rows.map((r) => [r.metric, r]));
-    const any = VITALS.some((m) => by[m]), n = Math.min(...LEARN.map((m) => (by[m] ? N(by[m].n) || 0 : 0)));
+    const any = vitals().some((m) => by[m]), n = Math.min(...learnKeys().map((m) => (by[m] ? N(by[m].n) || 0 : 0)));
     mb.dataset.learn = '1'; $('t-nm-v').textContent = ''; $('t-nm-bar').replaceChildren();
     const w = $('t-nm-word'); w.replaceChildren(neutralChip(any ? 'Learning your normal' : 'No night synced yet'));
     if (any) w.append(' ', mark(el('span', null, String(n)), 'night', 'n', 'metric=sleep_h'), ' of ', ruleSpan('14', 'calc.js night: a band needs 14 nights (min n)'), ' nights');
     mb.setAttribute('aria-label', any ? `Last night: learning your normal, ${n} of 14 nights so far. Show the vitals` : 'Last night: no night synced yet. Show details');
     nightOpen(true);
+  }
+  // This morning's survey as tiles (alpha readiness_score): each answer against the 28 mornings before, spread never under
+  // a full point (answers move in whole steps, as the score reads them); stress and pain are better low
+  function surveyTiles() {
+    const T = kind('feel_day').find((d) => d.date === TODAY) || (window.CX.feelToday && window.CX.feelToday.date === TODAY ? window.CX.feelToday : null);
+    const past = kind('feel_day').filter((d) => Number(d.scale) === 5 && d.date < TODAY && dayN(d.date) >= TN - 28);
+    return [['energy', 'Energy', 1], ['legs', 'Legs', 1], ['sleep_q', 'Sleep, how rested', 1], ['stress', 'Stress', -1], ['pain', 'Pain', -1]].map(([metric, label, better]) => {
+      const v = past.map((d) => N(d[metric])).filter((x) => x !== null), n = v.length, mean = n ? v.reduce((a, b) => a + b, 0) / n : null;
+      const sd = n > 1 ? Math.max(1, Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1))) : null, value = T ? N(T[metric]) : null;
+      return { metric, label, unit: 'of 5', better, date: TODAY, value, mean: mean === null ? null : Math.round(mean * 10) / 10, sd: sd === null ? null : Math.round(sd * 100) / 100, n,
+        z: value !== null && sd && n >= 14 ? Math.round((value - mean) / sd * 10) / 10 : null };
+    });
   }
   function renderNight() {
     nightHome(); $('t-nm-btn').querySelector('.td-nm-k').textContent = "Last night's recovery";
@@ -888,7 +903,7 @@
     box.replaceChildren();
     const by = Object.fromEntries(d.data.map((r) => [r.metric, r]));
     const s = by.sleep_h;
-    if (!VITALS.some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
+    if (!vitals().some((m) => by[m])) { nightLearn(); cardState(sect, 'empty', 'No night synced yet. The vitals appear after your watch next syncs.'); renderCall(by); return; }
     cardState(sect, null);
     $('n-date').textContent = s && TN - dayN(s.date) < 1 ? `Morning of ${fWd(P(s.date))}` : '';
     // stale: the newest night is older than this morning
@@ -896,32 +911,62 @@
     // an old night shows no watch figures, only that it is waiting (6.154.0, the athlete Nov 19: "shouldn't we not see any watch metrics")
     const old = !!s && age >= 1; $('n-stale').hidden = !old; $('n-gauge').hidden = $('n-all').hidden = old;
     if (old) $('n-stale-t').textContent = `Waiting for last night from your watch. It arrives with the next Garmin pull (newest: ${fWd(P(s.date))}).`;
-    for (const m of VITALS) {
-      const r = by[m]; if (!r) continue;
-      const w = 'metric=' + m, vs = vState(r), z = vs.z;
+    // one tile per input, in score weight order while alpha readiness_score is on (the athlete, Nov 21, 2026: "Add the survey
+    // results to this", "Order in importance/weight"); the name carries its share of the score
+    const tile = (r, m, src, wf) => {
+      const w = wf, vs = vState(r), z = vs.z;
       const tr = el('tr'); tr.dataset.key = m; tr.id = 'n-' + m; if (vs.s === 'watch') tr.dataset.s = 'watch';
-      const th = mark(el('th', 'ck-c-name', r.label), 'night', 'label', w); th.scope = 'row';
-      const val = el('td', 'ck-c-val'); val.append(mark(el('span', null, r.value === null ? '—' : String(r.value)), 'night', 'value', w)); if (r.unit && r.value !== null) val.append(mark(el('span', 'ck-unit', r.unit), 'night', 'unit', w));
+      tr.dataset.ms = r.value === null ? 'unknown' : vs.s; if (N(r.z) !== null && r.value !== null) tr.dataset.z = N(r.z) * (r.better || 1);
+      const th = mark(el('th', 'ck-c-name', r.label), src, 'label', w); th.scope = 'row';
+      const val = el('td', 'ck-c-val'); val.append(mark(el('span', null, r.value === null ? '—' : String(r.value)), src, 'value', w)); if (r.unit && r.value !== null) val.append(mark(el('span', 'ck-unit', r.unit), src, 'unit', w));
       if (m === 'body_battery_high' && by.body_battery_charged && by.body_battery_charged.value !== null) { const rc = el('span', 'ck-sub td-recharge', 'recharge +'); rc.append(mark(el('span', null, String(by.body_battery_charged.value)), 'night', 'value', 'metric=body_battery_charged')); val.append(rc); }
       const bandOk = N(r.mean) !== null && N(r.sd) !== null && N(r.n) >= 14;
-      const lo = bandOk ? N(r.mean) - N(r.sd) : null, hi = bandOk ? N(r.mean) + N(r.sd) : null;
-      const rg = mark(el('td', 'ck-c-range'), 'night', null, w, 'usual-range'); rg.dataset.label = 'Usual';
+      const sc5 = r.unit === 'of 5', lo = bandOk ? (sc5 ? Math.max(r.metric === 'pain' ? 0 : 1, N(r.mean) - N(r.sd)) : N(r.mean) - N(r.sd)) : null, hi = bandOk ? (sc5 ? Math.min(5, N(r.mean) + N(r.sd)) : N(r.mean) + N(r.sd)) : null;
+      const rg = mark(el('td', 'ck-c-range'), src, null, w, 'usual-range'); rg.dataset.label = 'Usual';
       // the same words and rounding as the range bar's sentence (charts.js CKC.say.band), so they never disagree
       const bw = bandOk && r.value !== null ? CKC().say.band(N(r.value), lo, hi, vFmt(r), r.unit || '', z.pos) : '';
       if (bandOk) rg.textContent = bw ? bw.replace(/^.*your usual /, '') : `${vFmt(r)(lo)} to ${vFmt(r)(hi)}${r.unit ? ' ' + r.unit : ''}`;
-      else { rg.replaceChildren(); rg.append('No band yet, ', mark(el('span', null, String(N(r.n) || 0)), 'night', 'n', w), ' of ', ruleSpan('14', 'calc.js night: a band needs 14 nights (min n)'), ' nights'); }
-      const sc = mark(el('td', 'ck-c-status'), 'night', null, w, 'vstate'); sc.append(vs.s === 'plain' ? neutralChip(vs.word, 'ck-badge--md') : badge(vs.s, vs.word, 'ck-badge--md'));
+      else { rg.replaceChildren(); rg.append('No band yet, ', mark(el('span', null, String(N(r.n) || 0)), src, 'n', w), ' of ', ruleSpan('14', 'calc.js night: a band needs 14 nights (min n)'), ' nights'); }
+      const sc = mark(el('td', 'ck-c-status'), src, null, w, 'vstate'); sc.append(r.value === null && src === 'coach' ? neutralChip('Not answered yet', 'ck-badge--md') : vs.s === 'plain' ? neutralChip(vs.word, 'ck-badge--md') : badge(vs.s, vs.word, 'ck-badge--md'));
       // the SD figure beside the badge is gone (plain reading, Nov 15, 2026): the badge word and the range bar carry the reading
       const bar = el('td', 'ck-c-bar'); const svgEl = el('div'); bar.append(svgEl);
       tr.append(th, val, rg, sc, bar); box.append(tr);
       // script-held (CHARTS.md): the 14-night gate, the 2.5 SD track width and the usual range = average ± 1 SD.
       // position: the row's own comparison (zText), so the sentence and the row text never disagree
       // no band yet: the tile already says so in words, so the empty hatched bar and its caption are left out
-      if (bandOk) CKC().rangeBar(svgEl, { key: 'night-' + m, label: r.label, when: 'last night', value: r.value, mean: r.mean, sd: r.sd, lo, hi, position: z.pos, n: r.n, minN: 14, span: 2.5, unit: r.unit, fmt: vFmt(r), marks: { source: 'night', where: w } });
-    }
+      if (bandOk) CKC().rangeBar(svgEl, { key: 'night-' + m, label: r.label, when: 'last night', value: r.value, mean: r.mean, sd: r.sd, lo, hi, position: z.pos, n: r.n, minN: 14, span: 2.5, unit: r.unit, fmt: vFmt(r), marks: { source: src, where: w } });
+        };
+    if (alpha('readiness_score')) {
+      const sv = surveyTiles(), th = kind('feel_rule')[0] || {}, pct = (k) => Math.round(N(th['readiness_weight_' + k]) * 100);
+      const ri = kind('ready_inputs')[0] || {};
+      // a map (the athlete, Nov 21, 2026, picked option G2 of 7 then 4): Survey a column on the left, Watch on the right, each card's
+      // area is its share of the score; inside, the value and a dot on your usual range (middle line = your normal, right = better)
+      box.classList.add('td-map');
+      const L = { energy: 'Energy', legs: 'Legs', sleep_q: 'Rested', stress: 'Stress', hrv: 'HRV', load: 'Load', rhr: 'Rest HR', sleep: 'Sleep' }, M = { hrv: 'hrv_overnight_ms', rhr: 'resting_hr', sleep: 'sleep_h' };
+      const ws = ['hrv', 'load', 'rhr', 'sleep'].sort((a, b) => pct(b) - pct(a)), S = pct('survey'), Wt = ws.reduce((a, k) => a + pct(k), 0) || 1;
+      // row lines in % of the map's height: four equal survey answers on the left; the two heaviest watch inputs stacked on
+      // the right, then the last two side by side, each band as tall as its share of the watch weight
+      const y1 = 100 * pct(ws[0]) / Wt, y2 = y1 + 100 * pct(ws[1]) / Wt, lines = [...new Set([0, 25, 50, 75, 100, y1, y2].map((v) => Math.round(v * 10) / 10))].sort((a, b) => a - b), ln = (v) => lines.indexOf(Math.round(v * 10) / 10) + 1;
+      const b3 = pct(ws[2]) + pct(ws[3]) || 1, c3 = (100 - S) * pct(ws[2]) / b3;
+      box.style.gridTemplateColumns = `${S}fr ${c3}fr ${100 - S - c3}fr`;
+      box.style.gridTemplateRows = lines.slice(1).map((v, i) => `${((v - lines[i]) * 0.22).toFixed(2)}rem`).join(' ') + ' auto';
+      const AREA = { [ws[0]]: [0, y1, 2, 4], [ws[1]]: [y1, y2, 2, 4], [ws[2]]: [y2, 100, 2, 3], [ws[3]]: [y2, 100, 3, 4] };
+      ['energy', 'legs', 'sleep_q', 'stress'].forEach((k, i) => { AREA[k] = [25 * i, 25 * (i + 1), 1, 2]; });
+      const put = (k, w, wk) => { const t = box.lastElementChild; const [a0, a1, c0, c1] = AREA[k]; t.style.gridArea = `${ln(a0)} / ${c0} / ${ln(a1)} / ${c1}`;
+        const z = N(t.dataset.z); t.dataset.m = t.dataset.ms; t.querySelector('th').append(' ', mark(el('span', 'td-map-w', w + '%'), 'coach', wk, 'kind=feel_rule'));
+        const tk = el('td', 'td-map-trk'); tk.setAttribute('aria-hidden', 'true'); tk.append(el('i', 'td-map-mid'));
+        if (z !== null) { const d = el('b', 'td-map-dot'); d.style.left = Math.max(4, Math.min(96, 50 + z * 25)) + '%'; tk.append(d); } t.append(tk); };
+      for (const r of sv.filter((x) => x.metric !== 'pain')) { tile({ ...r, label: L[r.metric] }, r.metric, 'coach', `kind=feel_day;date=${r.date};field=${r.metric}`); put(r.metric, S / 4, 'readiness_weight_survey'); }
+      for (const k of ws) {
+        if (k === 'load') { if (ri.date === TODAY && ri.load != null) { tile({ metric: 'load', label: L.load, unit: 'σ', better: 1, value: ri.load, mean: 0, sd: 1, n: 60, z: ri.load }, 'load', 'coach', 'kind=ready_inputs;field=load'); put(k, pct(k), 'readiness_weight_' + k); } continue; }
+        const r = by[M[k]]; if (r) { tile({ ...r, label: L[k] }, M[k], 'night', 'metric=' + M[k]); put(k, pct(k), 'readiness_weight_' + k); }
+      }
+      const pn = sv.find((x) => x.metric === 'pain'); if (pn) { tile({ ...pn, label: 'Pain · caps the level' }, 'pain', 'coach', `kind=feel_day;date=${pn.date};field=pain`); const t = box.lastElementChild; t.classList.add('td-map-cap'); t.style.gridArea = `${lines.length} / 1 / ${lines.length + 1} / 4`; }
+    } else for (const m of vitals()) { const r = by[m]; if (r) tile(r, m, 'night', 'metric=' + m); }
     const foot = $('n-foot'); foot.replaceChildren();
     if (s) { const r1 = el('span', null, 'a normal night-to-night swing'), r2 = el('span', null, '28 days'), r3 = el('span', null, '30–45 min'); r1.setAttribute('data-rule', 'calc.js night: usual range = average ± 1 SD'); r2.setAttribute('data-rule', 'calc.js night: 28-day window'); r3.setAttribute('data-rule', 'app.js renderNight: Garmin sleep note');
       foot.append('Bar: your average, give or take ', r1, ', over the ', r2, ' before (', mark(el('span', null, String(s.n)), 'night', 'n', 'metric=sleep_h'), ' nights); the dot is last night. It informs the call; it never decides it alone. Garmin reads sleep about ', r3, ' high.'); }
+    if (alpha('readiness_score')) foot.replaceChildren("Box size is each input's share of today's readiness score. The dot is today on your usual range: the line is your normal, right of it is better. Usual is the 28 nights or mornings before. Garmin reads sleep about 30 to 45 min high.");
     renderCall(by);
   }
   // the meter's track, for last night and the survey's feel
@@ -1023,7 +1068,7 @@
   }
   // The deck's Watch notice: the six vitals under the rule above (no new rule).
   function renderCall(by) {
-    const rows = by ? VITALS.map((m) => by[m]).filter(Boolean) : [];
+    const rows = by ? vitals().map((m) => by[m]).filter(Boolean) : [];
     const sts = rows.map((r) => ({ r, v: vState(r) }));
     const watch = sts.filter((x) => x.v.s === 'watch');
     const note = $('t-watchnote'), t = $('t-watchnote-t'); t.replaceChildren(); note.hidden = !watch.length; placeWatch();

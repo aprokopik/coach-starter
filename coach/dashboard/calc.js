@@ -73,12 +73,15 @@
   // show them) for sleep hours, sleep score, HRV and resting HR, each signed by its `better` so higher is better for all four
   // (resting HR flips). A metric without a band (z null: fewer than 14 nights, or not synced) is left out; `used` says how
   // many counted. Computed once here; the Today gauge only reads it.
+  // raw watch values only while alpha readiness_score is on (the athlete, Nov 21, 2026: "remove the Garmin black box scores"):
+  // the sleep score leaves the last night number and the 7 nights
+  const rawOnly = (coach) => Array.isArray(coach) && coach.some((r) => r && r.kind === 'alpha' && r.id === 'readiness_score');
   dash.calc('night_gauge', {
     title: 'Last night in one number',
     description: "Mean of last night's SD distances from the 28-day normal for sleep hours, sleep score, HRV and resting HR, resting HR sign flipped so higher is better; metrics without a band (under 14 nights) are left out.",
-    inputs: ['night'],
-    fn: (night) => {
-      const keys = ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr'];
+    inputs: ['night', 'coach'],
+    fn: (night, coach) => {
+      const keys = rawOnly(coach) ? ['sleep_h', 'hrv_overnight_ms', 'resting_hr'] : ['sleep_h', 'sleep_score', 'hrv_overnight_ms', 'resting_hr'];
       const rows = keys.map((k) => night.find((r) => r.metric === k)).filter(Boolean);
       if (!rows.length) return [];
       const zs = rows.filter((r) => N(r.z) !== null && N(r.value) !== null).map((r) => N(r.z) * (N(r.better) < 0 ? -1 : 1));
@@ -237,12 +240,12 @@
   dash.calc('night_week', {
     title: 'Last 7 nights vs your normal',
     description: "Each of the last 7 nights in one number: the mean of that night's SD distances from the 28 days before it for sleep hours, sleep score, HRV and resting HR (flipped), as night_gauge does for last night.",
-    inputs: ['recovery'],
-    fn: (recovery) => {
+    inputs: ['recovery', 'coach'],
+    fn: (recovery, coach) => {
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const rows = recovery.filter((r) => r.date).sort((a, b) => (a.date < b.date ? -1 : 1));
       if (!rows.length) return [];
-      const keys = [['sleep_h', 1], ['sleep_score', 1], ['hrv_overnight_ms', 1], ['resting_hr', -1]];
+      const keys = [['sleep_h', 1], ['sleep_score', 1], ['hrv_overnight_ms', 1], ['resting_hr', -1]].filter(([m]) => !rawOnly(coach) || m !== 'sleep_score');
       const lastDay = dayN(lastNight(rows)), out = [];
       for (let k = 6; k >= 0; k--) {
         const t = lastDay - k, cur = rows.find((r) => dayN(r.date) === t), zs = [];

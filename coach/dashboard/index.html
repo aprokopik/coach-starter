@@ -137,7 +137,7 @@
                figure and word, then a full-width -2 to +2 SD bar with dashed marks at -1 and +1 (the usual range) and a mark at
                0; the whole row is the disclosure for the gauge and every vital (#t-hn). app.js renderGauge fills it. -->
           <button class="ck-disc td-nm" type="button" id="t-nm-btn" aria-expanded="false" aria-controls="t-hn" data-ck="disc" hidden>
-            <span class="td-nm-w"><span class="td-nm-k">Last night's recovery</span> <b class="td-nm-v" id="t-nm-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, sleep_score, hrv_overnight_ms and resting_hr (sign flipped)"></b> <span class="td-nm-u">vs your normal</span><span class="td-nm-dot" aria-hidden="true"> · </span><span class="td-nm-word" id="t-nm-word" data-source="night_gauge" data-where="key=last_night" data-derived="gauge-word"></span></span>
+            <span class="td-nm-w"><span class="td-nm-k">Last night's recovery</span> <b class="td-nm-v" id="t-nm-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, hrv_overnight_ms and resting_hr (sign flipped), plus sleep_score while alpha readiness_score is off"></b> <span class="td-nm-u">vs your normal</span><span class="td-nm-dot" aria-hidden="true"> · </span><span class="td-nm-word" id="t-nm-word" data-source="night_gauge" data-where="key=last_night" data-derived="gauge-word"></span></span>
             <span class="td-nm-scale" aria-hidden="true"><span class="td-nm-end">low</span><span class="td-nm-bar" id="t-nm-bar"></span><span class="td-nm-end">high</span></span>
             <svg class="ck-chev" aria-hidden="true"><use href="#cx-chevron"/></svg>
           </button>
@@ -152,7 +152,7 @@
                 <div class="td-g-dial" id="n-g-dial">
                   <div class="td-g-draw" id="n-g-draw"></div>
                   <ol class="ck-vh" id="n-g-last" aria-label="The last 3 nights"></ol>
-                  <p class="td-g-fig"><span id="n-g-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, sleep_score, hrv_overnight_ms and resting_hr (sign flipped)"></span><span class="ck-unit">SD</span></p>
+                  <p class="td-g-fig"><span id="n-g-v" data-source="night_gauge" data-field="value" data-where="key=last_night" data-derived="night-gauge" data-rule="calc.js night_gauge: mean of last night's SD distances, sleep_h, hrv_overnight_ms and resting_hr (sign flipped), plus sleep_score while alpha readiness_score is off"></span><span class="ck-unit">SD</span></p>
                 </div>
                 <p class="td-g-line"><span id="n-g-b" data-source="night_gauge" data-where="key=last_night" data-derived="gauge-word"></span> <span class="td-g-sent" id="n-g-s" data-source="night_gauge" data-where="key=last_night" data-derived="sentence"></span></p>
                 <div class="td-g-ctx" id="n-g-n">
@@ -160,7 +160,7 @@
                     <table class="td-g-nights" aria-labelledby="n-g-ctx-h"><thead><tr id="n-g-ctx-d"></tr></thead><tbody><tr id="n-g-ctx-n" data-source="night_week" data-derived="zone"></tr></tbody></table>
                   </div>
                   <p class="td-g-ctx-l"><b>Call for today</b> <span id="n-g-ctx-t" data-source="coach" data-where="kind=today" data-derived="readiness meaning" data-rule="app.js READY_MEAN: the coach's call for today, never decided here"></span></p>
-                  <p class="ck-note">Each night is the average of sleep, sleep score, HRV and resting HR against your <span data-rule="calc.js night: 28-day window">28-day</span> normal. Today so far: <span data-source="night_gauge" data-field="used" data-where="key=last_night" id="n-g-used"></span> of <span data-source="night_gauge" data-field="of" data-where="key=last_night" id="n-g-of"></span> synced.</p>
+                  <p class="ck-note">Each night is the average of your watch sleep and recovery readings against your <span data-rule="calc.js night: 28-day window">28-day</span> normal. Today so far: <span data-source="night_gauge" data-field="used" data-where="key=last_night" id="n-g-used"></span> of <span data-source="night_gauge" data-field="of" data-where="key=last_night" id="n-g-of"></span> synced.</p>
                 </div>
                 <div class="ck-state" data-state="empty" id="n-g-empty" role="status" hidden><span class="ck-state-w"><svg class="ck-i" aria-hidden="true"><use href="#cx-unknown"/></svg>Nothing yet</span><span>No usual range yet for sleep, sleep score, HRV or resting HR: each needs <span data-rule="calc.js night: a band needs 14 nights (min n)">14</span> nights.</span></div>
               </article>
