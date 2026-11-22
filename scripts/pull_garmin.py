@@ -32,6 +32,9 @@ from zoneinfo import ZoneInfo
 import body_comp  # scale weigh-ins from Apple Health; the scale wins over a Garmin manual entry
 import streams  # per-second detail for hilly runs and hikes (Nov 8, 2026)
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "coach" / "tools"))
+import activity_fix  # noqa: E402  coach/activity_fixes.csv: a late start the athlete reported (6.167.0)
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 DAILY = DATA / "daily"
@@ -316,6 +319,8 @@ def upsert_csv(path: Path, fields: list[str], key: str, rows: list[dict]) -> Non
                 existing[row[key]] = row
     for row in rows:
         existing[str(row[key])] = {k: ("" if row.get(k) is None else row.get(k)) for k in fields}
+    if path.name == "activities.csv":  # corrections the athlete reported win over the watch (6.167.0)
+        activity_fix.apply_rows(existing.values(), activity_fix.load(str(path.parent.parent)))
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
