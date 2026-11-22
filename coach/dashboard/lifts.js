@@ -65,7 +65,13 @@
   const runnable = (x) => !!(x && Array.isArray(x.plan_ex) && x.plan_ex.length);
   // a plan row carries the exercise id, its block and only the dose it changes; the rest comes from the exercise list
   const planEx = (m, x, rid) => x.plan_ex.map((p, i) => ({ busy: i < 4, ...(m.xlib.get(p.id) || {}), ...p, ex: p.id, id: p.id, order: i, routine: rid || x.id }));
+  // the day's coach extras (week.json `lifts_extra`) are in the model on a lift day, so save, Done and collect treat them
+  // like any lift; Time for more and the plus button open them only once the minutes pass the plan
   function model() {
+    const m = model0(); if (!m || mfy) return m;
+    const dp = dayPlan(m); return dp && dp.extra.length ? withExtra(m, dp) : m;
+  }
+  function model0() {
     const b = baseModel(); if (!b) return null; b.lib = [...b.lib, ...mineRows(b)];
     const own = b.routine.routine, dr = window.CX.app ? window.CX.app.kind('day').find((x) => x.date === date && x.type === 'strength' && x.routine) : null;
     const s = Object.prototype.hasOwnProperty.call(todayPick, date) ? todayPick[date] : (logs.get(date) || {}).routine || (dr && dr.routine);
@@ -187,18 +193,38 @@
 
   const extraSets = new Map(); // extra set rows added with + set, per exercise, for the day being logged
   // Lift day: the day's strength plan row (week.json `lifts`, `lifts_busy`) sets which lifts are open; the rest fold.
-  let dayView = 'plan', dayFor = '', dayMins = 0;
+  let dayView = 'plan', dayFor = '', dayMins = 0, planMins = 0;
+  function withExtra(m, dp) {
+    const own = new Set(m.ex.map((e) => e.ex));
+    const add = dp.extra.filter((c) => !own.has(c)).map((c, i) => ({ busy: false, ...(m.xlib.get(c) || {}), ex: c, id: c, block: 'X', order: 100 + i, routine: m.routine.routine, extra_time: true }));
+    return { ...m, ex: [...m.ex.map((e) => (dp.extra.includes(e.ex) ? { ...e, extra_time: true } : e)), ...add],
+      blocks: add.length ? [...m.blocks, { block: 'X', order: 99, label: 'Extra time', note: 'after the plan', routine: m.routine.routine }] : m.blocks };
+  }
+  // the lifts the minutes can use: today's plan, plus the coach's extras once the minutes pass the planned time
+  const dayPool = (m, dp, mins) => m.ex.filter((e) => (mfy ? mfy.ex.includes(e.ex) : !dp || !dp.full.length || dp.full.includes(e.ex)
+    || (e.extra_time && mins > (N(dp.r.minutes) || 0))));
   // Minus and plus (alpha lift_time; the athlete, Nov 16, 2026, option 1C): the minutes rebuild the session. About 1.25 min a set
   // (1.75 per side) and 2 to set up. Over time: extras go first (not loaded, not in the busy version), then the busy-version
   // lifts, then sets drop to 1; with nothing cut, spare time adds a set to main lifts (loaded, both sides).
-  function fitTime(ex, mins) {
-    const main = (e) => /^lb/.test(e.load || '') && !e.per_side, rank = (e) => (main(e) ? 0 : e.busy ? 1 : 2);
+  // Past the planned minutes (the athlete, Nov 21, 2026: "Ill always want to see +5,+10,+15"): the time beyond the plan goes first
+  // to the coach's extra lifts in their order, then one set at a time to the day's lifts (main lifts first, 4 sets at most) and the extras (3 at most),
+  // so each step adds something the step before did not.
+  function fitTime(ex, mins, plan) {
+    const over = N(plan) && mins > plan ? mins - plan : 0;
+    const main = (e) => !e.extra_time && /^lb/.test(e.load || '') && !e.per_side, rank = (e) => (e.extra_time ? 3 : main(e) ? 0 : e.busy ? 1 : 2);
     const per = (e) => (e.per_side ? 1.75 : 1.25), cost = (L) => 2 + L.reduce((s, x) => s + x.n * per(x.e), 0);
+    const xs = ex.filter((e) => e.extra_time); if (over) { ex = ex.filter((e) => !e.extra_time); mins = plan; }
     let L = ex.map((e) => ({ e, n: N(e.sets) || 2 })).sort((a, b) => rank(a.e) - rank(b.e) || a.e.order - b.e.order); const k = L.length;
     while (cost(L) > mins && L.length > 1 && rank(L[L.length - 1].e) > 0) L.pop();
     for (let i = L.length - 1; cost(L) > mins && i >= 0; i--) L[i].n = 1;
     while (cost(L) > mins && L.length > 1) L.pop();
     if (L.length === k && L.every((x) => x.n === (N(x.e.sets) || 2))) for (const x of L) if (main(x.e) && cost(L) + per(x.e) <= mins) x.n++;
+    if (over) {
+      let B = over; const base = L.slice();
+      for (const e of xs.sort((a, b) => a.order - b.order)) { const n = N(e.sets) || 2; if (n * per(e) <= B) { L.push({ e, n }); B -= n * per(e); } }
+      for (let grew = true; grew;) { grew = false; for (const x of base) if (x.n < 4 && per(x.e) <= B) { x.n++; B -= per(x.e); grew = true; } }
+      for (let grew = true; grew;) { grew = false; for (const x of L.slice(base.length)) if (x.n < 3 && per(x.e) <= B) { x.n++; B -= per(x.e); grew = true; } } // then the extras, 3 sets at most
+    }
     return new Map(L.map((x) => [x.e.ex, x.n]));
   }
   const codes = (v) => String(v || '').split(/[;,\s]+/).filter(Boolean);
@@ -208,13 +234,16 @@
     if (!r) return null;
     const own = new Set(m.ex.map((e) => e.ex)), pick = (v) => codes(v).filter((c) => own.has(c));
     let full = pick(r.lifts); if (!full.length && /upper/i.test(r.title || '')) full = m.ex.filter((e) => !e.legs).map((e) => e.ex);
-    return { r, full, busy: pick(r.lifts_busy) };
+    // Extra time (the athlete, Nov 21, 2026: an upper day had nothing to add, so Time for more showed no buttons; he picked "Coach
+    // writes an extra list"): the row's `lifts_extra` names library lifts (coach/exercises.json ids) or routine codes
+    const extra = codes(r.lifts_extra).filter((c) => m.xlib.has(c) || own.has(c));
+    return { r, full, busy: pick(r.lifts_busy), extra };
   }
   function build(m) {
     const box = $('l-ex'); box.replaceChildren(); box.classList.remove('dash-skeleton');
     const dp = dayPlan(m), tm = alpha('lift_time');
-    if (dayFor !== date) { dayView = 'plan'; dayFor = date; mfy = null; dayMins = N(dp && dp.r.minutes) || N(m.routine.minutes) || 25; }
-    const fit = tm && dayView !== 'all' ? fitTime(m.ex.filter((e) => (mfy ? mfy.ex.includes(e.ex) : !dp || !dp.full.length || dp.full.includes(e.ex))), dayMins) : null;
+    if (dayFor !== date) { dayView = 'plan'; dayFor = date; mfy = null; dayMins = N(dp && dp.r.minutes) || N(m.routine.minutes) || 25; planMins = dayMins; }
+    const fit = tm && dayView !== 'all' ? fitTime(dayPool(m, dp, dayMins), dayMins, planMins) : null;
     const want = fit ? [...fit.keys()] : mfy ? mfy.ex : dp && (dayView === 'busy' && dp.busy.length ? dp.busy : dp.full);
     // a lift with sets already saved or typed that day always shows, so saving never drops it (collect reads the open inputs)
     const has = (e) => !!(saved && saved.sets && Array.isArray(saved.sets[e.ex]) && saved.sets[e.ex].length) || doneSet.has(e.ex) || skipSet.has(e.ex);
@@ -325,8 +354,8 @@
       }
       box.append(blk);
     }
-    const out = want && want.length ? m.ex.filter((e) => !want.includes(e.ex) && !has(e)) : [];
-    if (out.length && cl && fit) box.append(moreBox(m, out, dp));
+    const out = want && want.length ? m.ex.filter((e) => !want.includes(e.ex) && !has(e) && !e.extra_time) : [];
+    if (cl && fit) box.append(moreBox(m, out, dp));
     // Looking for something else? (approved on the Lifts Tab Cleanup page): the end of the session opens Something else today
     if (cl) { const lk = el('button', 'lx-look', '\u21bb Looking for something else?'); lk.type = 'button'; lk.addEventListener('click', () => { goR(m, 'need'); $('l-pick').scrollIntoView({ block: 'start' }); }); box.append(lk); }
     else if (out.length) { const fb = el('button', 'lx-dayfold'); fb.type = 'button'; fb.setAttribute('aria-expanded', String(dayView === 'all'));
@@ -363,20 +392,22 @@
   // Time for more (the athlete, Nov 16): +5, +10 and +15 minutes add NEW lifts at the end in the coach's order, never sets on a lift
   // already done; each button lists what it adds. Show all opens every lift, as before.
   function moreBox(m, out, dp) {
-    const pool = m.ex.filter((e) => (mfy ? mfy.ex.includes(e.ex) : !dp || !dp.full.length || dp.full.includes(e.ex))), now = new Set(fitTime(pool, dayMins).keys());
+    const now = fitTime(dayPool(m, dp, dayMins), dayMins, planMins);
     const box = el('div', 'lx-more'), hd = el('div', 'lx-morehd'); hd.append(el('b', null, 'Time for more?'));
     const sa = el('button', 'lx-showall', 'Show all'); sa.type = 'button'; sa.addEventListener('click', () => { dayView = 'all'; build(m); }); hd.append(sa); box.append(hd);
-    const row = el('div', 'lx-more3'); let seen = '';
-    for (const d of [5, 10, 15]) {
+    const row = el('div', 'lx-more3');
+    for (const d of [5, 10, 15]) { // always all three while they stay within 60 min (the athlete, Nov 21, 2026)
       if (dayMins + d > 60) break;
-      const add = [...fitTime(pool, dayMins + d).keys()].filter((k) => !now.has(k)).map((k) => m.ex.find((e) => e.ex === k)).filter(Boolean);
-      const key = add.map((e) => e.ex).join(); if (!add.length || key === seen) continue; seen = key;
-      const b = el('button', 'lx-tmb'); b.type = 'button'; b.append(el('b', null, `+${d} min`)); for (const e of add) b.append(el('span', null, e.name));
-      b.setAttribute('aria-label', `Add ${d} minutes: ${add.map((e) => e.name).join(', ')}`);
+      const nx = fitTime(dayPool(m, dp, dayMins + d), dayMins + d, planMins), name = (k) => (m.ex.find((e) => e.ex === k) || {}).name || k;
+      const add = [...nx.keys()].filter((k) => !now.has(k)).map(name), up = new Map();
+      for (const k of nx.keys()) if (now.has(k) && nx.get(k) > now.get(k)) { const g = nx.get(k) - now.get(k); up.set(g, [...(up.get(g) || []), name(k)]); }
+      const lines = [...add, ...[...up.keys()].sort((x, y) => y - x).map((g) => `+${g} set${g > 1 ? 's' : ''}${up.get(g).length === now.size ? ' on every lift' : ': ' + up.get(g).join(', ')}`)]; if (!lines.length) lines.push('More rest between sets');
+      const b = el('button', 'lx-tmb'); b.type = 'button'; b.append(el('b', null, `+${d} min`)); for (const t of lines) b.append(el('span', null, t));
+      b.setAttribute('aria-label', `Add ${d} minutes: ${lines.join(', ')}`);
       b.addEventListener('click', () => { flush(); dayMins += d; build(m); }); row.append(b);
     }
     if (row.childNodes.length) box.append(row);
-    box.append(el('p', 'ck-sub', `Not in ${dayMins} min: ${out.map((e) => e.name).join(', ')}`));
+    if (out.length) box.append(el('p', 'ck-sub', `Not in ${dayMins} min: ${out.map((e) => e.name).join(', ')}`));
     return box;
   }
   // This week's lifts as discs beside the title (game look pass, the athlete's pick 4, Nov 14, 2026): one disc per lift in the week's
