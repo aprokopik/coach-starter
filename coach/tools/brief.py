@@ -17,6 +17,7 @@ import sys
 from datetime import date, datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import hr_anchor  # noqa: E402  the athlete's own easy heart rates
+import steady_run  # noqa: E402  run pace from steady miles near the anchor (6.171.0)
 
 BRIEFS = "coach/block_briefs.json"
 LEVELS = "coach/levels.json"
@@ -58,11 +59,19 @@ def mss(minutes):
     return f"{s // 60}:{s % 60:02d}"
 
 
-def fitness_series(acts, summ):
+def fitness_series(acts, summ, steady=None, root="."):
     """Python twin of the page's dash.calc('fitness') (calc.js): run pace scaled to 150 bpm on flat runs and Zwift power
-    scaled to 130 bpm, each with a 28-day average. Keep the two in step. The 150 and 130 are the athlete's own anchors (hr_anchor.py)."""
+    scaled to 130 bpm. Keep the two in step. The 150 and 130 are the athlete's own anchors (hr_anchor.py).
+    Run (6.171.0): read from the run's steady miles (steady_run.py: laps after the first, near the anchor); a run without a
+    lap file falls back to its whole average within the run pace window. Its avg28 is the middle value of 42 days (3+ runs);
+    the bike keeps the 28-day mean (2+ rides)."""
     anc = hr_anchor.current()
-    A, B, (rlo, rhi), (blo, bhi) = anc["run"], anc["bike"], anc["window"]["run"], anc["window"]["bike"]
+    if steady is None:
+        steady = steady_run.values(acts, anc["run"], root)
+    A, B, (blo, bhi) = anc["run"], anc["bike"], anc["window"]["bike"]
+    rlo, rhi = anc["window"].get("runpace") or (A - hr_anchor.RUN_PACE_BAND, A + hr_anchor.RUN_PACE_BAND)
+    # a run on the day of a max test or the day after reads fatigue, not fitness (6.170.0)
+    tests = {_d((a.get("local_start") or "")[:10]) for a in acts if (a.get("local_start") or "")[:10] and re.search(r"ftp test|ramp test", a.get("name") or "", re.I)}
     rhr = [(_d(r["date"]), _f(r.get("resting_hr"))) for r in summ if r.get("date") and _f(r.get("resting_hr")) is not None]
 
     def rhr_at(d):
@@ -83,7 +92,16 @@ def fitness_series(acts, summ):
             if not mi or not mins or mins < 20:
                 continue
             pace = mins / mi
-            if pace < 7 or pace > 16 or ft / mi >= 60 or hr < rlo or hr > rhi:
+            if pace < 7 or pace > 16 or ft / mi >= 60:
+                continue
+            if d in tests or d - timedelta(days=1) in tests:
+                continue
+            aid = str(a.get("activity_id"))
+            if aid in steady:  # the lap file decides: steady miles near the anchor, or the run does not count
+                if not steady[aid]:
+                    continue
+                pace, hr = steady[aid][0], steady[aid][1]
+            elif hr < rlo or hr > rhi:
                 continue
             out.append({"date": d, "marker": "run", "value": pace * (hr - R) / (A - R)})
         elif "virtual_ride" in t or "zwift" in (a.get("name") or "").lower():
@@ -95,20 +113,31 @@ def fitness_series(acts, summ):
             out.append({"date": d, "marker": "bike", "value": p * (B - R) / (hr - R)})
     out.sort(key=lambda r: r["date"])
     for r in out:
-        xs = [q["value"] for q in out if q["marker"] == r["marker"] and r["date"] - timedelta(days=28) < q["date"] <= r["date"]]
-        r["avg28"] = sum(xs) / len(xs) if len(xs) >= 2 else None
+        win, need = _agg(r["marker"])
+        xs = [q["value"] for q in out if q["marker"] == r["marker"] and r["date"] - timedelta(days=win) < q["date"] <= r["date"]]
+        r["avg28"] = _summary(r["marker"], xs) if len(xs) >= need else None
     return out
 
 
+def _agg(key):
+    """(window days, sessions needed) for a marker's tile figure: run 42 days and 3 runs (6.171.0), bike 28 and 2."""
+    return (steady_run.WINDOW_DAYS, steady_run.MIN_RUNS) if key == "run" else (28, 2)
+
+
+def _summary(key, xs):
+    return steady_run.median(xs) if key == "run" else sum(xs) / len(xs)
+
+
 def avg28_on(series, key, d):
-    """Mean of the marker over the 28 days up to d; with nothing in that window, the 28 days up to its last point
-    (the same as the page's markerSummary, so the brief and the tile show one number)."""
+    """The marker's tile figure on day d (run: middle value of 42 days; bike: mean of 28); with nothing in that window, the
+    window up to its last point (the same as the page's markerSummary, so the brief and the tile show one number)."""
     pts = [r for r in series if r["marker"] == key and r["date"] <= d]
     if not pts:
         return None
-    end = d if any((d - r["date"]).days < 28 for r in pts) else pts[-1]["date"]
-    xs = [r["value"] for r in pts if 0 <= (end - r["date"]).days < 28]
-    return sum(xs) / len(xs) if xs else None
+    win, _ = _agg(key)
+    end = d if any((d - r["date"]).days < win for r in pts) else pts[-1]["date"]
+    xs = [r["value"] for r in pts if 0 <= (end - r["date"]).days < win]
+    return _summary(key, xs) if xs else None
 
 
 def today_iso():
@@ -182,7 +211,7 @@ def progress(k, b, today, ctx):
     p = {"now": None, "now_text": "", "baseline": None, "target": None, "strong": None, "pct": None, "expected": round(gone, 2), "state": "not started" if today < start else ""}
     key = k["key"]
     if key in ("run", "bike"):
-        lv = next((r for r in ctx["levels"] if r.get("key") == key and r.get("block_key") == b["block_key"]), {})
+        lv = next((r for r in ctx["levels"] if r.get("key") == key and r.get("block_key") == b["block_key"] and r.get("outcome") != "superseded"), {})
         better = -1 if key == "run" else 1
         now = avg28_on(ctx["series"], key, min(today, end))
         base = _f(lv.get("baseline"))

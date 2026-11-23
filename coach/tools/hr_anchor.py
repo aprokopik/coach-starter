@@ -32,6 +32,10 @@ from datetime import date
 PROFILE = os.path.join("coach", "athlete", "profile.json")
 DEFAULT = {"run": 150, "bike": 130}
 WINDOW = {"run": (-15, 25), "bike": (-20, 35), "climb": (-25, 30), "swim": (-20, 35)}
+# Run pace at the run anchor reads only runs whose average sits within RUN_PACE_BAND of the anchor (6.170.0; the athlete, Nov 23, 2026:
+# scaling a 166 to 169 bpm run down to 150 flattered the early November runs and made true easy runs look like a decline).
+# Trail pace and climbing keep the wider "run" window.
+RUN_PACE_BAND = 10
 
 
 def _num(v):
@@ -80,6 +84,7 @@ def from_profile(prof, today=None):
     swim = _num(a.get("swim")) or bike  # set from the run since Nov 21, 2026 (run minus SWIM_LESS); the bike's when unset
     base = {"run": run, "climb": run, "bike": bike, "swim": swim}
     win = {k: [base[k] + lo, base[k] + hi] for k, (lo, hi) in WINDOW.items()}
+    win["runpace"] = [run - RUN_PACE_BAND, run + RUN_PACE_BAND]
     # a target, not a ceiling: a session average within `band` bpm either side is on target (the athlete, Nov 15, 2026, RULES.md 5a)
     band = _num(g.get("band"))
     if _num(a.get("run")) and _num(a.get("bike")):  # one home (Nov 21, 2026): the easy day target is the anchor itself
@@ -174,6 +179,7 @@ def row(root=".", today=None):
     """The coach.json row the page reads (kind hr_anchor); nested fields as they are, the page parses them."""
     a = anchors(root, today)
     return {"kind": "hr_anchor", "run": a["run"], "bike": a["bike"], "run_lo": a["window"]["run"][0], "run_hi": a["window"]["run"][1],
+            "pace_lo": a["window"]["runpace"][0], "pace_hi": a["window"]["runpace"][1],
             "bike_lo": a["window"]["bike"][0], "bike_hi": a["window"]["bike"][1], "guard_run": a["guard"]["run"], "guard_bike": a["guard"]["bike"], "guard_band": a["guard"]["band"],
             "basis": a["basis"], "source": "coach/athlete/profile.json (hr_anchor), coach/tools/hr_anchor.py"}
 

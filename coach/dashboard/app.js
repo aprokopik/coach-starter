@@ -2,7 +2,7 @@
 // The Season tab and the Week race-week card are in season.js (loaded right after this file), which reads these helpers from
 // window.CX.app and registers CX.renderRaces and CX.renderRaceWeek; the other tabs' files load after it (index.html, MAINTAIN.md).
 (() => {
-  const { N, dayN, isoN, monday, U } = window.CX; // U: the person's units (calc.js)
+  const { N, dayN, isoN, monday, U, AV } = window.CX; // U: the person's units (calc.js)
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = String(txt); return e; };
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -2112,7 +2112,7 @@
     const RULE_8W = 'app.js markerSummary: the latest 28-day average against the 28-day average 8 weeks before it';
     const tiles = [];
     const sR = markerSummary(run, TN);
-    tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: U.paceU(), delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['flat run', 'flat runs'], none: 'No flat runs yet', asOf: sR ? sR.asOf : null });
+    tiles.push({ key: 'run', label: `Run pace at ${ANC().run} bpm`, value: sR ? mss(sR.now) : '—', unit: U.paceU(), delta: sR && sR.then !== null ? sR.now - sR.then : null, better: -1, rnd: (d) => Math.round(d * 60) / 60, dtext: (d) => `${mss(Math.abs(d))} ${d < 0 ? 'faster' : 'slower'}`, n: sR ? sR.n : 0, what: ['steady run', 'steady runs'], none: 'No steady runs yet', win: AV.win, rule: AV.rule, asOf: sR ? sR.asOf : null });
     const sB = markerSummary(bike, TN);
     tiles.push({ key: 'bike', label: `Bike power at ${ANC().bike} bpm`, value: sB ? f0(sB.now) : '—', unit: 'W', delta: sB && sB.then !== null ? sB.now - sB.then : null, better: 1, rnd: (d) => Math.round(d), dtext: (d) => `${d > 0 ? '+' : '−'}${f0(Math.abs(d))} W`, n: sB ? sB.n : 0, what: ['Zwift ride', 'Zwift rides'], none: 'No indoor rides with power yet', asOf: sB ? sB.asOf : null, lastD: bike.length ? Math.max(...bike.map((r) => dayN(r.date))) : null, staleAfter: BIKE_STALE_DAYS });
     { const pn = $('f-expand'); if (pn && pn.parentNode === tilesBox) tilesBox.after(pn); }
@@ -2129,7 +2129,7 @@
       const subs = [];
       if (t.delta !== null && t.delta !== 0) subs.push([mark(el('b', null, t.dtext(t.delta)), 'fitness', null, fw, 'change-8wk'), ' vs ', ruleSpan('8 wk', RULE_8W), ' earlier']);
       else if (t.delta !== null) subs.push(['Same as ', ruleSpan('8 wk', RULE_8W), ' earlier']);
-      subs.push(t.n ? [mark(el('span', null, String(t.n)), 'fitness', null, fw, 'count'), ` ${t.what[t.n === 1 ? 0 : 1]}, `, ruleSpan('28 days', RULE_28), t.asOf < TN - 1 ? [' to ', mark(el('span', null, fDay(P(isoN(t.asOf)))), 'fitness', null, fw, 'date')] : ''].flat() : t.none);
+      subs.push(t.n ? [mark(el('span', null, String(t.n)), 'fitness', null, fw, 'count'), ` ${t.what[t.n === 1 ? 0 : 1]}, `, ruleSpan(t.win || '28 days', t.rule || RULE_28), t.asOf < TN - 1 ? [' to ', mark(el('span', null, fDay(P(isoN(t.asOf)))), 'fitness', null, fw, 'date')] : ''].flat() : t.none);
       if (t.lastD !== undefined && t.lastD !== null) { // the last power ride, always named; its age once it is out of date
         const ld = mark(el('span', null, fDay(P(isoN(t.lastD)))), 'fitness', null, fw, 'last-date'), ago = TN - t.lastD;
         if (stale) subs.splice(0, subs.length, ['Last ', t.what[0], ' ', ld, ', ', mark(el('span', null, String(ago)), 'fitness', null, fw, 'days-since-last'), ' days ago']);
@@ -2359,13 +2359,13 @@
       const ticks = closeR ? (() => { const step = k === 'run' ? (hi - lo > 4 ? 1 : hi - lo > 2 ? 0.5 : 0.25) : d3.tickStep(lo, hi, 4); return d3.range(Math.ceil(lo / step) * step, hi + 1e-9, step); })() : d3.ticks(lo, hi, 4);
       lineChart(box, rows.map((r, j) => ({ ...r, gap: gapI.has(j) ? N(r.avg28) : null })), {
         key: 'fit-' + k, h: 190, narrow: pts2.length ? { h: 280 } : undefined, today: true, main: 1, head: 0, fmt: k === 'run' ? mss : f0, unit: k === 'run' ? 'min' + U.paceU() : 'W', endUnit: k === 'run' ? U.paceU() : 'W',
-        words: k === 'run' ? ['slower', 'faster'] : undefined, title: k === 'run' ? `Run pace at ${ANC().run} bpm, 28-day average` : `Bike power at ${ANC().bike} bpm, 28-day average`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
+        words: k === 'run' ? ['slower', 'faster'] : undefined, title: `${k === 'run' ? 'Run pace' : 'Bike power'} at ${ANC()[k]} bpm, ${AV[k].toLowerCase()}`, window: spanName(), marks: { source: 'fitness', field: 'avg28', where: 'marker=' + k, key: 'date' }, yDomain: k === 'run' ? [hi, lo] : [lo, hi], yTicks: ticks, xDomain: [spanStart(allRows), xEnd], clip: !!closeR,
         blocks: blockDraw.map((b) => ({ ...b, goal: undefined })), sublines: cm && zoom !== 'close' ? subEdges(cm) : undefined, tbands: !pts2.length ? undefined : zoom === 'close' && closeR ? subBands(cm, latest, () => basisOf('research').tone) : pts2.map((t) => ({ ...t, now: latest !== undefined && inTier(t, latest), tone: basisOf('research').tone })),
-        series: [{ key: 'avg28', label: '28-day average', tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }, ...(gapI.size ? [{ key: 'gap', label: k === 'run' ? 'No runs' : 'No rides', tone: SPORT_TONE[k], connect: true, dashed: true, width: 2, end: false }] : [])],
+        series: [{ key: 'avg28', label: AV[k], tone: SPORT_TONE[k], connect: false, width: 2.5 }, { key: 'value', label: k === 'run' ? 'Run' : 'Ride', tone: 'fg-3', dots: true, line: false, r: 3, end: false }, ...(gapI.size ? [{ key: 'gap', label: k === 'run' ? 'No runs' : 'No rides', tone: SPORT_TONE[k], connect: true, dashed: true, width: 2, end: false }] : [])],
         // the tip leads with the figure the dot is drawn at, and bike watts carry one decimal, so two dots at different heights never
         // read the same (the athlete, Nov 19, 2026: Nov 18 sat under Nov 13 yet both said 104 W; they were 103.6 and 104.0)
         tipLines: (r) => k === 'run'
-          ? [{ text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, { text: `Ran ${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, ${f1(r.miles)} ${U.distU()}` }, r.avg28 !== null ? { tone, text: `28-day average: ${mss(r.avg28)}` } : null].filter(Boolean)
+          ? [{ text: `At ${N(r.anchor) || ANC().run} bpm: ${mss(r.value)}${U.paceU()}` }, { text: `Steady ${mss(r.raw)}${U.paceU()} at ${r.hr} bpm, run ${f1(r.miles)} ${U.distU()}` }, r.avg28 !== null ? { tone, text: `${AV.run}: ${mss(r.avg28)}` } : null].filter(Boolean)
           : [{ text: `At ${N(r.anchor) || ANC().bike} bpm: ${f1(r.value)} W` }, { text: `Rode ${r.raw} W at ${r.hr} bpm, ${r.minutes} min` }, r.avg28 !== null ? { tone, text: `28-day average: ${f1(r.avg28)} W` } : null].filter(Boolean),
       });
       lg.replaceChildren(); lg.hidden = true; // direct labels replace the legend
@@ -2378,7 +2378,7 @@
         const vf = k === 'run' ? (v) => mss(v) + U.paceU() : (v) => f0(v) + ' W'; const sg = (g) => (k === 'run' ? `${g >= 0 ? '+' : '−'}${mss(Math.abs(g))}` : `${g >= 0 ? '+' : '−'}${f0(Math.abs(g))} W`);
         const better = k === 'run' ? -1 : 1; const edge = cur ? (better === 1 ? cur.hi : cur.lo) : null; const nextBand = cur ? ts.find((t) => (better === 1 ? t.lo === cur.hi : t.hi === cur.lo)) : null;
         const gap = edge !== null && edge !== undefined && nextBand ? `${sg(latest - edge)} vs ${nextBand.label} (${vf(edge)})` : '—';
-        $('f-detail').replaceChildren(markerDetail({ ...cm, gap, rank: cur ? cur.label : '' }, { rows: bc.full, how: calcNote, goal: bc.goal, nextText: bc.nextText, line: "Line: 28-day average", lineColor: tokv(SPORT_TONE[k]), dot: `Dots: each ${k === 'run' ? 'run' : 'ride'}, scaled to ${ANC()[k]} bpm` }));
+        $('f-detail').replaceChildren(markerDetail({ ...cm, gap, rank: cur ? cur.label : '' }, { rows: bc.full, how: calcNote, goal: bc.goal, nextText: bc.nextText, line: 'Line: ' + AV[k], lineColor: tokv(SPORT_TONE[k]), dot: `Dots: each ${k === 'run' ? 'run' : 'ride'}, scaled to ${ANC()[k]} bpm` }));
       }
     }
   }

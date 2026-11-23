@@ -38,6 +38,8 @@
   // a night is in once its sleep syncs; before that the day's row holds only the evening before (the athlete, Nov 20, 2026)
   const lastNight = (rows) => (rows.filter((r) => r.sleep_h !== '' && r.sleep_h != null).pop() || rows[rows.length - 1]).date;
   window.CX = Object.assign(window.CX || {}, { N, dayN, isoN, monday, round, fixed, fmt, U });
+  // the fitness tiles' line words (6.171.0): Run pace at the anchor is the median of 42 days, bike power the 28-day mean
+  window.CX.AV = { run: 'Middle of 6 weeks', bike: '28-day average', win: '6 weeks', rule: 'calc.js fitness: run avg28, median of 42 days, 3+ runs' };
 
   dash.calc('night', {
     title: 'Last night vs your normal',
@@ -325,29 +327,36 @@
 
   dash.calc('fitness', {
     title: 'Fitness markers per session',
-    description: 'Run: flat runs (under 60 ft climb per mile, 20+ min, 7–16 min/mi, HR 15 under to 25 over the run anchor), pace scaled to the run anchor A: pace × (HR − RHR) ÷ (A − RHR). Bike: Zwift rides of 30+ min, not tests, HR 20 under to 35 over the bike anchor, average power scaled to the bike anchor B: power × (B − RHR) ÷ (HR − RHR). The anchors are the athlete’s own easy heart rates (coach.json hr_anchor row, coach/tools/hr_anchor.py). RHR is the mean resting HR of the 15 days centred on the session. avg28 is the mean of the marker over the 28 days up to the session (2+ sessions). Estimated.',
+    description: 'Run: flat runs (under 60 ft climb per mile, 20+ min, 7–16 min/mi, not on the day of an FTP or ramp test or the day after), read from their steady miles (coach.json steady_run row, coach/tools/steady_run.py: laps after the first, each within 20 bpm of the run anchor, 2 or more), pace scaled to the run anchor A: pace × (HR − RHR) ÷ (A − RHR); a run with no lap file counts when its average HR is within 10 of the anchor. Run avg28 is the middle value (median) of the 42 days up to the run (3+ runs). Bike: Zwift rides of 30+ min, not tests, HR 20 under to 35 over the bike anchor, average power scaled to the bike anchor B: power × (B − RHR) ÷ (HR − RHR). The anchors are the athlete’s own easy heart rates (coach.json hr_anchor row, coach/tools/hr_anchor.py). RHR is the mean resting HR of the 15 days centred on the session. Bike avg28 is the mean of the 28 days up to the ride (2+ rides). Estimated.',
     inputs: ['activities', 'recovery', 'coach'],
     fn: (activities, recovery, coach) => {
       CX.U.see(coach);
       const val = (v) => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
       const anc = (coach || []).find((r) => r.kind === 'hr_anchor') || {};
       const A = val(anc.run) || 150, B = val(anc.bike) || 130;
-      const rLo = val(anc.run_lo) || A - 15, rHi = val(anc.run_hi) || A + 25, bLo = val(anc.bike_lo) || B - 20, bHi = val(anc.bike_hi) || B + 35;
+      const rLo = val(anc.pace_lo) || A - 10, rHi = val(anc.pace_hi) || A + 10, bLo = val(anc.bike_lo) || B - 20, bHi = val(anc.bike_hi) || B + 35;
       const day = (s) => Date.parse(String(s).slice(0, 10) + 'T00:00:00Z') / 86400000;
       const rd = (x, k) => Math.round(x * 10 ** k) / 10 ** k;
       const rhr = recovery.map((r) => ({ d: day(r.date), v: val(r.resting_hr) })).filter((r) => r.v !== null && !isNaN(r.d));
       const rhrAt = (d) => { const xs = rhr.filter((r) => Math.abs(r.d - d) <= 7).map((r) => r.v); return xs.length >= 3 ? xs.reduce((s, v) => s + v, 0) / xs.length : null; };
       const out = [];
+      // steady miles per run (6.171.0): 'id:pace:hr:laps;...', 'id:' when the lap file holds none
+      const stRow = (coach || []).find((r) => r.kind === 'steady_run'); const steady = new Map();
+      String((stRow && stRow.runs) || '').split(';').filter(Boolean).forEach((x) => { const [id, p, h] = x.split(':'); steady.set(id, p ? { p: Number(p), h: Number(h) } : null); });
+      const tests = new Set(activities.filter((a) => /(ftp|ramp) test/i.test(String(a.name || ''))).map((a) => day(String(a.local_start || '').slice(0, 10))));
       for (const a of activities) {
         const t = String(a.type || '').toLowerCase(); const d = String(a.local_start || '').slice(0, 10); if (!d) continue;
         const hr = val(a.avg_hr); if (hr === null) continue;
         const R = rhrAt(day(d)); if (R === null) continue;
         if (/run/.test(t) && !/treadmill|virtual/.test(t)) {
+          if (tests.has(day(d)) || tests.has(day(d) - 1)) continue;
           const mi = val(a.distance_mi), ft = val(a.ascent_ft) || 0, min = val(a.moving_min) || val(a.duration_min);
           if (!mi || !min || min < 20) continue;
-          const pace = min / mi;
-          if (pace < 7 || pace > 16 || ft / mi >= 60 || hr < rLo || hr > rHi) continue;
-          out.push({ date: d, marker: 'run', value: rd(CX.U.pace(pace * (hr - R) / (A - R)), 3), anchor: A, raw: rd(CX.U.pace(pace), 3), hr, rhr: rd(R, 1), miles: rd(CX.U.dist(mi), 2), id: String(a.activity_id), name: String(a.name || '') });
+          let pace = min / mi, h = hr;
+          if (pace < 7 || pace > 16 || ft / mi >= 60) continue;
+          const sid = String(a.activity_id);
+          if (steady.has(sid)) { const st = steady.get(sid); if (!st) continue; pace = st.p; h = st.h; } else if (hr < rLo || hr > rHi) continue;
+          out.push({ date: d, marker: 'run', value: rd(CX.U.pace(pace * (h - R) / (A - R)), 3), anchor: A, raw: rd(CX.U.pace(pace), 3), hr: h, rhr: rd(R, 1), miles: rd(CX.U.dist(mi), 2), id: String(a.activity_id), name: String(a.name || '') });
         } else if (/virtual_ride/.test(t) || /zwift/i.test(String(a.name || ''))) {
           const p = val(a.avg_power_w), min = val(a.duration_min);
           if (!p || !min || min < 30 || hr < bLo || hr > bHi || /(ftp|ramp) test/i.test(a.name)) continue;
@@ -356,8 +365,10 @@
       }
       out.sort((a, b) => (a.date < b.date ? -1 : 1));
       for (const r of out) {
-        const xs = out.filter((q) => q.marker === r.marker && day(q.date) <= day(r.date) && day(q.date) > day(r.date) - 28).map((q) => q.value);
-        r.avg28 = xs.length >= 2 ? rd(xs.reduce((s, v) => s + v, 0) / xs.length, 3) : null; r.n28 = xs.length;
+        const run = r.marker === 'run', W = run ? 42 : 28; // run: middle value of 42 days, 3+ runs (6.171.0); bike: 28-day mean
+        const xs = out.filter((q) => q.marker === r.marker && day(q.date) <= day(r.date) && day(q.date) > day(r.date) - W).map((q) => q.value).sort((p, q) => p - q);
+        const mid = xs.length % 2 ? xs[(xs.length - 1) / 2] : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2;
+        r.avg28 = xs.length >= (run ? 3 : 2) ? rd(run ? mid : xs.reduce((s, v) => s + v, 0) / xs.length, 3) : null; r.n28 = xs.length;
       }
       return out;
     },

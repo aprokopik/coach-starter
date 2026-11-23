@@ -175,6 +175,8 @@ for r in read_json("coach/races.json", {"rows": []}).get("rows", []):
 
 for name in ("coach/zones.json", "coach/benchmarks.json", "coach/strength.json", "coach/routines.json", "coach/my_routines.json", "coach/levels.json", "coach/norms.json", "coach/fitness_layout.json", "coach/race_tree.json"):
     for r in read_json(name, {"rows": []}).get("rows", []):
+        if r.get("kind") == "level_block" and r.get("outcome") == "superseded":
+            continue  # a corrected goal row stays in levels.json as history; the page reads only the live one (6.170.0)
         rows.append(dict(r))
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -268,6 +270,9 @@ import hr_anchor  # noqa: E402
 # The heart rates the easy-effort markers are read at, this athlete's own (the athlete, Nov 14, 2026); calc.js reads this row
 hr_anchor.use(".", datetime.now(TZ).date())
 rows.append(hr_anchor.row(".", datetime.now(TZ).date()))
+# Steady miles near the run anchor, per run (6.171.0): calc.js fitness reads Run pace at the anchor from them
+import steady_run  # noqa: E402
+rows.append(steady_run.row(read_csv("data/activities.csv"), hr_anchor.current()["run"], "."))
 rows.extend(markers.build(datetime.now(TZ).date(), rows))
 # Habits to build, the rows the Today card shows (the athlete, Nov 15, 2026); profile.json habits is their one home (BLOCK-BRIEF.md 2.5)
 # At most three at once (the athlete, Nov 16, 2026); habits.py HABITS_MAX is the one home for that number

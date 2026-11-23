@@ -1709,7 +1709,7 @@ def build(today, rows_so_far):
     # Pace at 150 bpm and power at 130 bpm are computed on the page (calc 'fitness'); these rows carry their tiers and targets only
     for key, label, unit, tiers, target, src in (
             ("run", "Run pace at 150 bpm", "/mi", RUN150_TIERS, own_target("run"),
-             "Flat runs, 28-day average of pace scaled to 150 bpm; heat and wind move it. The population bands assume the easy-HR pace held for the whole run leg, which is a floor, not a race prediction. Estimated."),
+             "Flat runs, read from their steady miles only (laps after the first, within 20 bpm of 150), pace scaled to 150 bpm; the middle value of 6 weeks (3+ runs). Heat and wind move it. The population bands assume the easy-HR pace held for the whole run leg, which is a floor, not a race prediction. Estimated."),
             ("bike", "Bike power at 130 bpm", "W", BIKE130_TIERS, own_target("bike"),
              "Zwift rides only, trainer power (calibration unknown), 28-day average of power scaled to 130 bpm. The population bands assume this easy-HR power held for 56 flat miles through a power model: a floor, not a race prediction. Estimated.")):
         marker("calc", 0, key, label, "", unit, "", "", "", "", "Estimated", "line")
