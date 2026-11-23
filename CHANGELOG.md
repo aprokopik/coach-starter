@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.172.0 (2026-11-23)
+- Dashboard, Feature: none (a layout move the kit maker asked for on the page, no switch): the level chip on each Skills · last 7 days row on Today sits top right of the row, with the open arrow under it (the kit maker, dashboard comment Nov 23, 2026: "put this in the top right corner"). It was under the skill name. The arrow moved under the chip so names keep their room: at 360 px only Aerobic engine (VO2max) wraps to two lines, none at 390 px. No data change.
+
 ## 6.171.0 (2026-11-23)
 - Engine, Feature: none (a correction to an existing marker, no switch): Run pace at 150 bpm reads each run's steady miles only: the laps after the first, flat, each within 20 bpm of the anchor, 2 or more (new coach/tools/steady_run.py, one coach.json `steady_run` row; calc.js and its twin brief.py read it). The tile is the middle value (median) of 6 weeks with 3 or more runs, not the 28-day mean (the kit maker, Nov 23, 2026: "give me the most optimal solution", card "Fold steady miles into PR 346"). Why: heart rate lags in mile 1 and drifts in long runs, so whole-run scaling read 10:56/mi on runs under 30 min and 12:34/mi on runs over 70 min in 2026, and the Oct 15 run scored 9:26 only because mile 1 read 130 bpm. A run with no lap file (a Strava kit) keeps the 6.170.0 whole-run rule. The tile now reads 11:17/mi. Bike power keeps the 28-day mean.
 

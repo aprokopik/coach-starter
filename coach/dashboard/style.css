@@ -287,7 +287,7 @@
 .ck .td-sk-ic .ck-i { width: var(--ck-i-lg); height: var(--ck-i-lg); }
 .ck .td-sk-nm { flex: 1; min-width: 0; display: grid; }
 .ck .td-sk-nm b { font-size: var(--ck-t3); line-height: var(--ck-l3); font-weight: var(--ck-w-bold); }
-.ck .td-sk-lv { display: flex; margin-top: 4px; min-width: 0; } /* the stage discs and level name chip under the name, as on the Fitness tile (game look pass, the athlete's pick 2) */
+.ck .td-sk-lv { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; align-self: flex-start; } /* the stage discs and level name chip top right of the row (the athlete, Nov 23, 2026), as on the Fitness tile */
 .ck .td-sk-steps { height: 10px; }
 .ck .td-sk-lv small { font-size: var(--ck-t1); line-height: var(--ck-l1); color: var(--ck-fg-3); font-weight: var(--ck-w-bold); }
 .ck .td-sk-xp { position: relative; height: 10px; border-radius: 5px; background: var(--ck-chart-band); overflow: hidden; }

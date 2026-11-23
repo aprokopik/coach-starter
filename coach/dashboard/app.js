@@ -270,14 +270,14 @@
     if (dLv === 0 && dp === 0) return null;
     const item = el('div', 'td-sk'); mark(item, 'coach', null, m.key && kind('mpt').some((q) => q.key === m.key) ? 'kind=mpt&key=' + m.key : null, 'progress');
     const r1 = el('div', 'td-sk-r1'); const ic = el('span', 'td-sk-ic'); ic.append(icon(SKILL_ICON(m.key)));
-    const nm = el('span', 'td-sk-nm'); nm.append(el('b', null, m.label), el('span', 'ck-sub', `${stageOf(m) ? stageOf(m).label + ' · ' : ''}${vf(last.value)}`)); // the level name is in the chip beside it
+    const nm = el('span', 'td-sk-nm'); nm.append(el('b', null, m.label), el('span', 'ck-sub', `${stageOf(m) ? stageOf(m).label + ' · ' : ''}${vf(last.value)}`)); // the level name is in the chip top right
     // Game look pass (the athlete, Nov 14, 2026, pick 2 "blend of current and option 1"): the row keeps the icon, name and value line, and
     // the right side and the bar are the Fitness tile's own parts: the stage discs beside the level name chip, and the step bar
     // inside the level (levelBadge, stageChip, withStage), so one skill reads the same on Today and on Fitness
     const lvTxt = (n) => { const t = ladderOf(m)[n - 1]; return t && /^(Top|Bottom) /.test(t.label) ? t.label : 'the next level'; }; // a rank reads as a place ("Bottom 20%"); other ladder names ("At the reference") read oddly after "to"
     const parts = withStage(levelBadge(levelFor(m, last.value), m.key), stageChip(m));
     const lv = el('span', 'td-sk-lv'); const steps = parts.querySelector ? parts.querySelector('.ft-steps, .ft-meter') : null; if (steps) steps.remove();
-    lv.append(parts); nm.append(lv); r1.append(ic, nm); item.append(r1); // under the name, so a long skill name keeps one line
+    lv.append(parts); r1.append(ic, nm, lv); item.append(r1); // top right of the row (the athlete, Nov 23, 2026); a long name wraps under it
     if (steps) { steps.classList.add('td-sk-steps'); item.append(steps);
       // the part gained (filled green) or lost (outlined) since the start of the 7 days, drawn on the same steps when both readings
       // sit in the same level; a level change says so in the tag instead
@@ -297,7 +297,7 @@
     const nx = el('span', 'td-sk-next'); nx.append(b.next ? `${df(Math.max(b.toNext, 0))} to ${lvTxt(b.n + 1)}` : 'Top level');
     r3.append(what, nx); item.append(r3);
     { const was = el('p', 'ck-sub td-sk-was'); was.append(`Was ${vf(prev.value)}${a ? ` (${a.band.label})` : ''} on ${fDay(P(prev.date))}, now ${vf(last.value)}.`); item.append(was); } // visible: where the 7 days began
-    const h = alpha('skills_tap') && skillHome(m); if (h && window.CX.openTile) { item.classList.add('is-tap'); item.tabIndex = 0; item.setAttribute('role', 'button'); item.setAttribute('aria-label', `${m.label}: open its chart on Fitness`); r1.append(icon('chevron', 'ck-chev'));
+    const h = alpha('skills_tap') && skillHome(m); if (h && window.CX.openTile) { item.classList.add('is-tap'); item.tabIndex = 0; item.setAttribute('role', 'button'); item.setAttribute('aria-label', `${m.label}: open its chart on Fitness`); lv.append(icon('chevron', 'ck-chev'));
       const go = () => { state.fitSport[h.k] = h.s || h.k; window.CX.openTile(h.k); show('trends', true); const t = $('f-' + h.k); if (t && document.activeElement !== t) t.scrollIntoView({ block: 'start' }); };
       item.addEventListener('click', go); item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); }
     item.dataset.mag = String((improved ? 1000 : 0) + (dLv ? 100 * Math.abs(dLv) : Math.abs(dp || 0))); // gains first, the biggest move first within each
