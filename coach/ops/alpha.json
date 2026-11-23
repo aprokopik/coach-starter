@@ -157,35 +157,35 @@
   },
   {
    "id": "survey_read",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "one_readiness",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "readiness_score",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "day_weather",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "no_train_today",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "day_pick",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "day_top",
-   "status": "alpha"
+   "status": "beta"
   },
   {
    "id": "skills_tap",
-   "status": "alpha"
+   "status": "beta"
   }
  ]
 }
