@@ -160,6 +160,8 @@ def main():
     probs = problems(_load("coach/plan.json"), _load("coach/week.json"), t)
     if os.path.exists(os.path.join(ROOT, "coach/block_briefs.json")):
         probs += brief_problems(_load("coach/block_briefs.json"), t)
+    import drift_check  # 6.173.0: lighter weeks name a reason (RULES 3); replaced decisions name their sweep
+    probs += drift_check.problems()
     print("\n".join(probs) if probs else "ok")
     sys.exit(1 if probs else 0)
 

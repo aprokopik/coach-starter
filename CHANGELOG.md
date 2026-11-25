@@ -2,6 +2,9 @@
 
 One version number for this coach, MAJOR.MINOR.PATCH, held in `VERSION`. MAJOR: a contract changes (`coach/engine/RULES.md`, `coach/engine/schemas.json`, a coach.json row shape, a store collection the morning run reads). MINOR: a new feature. PATCH: a fix. `setup/update.py` brings a coach made from an older kit up to the latest one.
 
+## 6.173.0 (2026-11-25)
+- Engine, Feature: none (a rule check, no switch): a lighter week names its reason. RCA (the kit maker, Nov 25, 2026: "Why is next week a recovery week? I havent really been pushed in capacity yet", then "I want to rca and capa"): the Oct 17 weight plan (P5) put recovery weeks on fixed dates; P5 was replaced Nov 11, its recovery weeks stayed in plan.json, and the Sunday plan pencilled Nov 30 to Dec 6 as one against RULES 3 (deloads by signals, not the calendar). New `coach/tools/drift_check.py`, run by `key_check.py`: a recovery, deload or lighter week in plan.json or week.json carries `(reason: taper | after <event> | <RULES 3 signal>)` or `deload_reason`; a CURRENT-STATE History line that replaces a decision ends with `Swept: ...` (the supersession sweep, written into the CURRENT-STATE header). Tests: coach/tests/test_drift_check.py.
+
 ## 6.172.0 (2026-11-23)
 - Dashboard, Feature: none (a layout move the kit maker asked for on the page, no switch): the level chip on each Skills · last 7 days row on Today sits top right of the row, with the open arrow under it (the kit maker, dashboard comment Nov 23, 2026: "put this in the top right corner"). It was under the skill name. The arrow moved under the chip so names keep their room: at 360 px only Aerobic engine (VO2max) wraps to two lines, none at 390 px. No data change.
 
